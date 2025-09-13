@@ -6,79 +6,32 @@
     <title>TEXMEX Annaba - Tacos, Burgers & More</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #f1f5f9; }
         html { scroll-behavior: smooth; }
-        .loader {
-            border: 5px solid #f3f3f3; border-top: 5px solid #f97316;
-            border-radius: 50%; width: 50px; height: 50px;
-            animation: spin 1s linear infinite;
-        }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #f97316; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .small-loader {
-            border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff;
-            border-radius: 50%; width: 20px; height: 20px;
-            animation: spin 0.8s linear infinite;
-        }
+        .small-loader { border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; translateY(0); } }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s; padding: 1rem; }
+        .modal-content { background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; max-height: 95vh; display: flex; flex-direction: column; animation: slideInUp 0.4s; position: relative; }
+        .special-offer-card { border: 2px solid #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+        .special-offer-card::before { content: attr(data-tag); position: absolute; top: 12px; left: -8px; background-color: #f59e0b; color: white; padding: 4px 12px; border-radius: 5px; font-size: 14px; font-weight: bold; z-index: 10; }
+        #order-badge { position: absolute; top: -8px; left: -8px; background-color: #ef4444; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 2px solid white; }
+        .sidebar { transition: transform 0.3s ease-in-out; }
+        .sidebar-overlay { transition: opacity 0.3s ease-in-out; }
+        .is-visible { opacity: 1; pointer-events: auto; }
+        .is-hidden { opacity: 0; pointer-events: none; }
+        .glowing-btn { animation: glow 1.5s infinite alternate; }
+        @keyframes glow { from { box-shadow: 0 0 5px #14b8a6, 0 0 10px #14b8a6, 0 0 15px #14b8a6; } to { box-shadow: 0 0 20px #0d9488, 0 0 30px #0d9488, 0 0 40px #0d9488; } }
+        /* --- Toast Notification Styles --- */
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; align-items: center; }
+        .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
+        .toast.success { background-color: #2f855a; }
+        .toast.error { background-color: #c53030; }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); z-index: 50;
-            display: flex; align-items: center; justify-content: center;
-            animation: fadeIn 0.3s; padding: 1rem;
-        }
-        .modal-content {
-            background-color: white; border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%;
-            max-width: 500px; max-height: 95vh;
-            display: flex; flex-direction: column;
-            animation: slideInUp 0.4s; position: relative;
-        }
-        .special-offer-card {
-            border: 3px solid #f59e0b;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5), 0 0 25px rgba(245, 158, 11, 0.3);
-            transform: scale(1.02);
-        }
-        .special-offer-card::before {
-            content: 'مميز';
-            position: absolute;
-            top: 10px;
-            left: -8px;
-            background-color: #f59e0b;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 10;
-        }
-        #order-badge {
-            position: absolute; top: -8px; left: -8px;
-            background-color: #ef4444; color: white;
-            border-radius: 50%; width: 22px; height: 22px;
-            font-size: 13px; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid white;
-        }
-        .sidebar {
-            transition: transform 0.3s ease-in-out;
-        }
-        .sidebar-overlay {
-            transition: opacity 0.3s ease-in-out;
-        }
-        .is-visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .is-hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -94,7 +47,7 @@
                     TEX<span class="text-orange-500">MEX</span>
                 </h1>
             </div>
-            <div class="flex items-center gap-4">
+            <div id="header-actions" class="flex items-center gap-4">
                 <button id="order-btn" class="relative text-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg">
                     <i class="fas fa-shopping-basket"></i>
                     <span class="hidden md:inline">طلبيتي</span>
@@ -123,6 +76,9 @@
                         </div>
                     </div>
                     <div>
+                        <button id="show-offers-btn" class="w-full text-right p-3 mb-3 rounded-md font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-2">
+                            <i class="fas fa-star"></i> عرض العروض والباقات
+                        </button>
                         <h4 class="font-semibold text-gray-700 mb-2">الأقسام</h4>
                         <div id="store-categories" class="space-y-2">
                             <div class="text-center p-4"><div class="loader mx-auto"></div></div>
@@ -137,6 +93,7 @@
                  <section id="offers-section" class="mb-12 hidden">
                     <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 border-r-4 border-orange-500 pr-4">العروض الحصرية والباقات</h2>
                     <div id="offers-loader" class="text-center py-10"><div class="loader mx-auto"></div></div>
+                    <div id="free-delivery-offer-container" class="hidden mb-6"></div>
                     <div id="offers-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
                  </section>
 
@@ -163,6 +120,7 @@
     </footer>
 
     <div id="modal-container"></div>
+    <div id="toast-container"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -207,6 +165,20 @@
             offersSection: document.getElementById('offers-section'),
             offersGrid: document.getElementById('offers-grid'),
             offersLoader: document.getElementById('offers-loader'),
+            freeDeliveryOfferContainer: document.getElementById('free-delivery-offer-container'),
+            headerActions: document.getElementById('header-actions'),
+            showOffersBtn: document.getElementById('show-offers-btn')
+        };
+        
+        // --- NEW: Toast Notification ---
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         };
 
         // --- UTILITY FUNCTIONS ---
@@ -214,9 +186,7 @@
             let timeout;
             return (...args) => {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    func.apply(this, args);
-                }, delay);
+                timeout = setTimeout(() => { func.apply(this, args); }, delay);
             };
         };
         
@@ -234,16 +204,23 @@
 
         const addToOrder = (itemId) => {
             if (!restaurantSettings.isOpen) {
-                alert(restaurantSettings.closedMessage || "المطعم مغلق حاليًا، لا يمكن إضافة طلبات.");
+                showInfoModal(
+                    'المطعم مغلق حاليًا',
+                    restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي. يرجى مراجعة أوقات العمل.'
+                );
                 return;
             }
+            
             const item = menuItemsCache.find(p => p.id === itemId);
             if (!item) return;
+
             const existingItem = order.find(i => i.id === itemId);
             if (existingItem) existingItem.quantity++;
             else order.push({ ...item, quantity: 1 });
+            
             saveOrderToStorage();
-            alert(`تم إضافة "${item.name.replace(/<[^>]*>?/gm, '')}" إلى طلبيتك!`);
+            // --- UPDATED: Use toast notification instead of alert ---
+            showToast(`تم إضافة "${item.name.replace(/<[^>]*>?/gm, '')}" إلى طلبيتك!`, 'success');
         };
 
         window.updateOrderQuantity = (itemId, newQuantity) => {
@@ -257,6 +234,29 @@
         };
 
         // --- MODAL & UI LOGIC ---
+        const showInfoModal = (title, message, onConfirm = null) => {
+            const modalHTML = `
+            <div class="modal-backdrop" id="modal-backdrop">
+                <div class="modal-content text-center !max-w-md">
+                    <div class="p-6">
+                        <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold mb-2">${title}</h2>
+                        <p class="text-gray-600 leading-relaxed">${message}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 border-t">
+                        <button id="modal-close" class="w-full bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-orange-600 transition-colors">حسنًا</button>
+                    </div>
+                </div>
+            </div>`;
+            elements.modalContainer.innerHTML = modalHTML;
+            const close = () => {
+                elements.modalContainer.innerHTML = '';
+                if (onConfirm) onConfirm();
+            };
+            document.getElementById('modal-close').onclick = close;
+            document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
+        };
+
         const showOrderModal = () => {
             let contentHTML = '';
             let subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -266,7 +266,7 @@
             } else {
                 order.forEach(item => {
                     const itemTotal = item.price * item.quantity;
-                    const image = (item.imageUrls && item.imageUrls.length > 0 && item.imageUrls[0]) ? item.imageUrls[0] : 'https://via.placeholder.com/150';
+                    const image = item.imageUrl || 'https://via.placeholder.com/150';
                     contentHTML += `
                         <div class="flex items-center gap-4 py-3 border-b">
                             <img src="${image}" class="w-16 h-16 rounded-md object-cover bg-gray-100" alt="">
@@ -300,24 +300,50 @@
         };
 
         const showCheckoutModal = () => {
-            const deliveryOptions = deliveryZonesCache.map(zone => `<option value="${zone.id}" data-price="${zone.price}">${zone.name} - ${zone.price} د.ج</option>`).join('');
-            const modalHTML = `<div class="modal-backdrop" id="modal-backdrop"><div class="modal-content"><div class="p-5 border-b flex justify-between items-center"><h2 class="text-xl font-bold">معلومات التوصيل</h2><button id="modal-close" class="text-2xl hover:text-red-500">&times;</button></div><form id="order-form" class="p-5 overflow-y-auto space-y-4"><input type="text" id="customer-name" required placeholder="الاسم الكامل" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"><input type="tel" id="customer-contact" required placeholder="رقم الهاتف" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" dir="ltr"><div><label class="font-semibold text-sm text-gray-700">اختر منطقة التوصيل</label><select id="customer-location" required class="mt-1 w-full p-3 border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"><option value="" disabled selected>-- اختر المنطقة --</option>${deliveryOptions}</select></div><div id="total-price-summary" class="p-3 bg-gray-100 rounded-lg text-center font-bold text-lg"></div></form><div class="p-4 border-t bg-gray-50"><button id="submit-order-btn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg text-lg hover:bg-orange-600" disabled>أكمل الطلب</button></div></div></div>`;
+            const deliveryOptions = deliveryZonesCache.map(zone => `<option value="${zone.id}" data-price-normal="${zone.price_normal}" data-price-fast="${zone.price_fast}">${zone.name}</option>`).join('');
+            const modalHTML = `<div class="modal-backdrop" id="modal-backdrop"><div class="modal-content"><div class="p-5 border-b flex justify-between items-center"><h2 class="text-xl font-bold">معلومات التوصيل</h2><button id="modal-close" class="text-2xl hover:text-red-500">&times;</button></div><form id="order-form" class="p-5 overflow-y-auto space-y-4">
+                <input type="text" id="customer-name" required placeholder="الاسم الكامل" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <input type="tel" id="customer-contact" required placeholder="رقم الهاتف" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" dir="ltr">
+                <div>
+                    <label class="font-semibold text-sm text-gray-700">اختر منطقة التوصيل</label>
+                    <select id="customer-location" required class="mt-1 w-full p-3 border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"><option value="" disabled selected>-- اختر المنطقة --</option>${deliveryOptions}</select>
+                </div>
+                <textarea id="customer-instructions" placeholder="تعليمات إضافية للتوصيل (اختياري)..." rows="2" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                <div id="total-price-summary" class="p-4 bg-gray-100 rounded-lg text-center font-bold text-lg space-y-2"></div>
+            </form><div class="p-4 border-t bg-gray-50"><button id="submit-order-btn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg text-lg hover:bg-orange-600" disabled>أكمل الطلب</button></div></div></div>`;
             elements.modalContainer.innerHTML = modalHTML;
+            
             const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
             const locationSelect = document.getElementById('customer-location');
             const summaryDiv = document.getElementById('total-price-summary');
             const submitBtn = document.getElementById('submit-order-btn');
+
             const updateTotal = () => {
                 const selectedOption = locationSelect.options[locationSelect.selectedIndex];
-                if (!selectedOption || !selectedOption.dataset.price) {
-                    summaryDiv.innerHTML = `المجموع: ${subTotal.toLocaleString()} د.ج + سعر التوصيل`;
+                if (!selectedOption || !selectedOption.value) {
+                    summaryDiv.innerHTML = `<span>المجموع: ${subTotal.toLocaleString()} د.ج</span><span class="text-sm text-gray-500 block">الرجاء اختيار منطقة التوصيل</span>`;
                     submitBtn.disabled = true; return;
                 }
-                const deliveryFee = parseFloat(selectedOption.dataset.price);
-                const grandTotal = subTotal + deliveryFee;
-                summaryDiv.innerHTML = `المجموع: ${subTotal.toLocaleString()} + التوصيل: ${deliveryFee.toLocaleString()} = <span class="text-green-600">${grandTotal.toLocaleString()} د.ج</span>`;
+                const deliveryFee = parseFloat(selectedOption.dataset.priceNormal);
+                
+                let finalDeliveryFee = deliveryFee;
+                let deliveryMessage = `التوصيل: ${deliveryFee.toLocaleString()} د.ج`;
+
+                if (restaurantSettings.isFreeDeliveryActive && subTotal >= restaurantSettings.freeDeliveryThreshold) {
+                    finalDeliveryFee = 0;
+                    deliveryMessage = `<span class="text-green-600 font-bold">التوصيل: مجاني! 🎉</span>`;
+                }
+
+                const grandTotal = subTotal + finalDeliveryFee;
+                summaryDiv.innerHTML = `
+                    <span>المنتجات: ${subTotal.toLocaleString()} د.ج</span>
+                    <span>+ ${deliveryMessage}</span>
+                    <hr class="my-1">
+                    <span class="text-2xl">الإجمالي: ${grandTotal.toLocaleString()} د.ج</span>
+                `;
                 submitBtn.disabled = false;
             };
+
             updateTotal();
             locationSelect.onchange = updateTotal;
             const close = () => elements.modalContainer.innerHTML = '';
@@ -329,7 +355,7 @@
 
         const showDhikrCountdownModal = () => {
             return new Promise(resolve => {
-                let seconds = 20;
+                let seconds = 5;
                 const modalHTML = `
                 <div class="modal-backdrop">
                     <div class="modal-content text-center p-8">
@@ -343,7 +369,7 @@
                 const timerElement = document.getElementById('countdown-timer');
                 const interval = setInterval(() => {
                     seconds--;
-                    timerElement.textContent = seconds;
+                    if(timerElement) timerElement.textContent = seconds;
                     if (seconds <= 0) {
                         clearInterval(interval);
                         resolve();
@@ -356,15 +382,13 @@
             const modalHTML = `
             <div class="modal-backdrop" id="modal-backdrop">
                 <div class="modal-content text-center p-6">
-                    <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
-                    <h2 class="text-2xl font-bold">تم استلام طلبك بنجاح!</h2>
-                    <p class="text-gray-600 my-4">كيف تفضل أن نتصل بك لتأكيد الطلب؟</p>
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">اختر طريقة التأكيد</h2><button id="modal-close" class="text-2xl hover:text-red-500">&times;</button></div>
+                    <p class="text-gray-600 my-4">كيف تفضل أن نتصل بك لتسريع تأكيد الطلب؟</p>
                     <div id="confirmation-choices" class="space-y-3 my-5">
                         <button data-choice="phone" class="w-full text-center bg-blue-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600"><i class="fas fa-phone"></i> عبر اتصال هاتفي</button>
                         <button data-choice="whatsapp" class="w-full text-center bg-green-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600"><i class="fab fa-whatsapp"></i> عبر رسالة واتساب</button>
                         <button data-choice="instagram" class="w-full text-center bg-pink-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-pink-600"><i class="fab fa-instagram"></i> عبر رسالة انستغرام</button>
                     </div>
-                    <button id="modal-close" class="mt-4 text-gray-500 hover:underline">لا بأس، سأنتظر اتصالكم</button>
                 </div>
             </div>`;
             elements.modalContainer.innerHTML = modalHTML;
@@ -382,11 +406,15 @@
                         <div class="modal-content text-center p-8">
                             <i class="fas fa-thumbs-up text-6xl text-green-500 mb-4"></i>
                             <h2 class="text-2xl font-bold">شكرًا لك!</h2>
-                            <p class="text-gray-600 my-4">سنتواصل معك بالطريقة التي اخترتها قريبًا.</p>
+                            <p class="text-gray-600 my-4">تم تسجيل اختيارك، سنتواصل معك بالطريقة التي اخترتها قريبًا.</p>
                             <button id="final-close" class="mt-4 bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">إغلاق</button>
                         </div>
                     </div>`;
-                    document.getElementById('final-close').onclick = () => elements.modalContainer.innerHTML = '';
+                    document.getElementById('final-close').onclick = () => {
+                        elements.modalContainer.innerHTML = '';
+                        document.getElementById('expedite-btn')?.remove(); 
+                        sessionStorage.removeItem('recent_order_id');
+                    };
                 }
             };
 
@@ -396,52 +424,93 @@
                     handleChoice(choiceBtn.dataset.choice);
                 }
             });
-
-            document.getElementById('modal-close').onclick = () => elements.modalContainer.innerHTML = '';
+            const close = () => elements.modalContainer.innerHTML = '';
+            document.getElementById('modal-close').onclick = close;
+            document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
         };
 
+        // --- CRITICAL FIX: Restructured order submission logic ---
         const handleOrderSubmit = async (e) => {
             e.preventDefault();
+            
+            // Step 1: Read all data from the form BEFORE closing the modal
+            const form = document.getElementById('order-form');
             const submitBtn = document.getElementById('submit-order-btn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="small-loader"></span> جاري الإرسال...';
-            
-            await showDhikrCountdownModal();
-            
+            const customerName = document.getElementById('customer-name').value.trim();
+            const customerContact = document.getElementById('customer-contact').value.trim();
+            const customerInstructions = document.getElementById('customer-instructions').value.trim();
             const locationSelect = document.getElementById('customer-location');
             const selectedZone = locationSelect.options[locationSelect.selectedIndex];
+            
+            if (!form.checkValidity() || !selectedZone.value) {
+                showToast("الرجاء ملء جميع الحقول المطلوبة.", "error");
+                return;
+            }
+
+            const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            let deliveryFee = parseFloat(selectedZone.dataset.priceNormal);
+            if (restaurantSettings.isFreeDeliveryActive && subTotal >= restaurantSettings.freeDeliveryThreshold) {
+                deliveryFee = 0;
+            }
+
             const orderData = {
-                customerName: document.getElementById('customer-name').value.trim(),
-                customerContact: document.getElementById('customer-contact').value.trim(),
+                customerName: customerName,
+                customerContact: customerContact,
                 customerLocation: selectedZone.text,
-                deliveryFee: parseFloat(selectedZone.dataset.price),
-                totalPrice: order.reduce((sum, item) => sum + item.price * item.quantity, 0) + parseFloat(selectedZone.dataset.price),
+                customerInstructions: customerInstructions,
+                deliveryFee: deliveryFee,
+                totalPrice: subTotal + deliveryFee,
                 items: order.map(item => ({ name: item.name.replace(/<[^>]*>?/gm, ''), quantity: item.quantity, price: item.price })),
                 status: 'new',
                 createdAt: serverTimestamp(),
                 confirmationPreference: null
             };
 
+            // Step 2: Disable button, close checkout modal, and show countdown
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="small-loader"></span>';
+            elements.modalContainer.innerHTML = ''; // Now it's safe to close
+            await showDhikrCountdownModal();
+            
+            // Step 3: Try to submit the data
             try {
                 const docRef = await addDoc(collection(db, "orders"), orderData);
-                showSecondaryConfirmationChoiceModal(docRef.id);
+                
+                showInfoModal(
+                    'تم استلام طلبك بنجاح!',
+                    'شكرًا لطلبك من TEXMEX. يمكنك الضغط على زر "تأكيد ثانوي للطلبية" في الأعلى لاختيار طريقة تواصل أسرع.',
+                    () => { addExpediteButton(docRef.id); }
+                );
+
+                sessionStorage.setItem('recent_order_id', docRef.id);
                 order = [];
                 saveOrderToStorage();
+
             } catch (error) {
                 console.error("Error submitting order: ", error);
-                alert("حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.");
-                elements.modalContainer.innerHTML = ''; // Close countdown modal on error
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'أكمل الطلب';
+                elements.modalContainer.innerHTML = ''; 
+                showInfoModal('خطأ في الإرسال', 'حدث خطأ غير متوقع أثناء إرسال طلبك. الرجاء المحاولة مرة أخرى أو الاتصال بنا مباشرة.');
             }
         };
 
-        // --- DATA FETCHING & RENDERING ---
+        const addExpediteButton = (orderId) => {
+            if (document.getElementById('expedite-btn')) return; 
+            const expediteBtn = document.createElement('button');
+            expediteBtn.id = 'expedite-btn';
+            // --- UPDATED: New style and text ---
+            expediteBtn.className = 'text-lg font-semibold text-white bg-teal-500 hover:bg-teal-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg glowing-btn';
+            expediteBtn.innerHTML = `<i class="fas fa-bolt"></i> <span class="hidden md:inline">تأكيد ثانوي للطلبية</span>`;
+            expediteBtn.onclick = () => showSecondaryConfirmationChoiceModal(orderId);
+            elements.headerActions.insertBefore(expediteBtn, elements.orderBtn);
+        };
+
         const renderMenuItems = () => {
             const activeCatBtn = document.querySelector('.category-filter-btn.bg-orange-100');
             const selectedCatId = activeCatBtn ? activeCatBtn.dataset.id : 'all';
             const searchTerm = elements.searchInput.value.toLowerCase().trim();
-            const filteredItems = menuItemsCache.filter(item => (selectedCatId === 'all' || item.categoryId === selectedCatId) && item.name.toLowerCase().includes(searchTerm));
+            const availableItems = menuItemsCache.filter(item => item.isAvailable !== false);
+            const filteredItems = availableItems.filter(item => (selectedCatId === 'all' || item.categoryId === selectedCatId) && item.name.toLowerCase().includes(searchTerm));
+            
             elements.grid.innerHTML = '';
             if (filteredItems.length === 0) {
                 elements.noProductsMsg.classList.remove('hidden');
@@ -449,10 +518,12 @@
             }
             elements.noProductsMsg.classList.add('hidden');
             elements.grid.classList.remove('hidden');
+            
             filteredItems.forEach(item => {
-                const image = (item.imageUrls && item.imageUrls.length > 0 && item.imageUrls[0]) ? item.imageUrls[0] : 'https://via.placeholder.com/300x224.png?text=TEXMEX';
+                const image = item.imageUrl || 'https://via.placeholder.com/300x224.png?text=TEXMEX';
                 const card = document.createElement('div');
                 card.className = `relative bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl ${item.isOffer ? 'special-offer-card' : ''}`;
+                if(item.isOffer) card.setAttribute('data-tag', item.offerTag || 'مميز');
                 const namePlainText = item.name.replace(/<[^>]*>?/gm, "");
                 card.innerHTML = `<div class="h-56 overflow-hidden relative"><img src="${image}" alt="${namePlainText}" class="w-full h-full object-cover bg-gray-100" loading="lazy"></div><div class="p-4 flex flex-col flex-grow"><h3 class="text-lg font-bold text-gray-800" title="${namePlainText}">${item.name}</h3><div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${item.description || ''}</p></div><p class="text-orange-600 text-2xl font-extrabold mt-2">${item.price.toLocaleString()} د.ج</p></div><div class="p-4 mt-auto pt-2 border-t border-gray-100"><button data-id="${item.id}" class="add-to-order-btn w-full bg-orange-500 text-white font-bold py-2.5 px-4 rounded-lg transition-colors hover:bg-orange-600 flex items-center justify-center gap-2"><i class="fas fa-plus"></i> أضف للطلبية</button></div>`;
                 elements.grid.appendChild(card);
@@ -461,8 +532,24 @@
         
         const renderOffers = async () => {
             try {
+                if (restaurantSettings.isFreeDeliveryActive && restaurantSettings.freeDeliveryThreshold > 0) {
+                    elements.freeDeliveryOfferContainer.innerHTML = `
+                        <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-xl shadow-lg flex items-center gap-6">
+                            <i class="fas fa-truck-fast fa-3x"></i>
+                            <div>
+                                <h3 class="text-2xl font-extrabold">توصيل مجاني!</h3>
+                                <p class="font-semibold">احصل على توصيل مجاني لطلباتك التي تفوق قيمتها ${restaurantSettings.freeDeliveryThreshold.toLocaleString()} د.ج!</p>
+                            </div>
+                        </div>`;
+                    elements.freeDeliveryOfferContainer.classList.remove('hidden');
+                }
+
                 const snapshot = await getDocs(query(collection(db, "offers"), orderBy("createdAt", "desc")));
-                if (snapshot.empty) { elements.offersSection.classList.add('hidden'); return; }
+                if (snapshot.empty && !restaurantSettings.isFreeDeliveryActive) { 
+                    elements.offersSection.classList.add('hidden'); 
+                    return; 
+                }
+
                 elements.offersSection.classList.remove('hidden');
                 elements.offersGrid.innerHTML = '';
                 snapshot.forEach(doc => {
@@ -478,24 +565,41 @@
         };
 
         const checkRestaurantStatus = () => {
+            if (restaurantSettings.isManuallyClosed) {
+                restaurantSettings.isOpen = false;
+                elements.statusMessage.textContent = restaurantSettings.closedMessage || `المطعم مغلق حاليًا لأمر طارئ.`;
+                elements.statusBanner.classList.remove('hidden');
+                return;
+            }
+
             const { openTime, closeTime, closedMessage } = restaurantSettings;
             if (!openTime || !closeTime) { restaurantSettings.isOpen = true; return; }
             const now = new Date();
             const currentTime = now.getHours() * 60 + now.getMinutes();
             const open = parseInt(openTime.split(':')[0]) * 60 + parseInt(openTime.split(':')[1]);
             const close = parseInt(closeTime.split(':')[0]) * 60 + parseInt(closeTime.split(':')[1]);
-            if (currentTime >= open && currentTime < close) {
-                restaurantSettings.isOpen = true; elements.statusBanner.classList.add('hidden');
+            
+            if (close < open) {
+                restaurantSettings.isOpen = (currentTime >= open || currentTime < close);
             } else {
-                restaurantSettings.isOpen = false; elements.statusMessage.textContent = closedMessage || `المطعم مغلق حاليًا. نفتح من ${openTime} إلى ${closeTime}.`; elements.statusBanner.classList.remove('hidden');
+                restaurantSettings.isOpen = (currentTime >= open && currentTime < close);
+            }
+            
+            if(restaurantSettings.isOpen) {
+                elements.statusBanner.classList.add('hidden');
+            } else {
+                elements.statusMessage.textContent = closedMessage || `المطعم مغلق حاليًا. نفتح من ${openTime} إلى ${closeTime}.`; 
+                elements.statusBanner.classList.remove('hidden');
             }
         };
 
         const initializeStore = async () => {
             try {
+                setInterval(() => { location.reload(); }, 300000);
+
                 const [settingsSnap, zonesSnap, categoriesSnap, productsSnap] = await Promise.all([
                     getDoc(doc(db, "settings", "config")),
-                    getDocs(collection(db, "delivery_zones")),
+                    getDocs(query(collection(db, "delivery_zones"), orderBy("name"))),
                     getDocs(query(collection(db, "categories"), orderBy("name"))),
                     getDocs(query(collection(db, "products"), orderBy("createdAt", "desc")))
                 ]);
@@ -505,10 +609,12 @@
                 let linksHTML = '';
                 if(social.facebook1) linksHTML += `<a href="${social.facebook1}" target="_blank" class="w-12 h-12 flex items-center justify-center bg-blue-600 rounded-full text-2xl hover:scale-110 transition-transform"><i class="fab fa-facebook-f"></i></a>`;
                 if(social.instagram1) linksHTML += `<a href="${social.instagram1}" target="_blank" class="w-12 h-12 flex items-center justify-center bg-pink-500 rounded-full text-2xl hover:scale-110 transition-transform"><i class="fab fa-instagram"></i></a>`;
-                if(social.whatsapp1) linksHTML += `<a href="https://wa.me/${social.whatsapp1}" target="_blank" class="w-12 h-12 flex items-center justify-center bg-green-500 rounded-full text-2xl hover:scale-110 transition-transform"><i class="fab fa-whatsapp"></i></a>`;
+                if(social.whatsapp1) linksHTML += `<a href="https://wa.me/${social.whatsapp1.replace(/\D/g,'')}" target="_blank" class="w-12 h-12 flex items-center justify-center bg-green-500 rounded-full text-2xl hover:scale-110 transition-transform"><i class="fab fa-whatsapp"></i></a>`;
                 elements.socialLinksContainer.innerHTML = linksHTML;
                 if(social.phone1) elements.footerPhone.innerHTML = `للتواصل المباشر: <a href="tel:${social.phone1}" class="font-bold hover:underline" dir="ltr">${social.phone1}</a>`;
+                
                 checkRestaurantStatus();
+                setInterval(checkRestaurantStatus, 60000);
 
                 deliveryZonesCache = zonesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -522,16 +628,21 @@
                 renderMenuItems();
                 renderOffers();
 
-                // --- Event Listeners ---
                 const debouncedRender = debounce(renderMenuItems, 300);
                 const toggleSidebar = () => {
                     elements.sidebar.classList.toggle('translate-x-full');
                     elements.sidebarOverlay.classList.toggle('is-hidden');
                     elements.sidebarOverlay.classList.toggle('is-visible');
                 };
+                
+                // --- Event Listeners ---
                 elements.sidebarToggle.onclick = toggleSidebar;
                 elements.closeSidebar.onclick = toggleSidebar;
                 elements.sidebarOverlay.onclick = toggleSidebar;
+                elements.showOffersBtn.onclick = () => {
+                    elements.offersSection.scrollIntoView({ behavior: 'smooth' });
+                    if (window.innerWidth < 768) toggleSidebar();
+                };
 
                 elements.categoriesContainer.addEventListener('click', e => {
                     if (e.target.classList.contains('category-filter-btn')) {
@@ -545,6 +656,12 @@
                 elements.searchInput.oninput = debouncedRender;
                 elements.grid.addEventListener('click', (e) => { const btn = e.target.closest('.add-to-order-btn'); if (btn) addToOrder(btn.dataset.id); });
                 updateOrderIcon();
+
+                const recentOrderId = sessionStorage.getItem('recent_order_id');
+                if (recentOrderId) {
+                    addExpediteButton(recentOrderId);
+                }
+
             } catch (error) {
                 console.error("Initialization failed:", error);
                 elements.loader.innerHTML = '<p class="text-red-500">فشل تحميل بيانات المطعم. يرجى تحديث الصفحة.</p>';
