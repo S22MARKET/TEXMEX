@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - أمير الشروق</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #f1f5f9; }
+        .sidebar { width: 260px; transition: transform 0.3s ease; }
+        .main-content { transition: margin-right 0.3s ease; }
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(260px); position: fixed; z-index: 40; }
+            .sidebar.active { transform: translateX(0); }
+            .overlay.active { display: block; }
+        }
+        .loader { border: 8px solid #f3f3f3; border-top: 8px solid #3b82f6; width: 60px; height: 60px; animation: spin 1.5s linear infinite; border-radius: 50%; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        [data-page] { display: none; }
+        [data-page].active { display: block; }
+        .nav-link.active { background-color: #e0f2fe; color: #0284c7; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="dashboard-wrapper">
+        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+        <aside id="sidebar" class="sidebar bg-white h-screen p-4 flex flex-col shadow-lg fixed top-0 right-0">
+            <div class="text-center py-4 mb-4 border-b border-slate-200">
+                <h1 class="text-3xl font-extrabold text-blue-700">أمير الشروق</h1>
+            </div>
+            <nav class="flex-grow">
+                <ul>
+                    <li class="mb-2"><a href="#" class="nav-link flex items-center p-3 text-slate-700 rounded-lg font-bold hover:bg-slate-100 transition-colors" data-target="orders"><i class="fas fa-shopping-cart fa-fw ml-4 text-slate-500"></i> إدارة الطلبات</a></li>
+                    <li class="mb-2"><a href="#" class="nav-link flex items-center p-3 text-slate-700 rounded-lg font-bold hover:bg-slate-100 transition-colors" data-target="analytics"><i class="fas fa-chart-line fa-fw ml-4 text-slate-500"></i> عرض التحليلات</a></li>
+                    <li class="mb-2"><a href="#" class="nav-link flex items-center p-3 text-slate-700 rounded-lg font-bold hover:bg-slate-100 transition-colors" data-target="announcements"><i class="fas fa-bullhorn fa-fw ml-4 text-slate-500"></i> إدارة الأخبار  </a></li>
+                    <li class="mb-2"><a href="#" class="nav-link flex items-center p-3 text-slate-700 rounded-lg font-bold hover:bg-slate-100 transition-colors" data-target="exclusive-offers"><i class="fas fa-star fa-fw ml-4 text-slate-500"></i> إدارة العروض الحصرية</a></li>
+                    <li class="mb-2"><a href="#" class="nav-link flex items-center p-3 text-slate-700 rounded-lg font-bold hover:bg-slate-100 transition-colors" data-target="sales-points"><i class="fas fa-map-marker-alt fa-fw ml-4 text-slate-500"></i> إدارة نقاط البيع</a></li>
+                </ul>
+            </nav>
+            <div>
+                <button id="logout-btn" class="w-full flex items-center p-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold"><i class="fas fa-sign-out-alt ml-4"></i> تحديث الصفحة</button>
+            </div>
+        </aside>
+
+        <div class="main-content flex-1 lg:mr-[260px]">
+            <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-20">
+                <h1 id="page-title" class="text-2xl font-bold text-blue-700"></h1>
+                <button id="menu-toggle" class="lg:hidden text-2xl p-2 text-slate-600"><i class="fas fa-bars"></i></button>
+            </header>
+            
+            <main class="p-4 md:p-8">
+                <div data-page="orders" class="page-content">
+                    <p class="text-slate-600 mb-6 text-lg">عرض، بحث، وإدارة جميع الطلبات الواردة.</p>
+                    <div id="orders-loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                    <div id="orders-table-container" class="hidden">
+                        <input type="text" id="searchInput" placeholder="ابحث بالاسم، الهاتف، أو المنتج..." class="w-full p-3 mb-6 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <div class="overflow-x-auto bg-white rounded-lg shadow-lg">
+                            <table class="w-full text-right min-w-[800px]">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="p-4 font-bold text-slate-600">اسم العميل</th>
+                                        <th class="p-4 font-bold text-slate-600">الهاتف والعنوان</th>
+                                        <th class="p-4 font-bold text-slate-600">تفاصيل الطلب</th>
+                                        <th class="p-4 font-bold text-slate-600">الحالة</th>
+                                        <th class="p-4 font-bold text-slate-600">التاريخ</th>
+                                        <th class="p-4 font-bold text-slate-600">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-body" class="divide-y divide-slate-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div data-page="analytics" class="page-content">
+                    <div id="analytics-loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                    <div id="analytics-content" class="hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-lg shadow-lg text-center"><h3 class="text-slate-500 font-bold">إجمالي الطلبات</h3><p id="total-orders" class="text-4xl font-extrabold text-blue-600 mt-2"></p></div>
+                            <div class="bg-white p-6 rounded-lg shadow-lg text-center"><h3 class="text-slate-500 font-bold">إجمالي المنتجات المطلوبة</h3><p id="total-products-ordered" class="text-4xl font-extrabold text-blue-600 mt-2"></p></div>
+                        </div>
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <h3 class="text-xl font-bold mb-4 text-slate-800">الطلبات حسب الأسبوع</h3>
+                                <canvas id="orders-by-week-chart"></canvas>
+                            </div>
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <h3 class="text-xl font-bold mb-4 text-slate-800">المنتجات الأكثر طلباً</h3>
+                                <div id="top-products-list" class="space-y-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div data-page="announcements" class="page-content">
+                    <p class="text-slate-600 mb-6 text-lg">إضافة وتعديل وحذف الأخبار والعروض العامة.</p>
+                    <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                        <h3 class="text-xl font-bold mb-4 text-slate-800">إضافة أو تعديل خبر</h3>
+                        <form id="announcement-form" class="space-y-4">
+                            <input type="hidden" id="announcement-id">
+                            <input type="text" id="announcement-title" placeholder="عنوان الخبر" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <textarea id="announcement-content" placeholder="محتوى الخبر" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="4" required></textarea>
+                            <div class="flex gap-4">
+                               <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">حفظ</button>
+                               <button type="button" id="cancel-edit-btn" class="bg-slate-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-slate-600 hidden transition-colors">إلغاء التعديل</button>
+                            </div>
+                        </form>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">الأخبار الحالية</h3>
+                    <div id="announcements-loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                    <div id="announcements-list" class="space-y-4"></div>
+                </div>
+
+                <div data-page="exclusive-offers" class="page-content">
+                    <p class="text-slate-600 mb-6 text-lg">إضافة وتعديل وحذف العروض التي تظهر في صفحة العروض الحصرية.</p>
+                    <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                        <h3 class="text-xl font-bold mb-4 text-slate-800">إضافة أو تعديل عرض حصري</h3>
+                        <form id="exclusive-offer-form" class="space-y-4">
+                            <input type="hidden" id="exclusive-offer-id">
+                            <input type="text" id="exclusive-offer-title" placeholder="عنوان العرض الحصري" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <textarea id="exclusive-offer-content" placeholder="محتوى العرض الحصري" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="4" required></textarea>
+                            <div class="flex gap-4">
+                               <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">حفظ العرض</button>
+                               <button type="button" id="cancel-exclusive-edit-btn" class="bg-slate-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-slate-600 hidden transition-colors">إلغاء التعديل</button>
+                            </div>
+                        </form>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">العروض الحصرية الحالية</h3>
+                    <div id="exclusive-offers-loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                    <div id="exclusive-offers-list" class="space-y-4"></div>
+                </div>
+                
+                <div data-page="sales-points" class="page-content">
+                    <p class="text-slate-600 mb-6 text-lg">إدارة نقاط البيع التي تظهر في صفحة الخرائط.</p>
+                    <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                        <h3 class="text-xl font-bold mb-4">إضافة أو تعديل نقطة بيع</h3>
+                        <form id="sales-point-form" class="space-y-4">
+                            <input type="hidden" id="sales-point-id">
+                            <input type="text" id="sales-point-name" placeholder="اسم المحل أو نقطة البيع" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <input type="text" id="sales-point-wilaya" placeholder="الولاية" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <input type="text" id="sales-point-address" placeholder="العنوان" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <input type="url" id="sales-point-maplink" placeholder="رابط خرائط جوجل (يجب أن يحتوي على @)" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            <div class="flex gap-4">
+                                <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">حفظ النقطة</button>
+                                <button type="button" id="cancel-point-edit-btn" class="bg-slate-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-slate-600 hidden transition-colors">إلغاء التعديل</button>
+                            </div>
+                        </form>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">نقاط البيع الحالية</h3>
+                    <div id="sales-points-loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+                    <div id="sales-points-list" class="space-y-4"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyA1VBBOZQOUwnHp8x487g7lkn14x6Sp-7g", authDomain: "stoke-c650a.firebaseapp.com",
+        databaseURL: "https://stoke-c650a-default-rtdb.firebaseio.com", projectId: "stoke-c650a",
+        storageBucket: "stoke-c650a.appspot.com", messagingSenderId: "464151163343",
+        appId: "1:464151163343:web:c77c7dfd093ce9c1c822ba", measurementId: "G-EP0R97CYLS"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // تم حذف منطق تسجيل الدخول، ويتم الآن تهيئة لوحة التحكم مباشرة
+        initializeDashboard();
+        
+        function initializeDashboard() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pages = document.querySelectorAll('.page-content');
+            const pageTitle = document.getElementById('page-title');
+
+            function switchPage(targetId) {
+                pages.forEach(p => p.classList.remove('active'));
+                document.querySelector(`[data-page="${targetId}"]`).classList.add('active');
+                
+                navLinks.forEach(l => l.classList.remove('active'));
+                const activeLink = document.querySelector(`[data-target="${targetId}"]`);
+                activeLink.classList.add('active');
+                pageTitle.textContent = activeLink.textContent.trim();
+            }
+            navLinks.forEach(link => link.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchPage(e.currentTarget.dataset.target);
+            }));
+            
+            initOrders();
+            initAnalytics();
+            initAnnouncements();
+            initExclusiveOffers();
+            initSalesPoints();
+            
+            // يتم الآن عرض صفحة الطلبات بشكل افتراضي
+            switchPage('orders');
+        }
+        
+        function initOrders() {
+            let allOrders = [];
+            const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            const ordersBody = document.getElementById('orders-body');
+            const searchInput = document.getElementById('searchInput');
+
+            onSnapshot(ordersQuery, (snapshot) => {
+                document.getElementById('orders-loader').style.display = 'none';
+                document.getElementById('orders-table-container').classList.remove('hidden');
+                allOrders = snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+                renderOrders(allOrders);
+            });
+
+            function renderOrders(ordersToRender) {
+                if (ordersToRender.length === 0) {
+                     ordersBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-500">لا توجد طلبات.</td></tr>`;
+                     return;
+                }
+                ordersBody.innerHTML = ordersToRender.map(({ id, data: order }) => {
+                    const isDone = order.status === 'تمت الصفقة';
+                    const statusClass = isDone ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    const date = order.createdAt ? order.createdAt.toDate().toLocaleDateString('ar-EG') : 'N/A';
+                    const orderDetailsHtml = order.items ? order.items.map(item => `<li>${item.name} (x${item.quantity}) - ${item.type || ''}</li>`).join('') : `<span>${order.orderDetails || ''}</span>`;
+
+                    return `<tr class="hover:bg-slate-50">
+                            <td class="p-4 align-top font-bold text-slate-700">${order.customerName}</td>
+                            <td class="p-4 align-top"><div class="text-sm text-slate-500" dir="ltr">${order.customerPhone}</div><div class="text-sm text-slate-500">${order.customerLocation}</div></td>
+                            <td class="p-4 align-top"><ul class="list-disc pr-4">${orderDetailsHtml}</ul></td>
+                            <td class="p-4 align-top"><button class="status-toggle-btn w-full font-bold px-3 py-1 rounded-full ${statusClass}" data-id="${id}" data-status="${order.status}">${order.status}</button></td>
+                            <td class="p-4 align-top">${date}</td>
+                            <td class="p-4 align-top"><button class="delete-btn text-red-500 hover:text-red-700 text-2xl" data-id="${id}"><i class="fas fa-trash-alt"></i></button></td>
+                        </tr>`;
+                }).join('');
+            }
+            ordersBody.addEventListener('click', async e => {
+                if (e.target.closest('.status-toggle-btn')) {
+                    const btn = e.target.closest('.status-toggle-btn');
+                    const newStatus = btn.dataset.status === 'تمت الصفقة' ? 'مازال' : 'تمت الصفقة';
+                    await updateDoc(doc(db, 'orders', btn.dataset.id), { status: newStatus });
+                }
+                if (e.target.closest('.delete-btn')) {
+                    const btn = e.target.closest('.delete-btn');
+                    if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) await deleteDoc(doc(db, 'orders', btn.dataset.id));
+                }
+            });
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                const filtered = allOrders.filter(({data: o}) => 
+                    (o.customerName && o.customerName.toLowerCase().includes(term)) ||
+                    (o.customerPhone && o.customerPhone.includes(term)) ||
+                    (o.items && o.items.some(i => i.name.toLowerCase().includes(term)))
+                );
+                renderOrders(filtered);
+            });
+        }
+
+        async function initAnalytics() {
+            const loader = document.getElementById('analytics-loader');
+            const content = document.getElementById('analytics-content');
+            
+            try {
+                const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(ordersQuery);
+                const orders = querySnapshot.docs.map(doc => doc.data());
+
+                // Calculate stats
+                const totalOrders = orders.length;
+                const totalProductsOrdered = orders.reduce((sum, order) => sum + (order.items ? order.items.reduce((itemSum, item) => itemSum + item.quantity, 0) : 0), 0);
+                
+                document.getElementById('total-orders').textContent = totalOrders;
+                document.getElementById('total-products-ordered').textContent = totalProductsOrdered;
+
+                // --- Process data for charts ---
+                // 1. Orders by week
+                const ordersByWeek = {};
+                orders.forEach(order => {
+                    if (order.createdAt) {
+                        const date = order.createdAt.toDate();
+                        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+                        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+                        const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                        const weekKey = `${date.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+                        ordersByWeek[weekKey] = (ordersByWeek[weekKey] || 0) + 1;
+                    }
+                });
+                const sortedWeeks = Object.keys(ordersByWeek).sort();
+                const weekLabels = sortedWeeks.map(key => `أسبوع ${key.split('-W')[1]}`);
+                const weekData = sortedWeeks.map(key => ordersByWeek[key]);
+
+                // 2. Top products
+                const productCounts = {};
+                orders.forEach(order => {
+                    if (order.items) {
+                        order.items.forEach(item => {
+                            productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
+                        });
+                    }
+                });
+                const topProducts = Object.entries(productCounts).sort(([,a],[,b]) => b-a).slice(0, 5);
+                const topProductsList = document.getElementById('top-products-list');
+                topProductsList.innerHTML = topProducts.map(([name, count]) => `
+                    <div class="flex justify-between items-center bg-slate-50 p-3 rounded-md">
+                        <span class="font-bold text-slate-700">${name}</span>
+                        <span class="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full">${count}</span>
+                    </div>`).join('') || '<p class="text-slate-500">لا توجد بيانات كافية.</p>';
+
+                // Render chart
+                new Chart(document.getElementById('orders-by-week-chart'), {
+                    type: 'bar',
+                    data: { labels: weekLabels, datasets: [{ label: 'عدد الطلبات', data: weekData, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1 }] },
+                    options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true }
+                });
+
+                loader.style.display = 'none';
+                content.classList.remove('hidden');
+
+            } catch(e) {
+                console.error("Error fetching analytics: ", e);
+                loader.innerHTML = '<p class="text-red-500">حدث خطأ في تحميل التحليلات.</p>';
+            }
+        }
+        
+        function initAnnouncements() {
+            const form = document.getElementById('announcement-form'), list = document.getElementById('announcements-list'), loader = document.getElementById('announcements-loader'), cancelBtn = document.getElementById('cancel-edit-btn'), idField = document.getElementById('announcement-id'), titleField = document.getElementById('announcement-title'), contentField = document.getElementById('announcement-content');
+
+            onSnapshot(query(collection(db, "announcements"), orderBy("createdAt", "desc")), (snapshot) => {
+                loader.style.display = 'none';
+                list.innerHTML = snapshot.docs.map(docSnap => {
+                    const ann = docSnap.data();
+                    const date = ann.createdAt ? ann.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+                    return `<div class="bg-slate-50 p-4 rounded-lg flex justify-between items-start shadow-sm">
+                            <div>
+                                <p class="text-xs text-slate-500">${date}</p>
+                                <h4 class="font-bold text-slate-800">${ann.title}</h4><p class="text-slate-600">${ann.content}</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button class="edit-btn text-blue-500 hover:text-blue-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn text-red-500 hover:text-red-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-trash"></i></button>
+                            </div></div>`;
+                }).join('') || '<p class="text-center text-slate-500 p-4">لا توجد أخبار حالية.</p>';
+                
+                list.querySelectorAll('.delete-btn').forEach(b => b.onclick = async e => { if(confirm('هل أنت متأكد؟')) await deleteDoc(doc(db, 'announcements', e.currentTarget.dataset.id)); });
+                list.querySelectorAll('.edit-btn').forEach(b => b.onclick = e => {
+                    const id = e.currentTarget.dataset.id, docToEdit = snapshot.docs.find(d => d.id === id).data();
+                    idField.value = id; titleField.value = docToEdit.title; contentField.value = docToEdit.content;
+                    cancelBtn.classList.remove('hidden'); titleField.focus();
+                });
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = idField.value;
+                const data = { title: titleField.value, content: contentField.value };
+                if (id) { await updateDoc(doc(db, 'announcements', id), data); } 
+                else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'announcements'), data); }
+                form.reset(); idField.value = ''; cancelBtn.classList.add('hidden');
+            });
+            cancelBtn.addEventListener('click', () => { form.reset(); idField.value = ''; cancelBtn.classList.add('hidden'); });
+        }
+
+        function initExclusiveOffers() {
+            const form = document.getElementById('exclusive-offer-form'), list = document.getElementById('exclusive-offers-list'), loader = document.getElementById('exclusive-offers-loader'), cancelBtn = document.getElementById('cancel-exclusive-edit-btn'), idField = document.getElementById('exclusive-offer-id'), titleField = document.getElementById('exclusive-offer-title'), contentField = document.getElementById('exclusive-offer-content');
+
+            onSnapshot(query(collection(db, "exclusiveOffers"), orderBy("createdAt", "desc")), (snapshot) => {
+                loader.style.display = 'none';
+                list.innerHTML = snapshot.docs.map(docSnap => {
+                    const offer = docSnap.data();
+                    const date = offer.createdAt ? offer.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+                    return `<div class="bg-slate-50 p-4 rounded-lg flex justify-between items-start shadow-sm">
+                            <div>
+                                <p class="text-xs text-slate-500">${date}</p>
+                                <h4 class="font-bold text-slate-800">${offer.title}</h4><p class="text-slate-600">${offer.content}</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button class="edit-btn text-blue-500 hover:text-blue-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn text-red-500 hover:text-red-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-trash"></i></button>
+                            </div></div>`;
+                }).join('') || '<p class="text-center text-slate-500 p-4">لا توجد عروض حصرية حالية.</p>';
+                
+                list.querySelectorAll('.delete-btn').forEach(b => b.onclick = async e => { if(confirm('هل أنت متأكد؟')) await deleteDoc(doc(db, 'exclusiveOffers', e.currentTarget.dataset.id)); });
+                list.querySelectorAll('.edit-btn').forEach(b => b.onclick = e => {
+                    const id = e.currentTarget.dataset.id, docToEdit = snapshot.docs.find(d => d.id === id).data();
+                    idField.value = id; titleField.value = docToEdit.title; contentField.value = docToEdit.content;
+                    cancelBtn.classList.remove('hidden'); titleField.focus();
+                });
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = idField.value;
+                const data = { title: titleField.value, content: contentField.value };
+                if (id) { await updateDoc(doc(db, 'exclusiveOffers', id), data); } 
+                else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'exclusiveOffers'), data); }
+                form.reset(); idField.value = ''; cancelBtn.classList.add('hidden');
+            });
+            cancelBtn.addEventListener('click', () => { form.reset(); idField.value = ''; cancelBtn.classList.add('hidden'); });
+        }
+        
+        function initSalesPoints() {
+            const form = document.getElementById('sales-point-form'), list = document.getElementById('sales-points-list'), loader = document.getElementById('sales-points-loader'), cancelBtn = document.getElementById('cancel-point-edit-btn'), idField = document.getElementById('sales-point-id'), nameField = document.getElementById('sales-point-name'), wilayaField = document.getElementById('sales-point-wilaya'), addressField = document.getElementById('sales-point-address'), maplinkField = document.getElementById('sales-point-maplink');
+            
+            onSnapshot(query(collection(db, "salesPoints"), orderBy("wilaya")), (snapshot) => {
+                loader.style.display = 'none';
+                list.innerHTML = snapshot.docs.map(docSnap => {
+                    const point = docSnap.data();
+                    return `<div class="bg-slate-50 p-4 rounded-lg flex justify-between items-start shadow-sm">
+                            <div>
+                                <h4 class="font-bold text-slate-800">${point.name} <span class="text-sm font-normal text-slate-500">- ${point.wilaya}</span></h4>
+                                <p class="text-slate-600">${point.address}</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button class="edit-btn text-blue-500 hover:text-blue-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn text-red-500 hover:text-red-700 text-lg" data-id="${docSnap.id}"><i class="fas fa-trash"></i></button>
+                            </div></div>`;
+                }).join('') || '<p class="text-center text-slate-500 p-4">لا توجد نقاط بيع حالية.</p>';
+                
+                list.querySelectorAll('.delete-btn').forEach(b => b.onclick = async e => { if(confirm('هل أنت متأكد؟')) await deleteDoc(doc(db, 'salesPoints', e.currentTarget.dataset.id)); });
+                list.querySelectorAll('.edit-btn').forEach(b => b.onclick = e => {
+                    const id = e.currentTarget.dataset.id, docToEdit = snapshot.docs.find(d => d.id === id).data();
+                    idField.value = id; nameField.value = docToEdit.name; wilayaField.value = docToEdit.wilaya; addressField.value = docToEdit.address; maplinkField.value = docToEdit.googleMapsLink;
+                    cancelBtn.classList.remove('hidden'); nameField.focus();
+                });
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = idField.value;
+                const data = { name: nameField.value, wilaya: wilayaField.value, address: addressField.value, googleMapsLink: maplinkField.value };
+                if (id) { await updateDoc(doc(db, 'salesPoints', id), data); } 
+                else { await addDoc(collection(db, 'salesPoints'), data); }
+                form.reset(); idField.value = ''; cancelBtn.classList.add('hidden');
+            });
+            cancelBtn.addEventListener('click', () => { form.reset(); idField.value = ''; cancelBtn.classList.add('hidden'); });
+        }
+        
+        // Mobile Sidebar Logic
+        const sidebar = document.getElementById('sidebar'), menuToggle = document.getElementById('menu-toggle'), overlay = document.getElementById('overlay');
+        menuToggle.addEventListener('click', () => { sidebar.classList.toggle('active'); overlay.classList.toggle('active'); });
+        overlay.addEventListener('click', () => { sidebar.classList.remove('active'); overlay.classList.remove('active'); });
+        
+        // زر الخروج الآن يقوم فقط بإعادة تحميل الصفحة
+        document.getElementById('logout-btn').addEventListener('click', () => { 
+            window.location.reload(); 
+        });
+    });
+</script>
+</body>
+</html>
