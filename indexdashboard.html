@@ -118,12 +118,10 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in, show the dashboard and initialize it
                 authLoader.classList.add('hidden');
                 dashboardPage.classList.remove('hidden');
                 initializeDashboard(); 
             } else {
-                // User is signed out, redirect to login page
                 window.location.href = 'login.html';
             }
         });
@@ -368,7 +366,20 @@
             
             filteredOrders.forEach(order => {
                 const statusColors = { new: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', canceled: 'bg-red-100 text-red-800' };
-                const itemsHtml = (order.items || []).map(item => `<div>${item.quantity} x ${item.name}</div>`).join('');
+                
+                // *** MODIFIED PART FOR ADDONS ***
+                const itemsHtml = (order.items || []).map(item => {
+                    let itemText = `<div><span class="font-semibold">${item.quantity} x ${item.name}</span></div>`;
+                    if (item.selectedAddons && item.selectedAddons.length > 0) {
+                        const addonsText = item.selectedAddons.map(addon => 
+                            `<div class="text-xs text-gray-600 mr-4">+ ${addon.name} (${addon.price} د.ج)</div>`
+                        ).join('');
+                        itemText += addonsText;
+                    }
+                    return itemText;
+                }).join('');
+                // *** END OF MODIFIED PART ***
+
                 const deliveryPersonnelOptions = deliveryPersonnelCache.filter(p => p.status === 'active').map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
                 
                 let formattedDate = '';
@@ -422,7 +433,18 @@
             document.querySelectorAll('.copy-order-btn').forEach(btn => btn.onclick = e => {
                 const order = ordersCache.find(o => o.id === e.currentTarget.dataset.id);
                 if (!order) return;
-                const itemsText = (order.items || []).map(item => `   - ${item.quantity} x ${item.name}`).join('\n');
+                
+                // *** MODIFIED PART FOR ADDONS IN CLIPBOARD ***
+                 const itemsText = (order.items || []).map(item => {
+                    let mainText = `   - ${item.quantity} x ${item.name}`;
+                    if(item.selectedAddons && item.selectedAddons.length > 0) {
+                        const addonsText = item.selectedAddons.map(a => ` (+ ${a.name})`).join('');
+                        mainText += addonsText;
+                    }
+                    return mainText;
+                }).join('\n');
+                // *** END OF MODIFIED PART ***
+
                 const deliveryPersonText = order.deliveryPersonName ? `\n🚚 بواسطة: ${order.deliveryPersonName}` : '';
                 const message = `طلب جديد من TEXMEX\n--------------------\n👤 الاسم: ${order.customerName}\n📞 الهاتف: ${order.customerContact}\n📍 العنوان: ${order.customerLocation}\n📋 الطلبية:\n${itemsText}\n💰 السعر الإجمالي: ${order.totalPrice.toLocaleString()} د.ج${deliveryPersonText}\n--------------------`;
                 navigator.clipboard.writeText(message).then(() => showToast('تم نسخ معلومات الطلب بنجاح!'));
@@ -492,9 +514,12 @@
                 showToast('تم تحديث حالة الوجبة.', 'success');
             });
         }
+        
+        // *** ENTIRELY MODIFIED FUNCTION FOR ADDONS ***
         function showMenuItemModal(item = null) {
             selectedFileStore.menuItem = null;
             const categoryOptions = categoriesCache.map(c => `<option value="${c.id}" ${item && item.categoryId === c.id ? 'selected' : ''}>${c.name.ar}</option>`).join('');
+            
             const content = `<div class="space-y-4">
                 <div>
                     <label class="font-semibold text-sm text-gray-700">اسم الوجبة (بالعربية)</label>
@@ -512,7 +537,18 @@
                     <div id="image-preview" class="mt-2"><img src="${item?.imageUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 object-cover rounded-md bg-gray-200"></div>
                     <input type="file" id="item-image-file" class="mt-2" accept="image/*">
                 </div>
+                
+                <div class="border p-4 rounded-lg bg-gray-50 space-y-3">
+                    <h4 class="font-bold text-gray-800">إضافات اختيارية لهذه الوجبة</h4>
+                    <div id="addons-list" class="space-y-2"></div>
+                    <div class="flex gap-2 items-center border-t pt-3">
+                        <input type="text" id="addon-name-input" placeholder="اسم الإضافة (مثال: جبن)" class="flex-grow p-2 border rounded">
+                        <input type="number" id="addon-price-input" placeholder="السعر" class="w-24 p-2 border rounded">
+                        <button type="button" id="add-addon-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600">إضافة</button>
+                    </div>
+                </div>
             </div>`;
+
             showModal(item ? 'تعديل وجبة' : 'إضافة وجبة', content, async () => {
                 const confirmBtn = document.getElementById('modal-confirm');
                 setButtonLoading(confirmBtn, true);
@@ -527,9 +563,7 @@
                         if (uploadResult.success) {
                             imageUrl = uploadResult.url;
                         } else {
-                            showModal('فشل رفع الصورة', 
-                                `<p class="text-lg">لم نتمكن من رفع الصورة للسبب التالي:</p><p class="mt-2 p-3 bg-red-100 text-red-700 rounded-md font-mono text-left dir-ltr">${uploadResult.error}</p><p class="mt-4">الرجاء التأكد من صلاحية مفتاح API الخاص بخدمة ImgBB ومن اتصالك بالإنترنت.</p>`,
-                                closeModal, 'حسنًا', false);
+                            showModal('فشل رفع الصورة', `<p class="text-lg">لم نتمكن من رفع الصورة للسبب التالي:</p><p class="mt-2 p-3 bg-red-100 text-red-700 rounded-md font-mono text-left dir-ltr">${uploadResult.error}</p><p class="mt-4">الرجاء التأكد من صلاحية مفتاح API الخاص بخدمة ImgBB ومن اتصالك بالإنترنت.</p>`, closeModal, 'حسنًا', false);
                             setButtonLoading(confirmBtn, false);
                             return; 
                         }
@@ -544,6 +578,15 @@
                         return;
                     }
 
+                    // Collect addons from the UI
+                    const addons = [];
+                    document.querySelectorAll('.addon-item').forEach(el => {
+                        addons.push({
+                            name: el.dataset.name,
+                            price: parseFloat(el.dataset.price)
+                        });
+                    });
+
                     const data = {
                         name: { ar: nameAr, fr: nameFr },
                         price: parseFloat(document.getElementById('item-price').value),
@@ -551,6 +594,7 @@
                         categoryId: document.getElementById('item-category').value,
                         imageUrl: imageUrl, 
                         isAvailable: item?.isAvailable ?? true,
+                        addons: addons, // Save addons here
                         updatedAt: serverTimestamp(),
                     };
                     
@@ -570,6 +614,54 @@
                     setButtonLoading(confirmBtn, false); 
                 }
             });
+
+            // Logic to manage addons in the modal
+            const addonsListEl = document.getElementById('addons-list');
+            const renderAddons = (addons) => {
+                addonsListEl.innerHTML = '';
+                addons.forEach((addon, index) => {
+                    const addonEl = document.createElement('div');
+                    addonEl.className = 'addon-item flex justify-between items-center bg-white p-2 rounded-md shadow-sm';
+                    addonEl.dataset.name = addon.name;
+                    addonEl.dataset.price = addon.price;
+                    addonEl.innerHTML = `
+                        <span>${addon.name} - <span class="font-mono font-bold">${addon.price} د.ج</span></span>
+                        <button type="button" class="delete-addon-btn text-red-500 hover:text-red-700" data-index="${index}">&times;</button>
+                    `;
+                    addonsListEl.appendChild(addonEl);
+                });
+                document.querySelectorAll('.delete-addon-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                       const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                       const currentAddons = Array.from(document.querySelectorAll('.addon-item')).map(el => ({name: el.dataset.name, price: el.dataset.price}));
+                       currentAddons.splice(indexToRemove, 1);
+                       renderAddons(currentAddons);
+                    };
+                });
+            };
+
+            if (item && item.addons) {
+                renderAddons(item.addons);
+            }
+
+            document.getElementById('add-addon-btn').onclick = () => {
+                const nameInput = document.getElementById('addon-name-input');
+                const priceInput = document.getElementById('addon-price-input');
+                const name = nameInput.value.trim();
+                const price = parseFloat(priceInput.value);
+
+                if (name && !isNaN(price)) {
+                    const currentAddons = Array.from(document.querySelectorAll('.addon-item')).map(el => ({name: el.dataset.name, price: el.dataset.price}));
+                    currentAddons.push({ name, price });
+                    renderAddons(currentAddons);
+                    nameInput.value = '';
+                    priceInput.value = '';
+                    nameInput.focus();
+                } else {
+                    showToast('الرجاء إدخال اسم وسعر صحيحين للإضافة.', 'error');
+                }
+            };
+            
             document.getElementById('item-image-file').onchange = (evt) => {
                 if (evt.target.files && evt.target.files[0]) {
                     selectedFileStore.menuItem = evt.target.files[0];
@@ -579,6 +671,8 @@
                 }
             };
         }
+        // *** END OF MODIFIED FUNCTION ***
+
 
         // --- OFFERS SECTION ---
         function loadOffers() {
