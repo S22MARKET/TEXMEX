@@ -10,10 +10,32 @@
         body { font-family: 'Tajawal', sans-serif; background-color: #f0f2f5; }
         .spinner { width: 24px; height: 24px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
-    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+    <div id="login-container" class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
         <div class="text-center">
             <h1 class="text-3xl font-extrabold text-gray-800">
                 TEX<span class="text-orange-500">MEX</span>
@@ -26,9 +48,19 @@
                 <label for="email" class="text-sm font-bold text-gray-600 block">البريد الإلكتروني</label>
                 <input type="email" id="email" class="w-full p-3 mt-1 text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" required>
             </div>
-            <div>
+            <div class="relative">
                 <label for="password" class="text-sm font-bold text-gray-600 block">كلمة المرور</label>
-                <input type="password" id="password" class="w-full p-3 mt-1 text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+                <input type="password" id="password" class="w-full p-3 mt-1 text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 pr-12" required>
+                <button type="button" id="togglePassword" class="absolute left-3 top-9 text-gray-500">
+                    <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .946-3.012 3.42-5.32 6.542-6.197M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 2l20 20" />
+                    </svg>
+                </button>
             </div>
             <div id="error-message" class="hidden text-sm text-red-600 p-3 bg-red-100 rounded-lg"></div>
             <div>
@@ -37,6 +69,16 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    <div id="success-modal" class="modal-overlay hidden">
+        <div class="modal-content space-y-5">
+            <p id="welcome-message" class="text-lg font-semibold text-gray-700"></p>
+            <div id="countdown-section" class="hidden">
+                 <p id="phrase" class="text-3xl font-bold text-orange-600"></p>
+                 <p id="timer" class="text-2xl font-bold text-gray-800 mt-4"></p>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -56,15 +98,35 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // --- DOM Elements ---
+        const loginContainer = document.getElementById('login-container');
         const loginForm = document.getElementById('login-form');
         const loginBtn = document.getElementById('login-btn');
         const errorMessageDiv = document.getElementById('error-message');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const eyeOpen = document.getElementById('eye-open');
+        const eyeClosed = document.getElementById('eye-closed');
+        const successModal = document.getElementById('success-modal');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const countdownSection = document.getElementById('countdown-section');
+        const phraseEl = document.getElementById('phrase');
+        const timerEl = document.getElementById('timer');
 
+        // --- Toggle Password Visibility ---
+        togglePasswordBtn.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            eyeOpen.classList.toggle('hidden', isPassword);
+            eyeClosed.classList.toggle('hidden', !isPassword);
+        });
+        
+        // --- Login Form Submission ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const password = passwordInput.value;
             
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<div class="spinner"></div>';
@@ -72,29 +134,86 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                window.location.href = 'indexdashboard.html'; 
+                startSuccessSequence(email);
             } catch (error) {
-                let userFriendlyError = "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.";
-                switch (error.code) {
-                    case 'auth/user-not-found':
-                    case 'auth/wrong-password':
-                    case 'auth/invalid-credential':
-                        userFriendlyError = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-                        break;
-                    case 'auth/invalid-email':
-                        userFriendlyError = "صيغة البريد الإلكتروني غير صحيحة.";
-                        break;
-                    case 'auth/network-request-failed':
-                        userFriendlyError = "فشل الاتصال بالشبكة. الرجاء التحقق من اتصالك بالإنترنت.";
-                        break;
-                }
-                errorMessageDiv.textContent = userFriendlyError;
-                errorMessageDiv.classList.remove('hidden');
-                
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = 'تسجيل الدخول';
+                handleLoginError(error);
             }
         });
+
+        // --- Functions ---
+        function handleLoginError(error) {
+            let userFriendlyError = "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.";
+            switch (error.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    userFriendlyError = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+                    break;
+                case 'auth/invalid-email':
+                    userFriendlyError = "صيغة البريد الإلكتروني غير صحيحة.";
+                    break;
+                case 'auth/network-request-failed':
+                    userFriendlyError = "فشل الاتصال بالشبكة. الرجاء التحقق من اتصالك بالإنترنت.";
+                    break;
+            }
+            errorMessageDiv.textContent = userFriendlyError;
+            errorMessageDiv.classList.remove('hidden');
+            
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = 'تسجيل الدخول';
+        }
+
+        function startSuccessSequence(email) {
+            loginContainer.classList.add('hidden'); // Hide login form
+            successModal.classList.remove('hidden'); // Show modal
+
+            // 1. Determine and show welcome message
+            let msg = '';
+            const genericMsg = "مرحبا بك في لوحة التحكم. جزاك الله خيرا ورزقك حلالا من رزقه. توكل على الله واتق الله  وبارك الله لك في سعيك لهذا اليوم ورزقك من فضله.";
+
+            if (email.toLowerCase() === 'yacinee474474@gmail.com') {
+                msg = "السلام عليكم ورحمة الله تعالى وبركاته يا ياسين. بالتوفيق إن شاء الله وأتق الله. بارك الله لك في رزقك اليوم. " + genericMsg;
+            } else if (email.toLowerCase() === 'nourmt01@gmail.com') {
+                msg = "السلام عليكم ورحمة الله تعالى وبركاته. ومرحبا بك يا زعمن.   يا باكاتي ان شاء الله  بالتوفيق إن شاء الله ورزقك الله من رزقه. " + genericMsg;
+            } else {
+                msg = "السلام عليكم ورحمة الله تعالى وبركاته أيها المدير. " + genericMsg + " وبالتوفيق إن شاء الله في هذا اليوم.";
+            }
+            welcomeMessage.textContent = msg;
+
+            // 2. Start countdown sequence after a short delay
+            setTimeout(() => {
+                welcomeMessage.classList.add('hidden');
+                countdownSection.classList.remove('hidden');
+                runPhrases();
+            }, 4000); // Show welcome message for 4 seconds
+        }
+
+        function runPhrases() {
+            const phrases = ["استغفر الله", "سبحان الله", "الله اكبر", "محمد صلى الله عليه وسلم"];
+            let phraseIndex = 0;
+
+            function showNextPhrase() {
+                if (phraseIndex >= phrases.length) {
+                    window.location.href = 'indexdashboard.html';
+                    return;
+                }
+
+                let countdown = 5;
+                phraseEl.textContent = phrases[phraseIndex];
+                timerEl.textContent = countdown;
+                
+                const interval = setInterval(() => {
+                    countdown--;
+                    timerEl.textContent = countdown;
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        phraseIndex++;
+                        showNextPhrase();
+                    }
+                }, 1000);
+            }
+            showNextPhrase();
+        }
     </script>
 </body>
 </html>
