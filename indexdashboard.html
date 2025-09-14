@@ -37,7 +37,13 @@
 </head>
 <body>
 
-    <div id="dashboard-page">
+    <div id="auth-loader" class="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-4">TEX<span class="text-orange-500">MEX</span></h1>
+        <div class="spinner-dark"></div>
+        <p class="mt-4 text-gray-600">جاري التحقق من الهوية...</p>
+    </div>
+
+    <div id="dashboard-page" class="hidden">
         <div class="relative min-h-screen md:flex">
             <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 right-0 transform translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-30">
                 <div class="p-3 text-center border-b border-gray-700">
@@ -54,6 +60,11 @@
                     <a href="#delivery" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-motorcycle fa-fw ml-3"></i> إعدادات التوصيل</a>
                     <a href="#settings" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-cogs fa-fw ml-3"></i> إعدادات المطعم</a>
                 </nav>
+                <div class="p-4 border-t border-gray-700">
+                    <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-3 rounded-md bg-red-600 hover:bg-red-700">
+                        <i class="fas fa-sign-out-alt fa-fw ml-3"></i> تسجيل الخروج
+                    </button>
+                </div>
             </aside>
             <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden hidden"></div>
             
@@ -85,6 +96,7 @@
         // --- FIREBASE INITIALIZATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, serverTimestamp, orderBy, getDoc, setDoc, getDocs, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
@@ -98,6 +110,24 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- AUTHENTICATION GATE ---
+        const authLoader = document.getElementById('auth-loader');
+        const dashboardPage = document.getElementById('dashboard-page');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in, show the dashboard and initialize it
+                authLoader.classList.add('hidden');
+                dashboardPage.classList.remove('hidden');
+                initializeDashboard(); 
+            } else {
+                // User is signed out, redirect to login page
+                window.location.href = 'login.html';
+            }
+        });
+
 
         // --- GLOBAL CACHES & STATE ---
         let categoriesCache = [];
@@ -107,7 +137,7 @@
         let ordersCache = [];
         let deliveryZonesCache = [];
         let isInitialOrdersLoad = true;
-        let selectedFileStore = null;
+        let selectedFileStore = {}; 
         let currentOrderStatusFilter = 'all';
 
         // --- UI & UX HELPERS (MODAL, TOAST) ---
@@ -155,7 +185,7 @@
             }
         };
 
-        // --- IMAGE UPLOAD & COMPRESSION HELPERS (IMPROVED) ---
+        // --- IMAGE UPLOAD & COMPRESSION HELPERS ---
         async function compressImage(file, maxWidth = 1024) {
             console.log(`Original size: ${(file.size / 1024).toFixed(2)} KB`);
             return new Promise((resolve, reject) => {
@@ -215,6 +245,7 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const logoutBtn = document.getElementById('logout-btn');
 
             const switchTab = (hash) => {
                 const targetId = hash.substring(1) + '-panel';
@@ -238,6 +269,12 @@
             window.addEventListener('hashchange', () => switchTab(window.location.hash || '#dashboard'));
             mobileMenuBtn.onclick = () => { sidebar.classList.remove('translate-x-full'); overlay.classList.remove('hidden'); };
             overlay.onclick = () => { sidebar.classList.add('translate-x-full'); overlay.classList.add('hidden'); };
+            logoutBtn.onclick = () => {
+                signOut(auth).catch((error) => {
+                    console.error("Logout Error:", error);
+                    alert("حدث خطأ أثناء تسجيل الخروج.");
+                });
+            };
 
             loadDashboardSummary();
             loadDeliveryPersonnel();
@@ -275,7 +312,7 @@
             });
         }
         
-        // --- ORDERS SECTION (IMPROVED WITH TIMESTAMP) ---
+        // --- ORDERS SECTION ---
         function loadOrders() {
             const panel = document.getElementById('orders-panel');
             panel.innerHTML = `<div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
@@ -334,7 +371,6 @@
                 const itemsHtml = (order.items || []).map(item => `<div>${item.quantity} x ${item.name}</div>`).join('');
                 const deliveryPersonnelOptions = deliveryPersonnelCache.filter(p => p.status === 'active').map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
                 
-                // --- NEW: Format timestamp ---
                 let formattedDate = '';
                 if (order.createdAt && typeof order.createdAt.toDate === 'function') {
                     const date = order.createdAt.toDate();
@@ -393,7 +429,7 @@
             });
         }
 
-        // --- MENU ITEMS SECTION (FIXED) ---
+        // --- MENU ITEMS SECTION ---
         function loadMenuItems() {
             const panel = document.getElementById('menu-items-panel');
             panel.innerHTML = `<div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
@@ -415,7 +451,10 @@
         function renderMenuItemsGrid() {
             const list = document.getElementById('menu-items-list');
             const searchTerm = document.getElementById('menu-search-input')?.value.toLowerCase() || '';
-            const filteredItems = menuItemsCache.filter(item => item.name.toLowerCase().includes(searchTerm));
+            const filteredItems = menuItemsCache.filter(item => 
+                (item.name?.ar && item.name.ar.toLowerCase().includes(searchTerm)) || 
+                (item.name?.fr && item.name.fr.toLowerCase().includes(searchTerm))
+            );
 
             list.innerHTML = filteredItems.length === 0 ? '<div class="col-span-full text-center p-8 bg-white rounded-lg shadow-sm"><p>لا توجد وجبات تطابق بحثك.</p></div>' : '';
             filteredItems.forEach(item => {
@@ -424,7 +463,7 @@
                 card.innerHTML = `
                     <img src="${(item.imageUrl) || 'https://via.placeholder.com/300x160.png?text=No+Image'}" class="w-full h-40 object-cover rounded-lg mb-4 bg-gray-100">
                     <div class="flex justify-between items-start">
-                        <h3 class="text-xl font-bold">${item.name}</h3>
+                        <h3 class="text-xl font-bold">${item.name?.ar || ''} <span class="text-base text-gray-500 font-normal">${item.name?.fr ? '/ ' + item.name.fr : ''}</span></h3>
                         <div class="text-xs text-center">
                             <label class="toggle-switch"><input type="checkbox" class="availability-toggle" data-id="${item.id}" ${item.isAvailable !== false ? 'checked' : ''}><span class="slider"></span></label>
                             <span class="font-semibold">${item.isAvailable !== false ? 'متوفر' : 'نفذ'}</span>
@@ -454,10 +493,17 @@
             });
         }
         function showMenuItemModal(item = null) {
-            selectedFileStore = null;
-            const categoryOptions = categoriesCache.map(c => `<option value="${c.id}" ${item && item.categoryId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+            selectedFileStore.menuItem = null;
+            const categoryOptions = categoriesCache.map(c => `<option value="${c.id}" ${item && item.categoryId === c.id ? 'selected' : ''}>${c.name.ar}</option>`).join('');
             const content = `<div class="space-y-4">
-                <input type="text" id="item-name" placeholder="اسم الوجبة" class="w-full p-2 border rounded" value="${item ? item.name : ''}" required>
+                <div>
+                    <label class="font-semibold text-sm text-gray-700">اسم الوجبة (بالعربية)</label>
+                    <input type="text" id="item-name-ar" placeholder="مثال: تاكوس دجاج" class="w-full p-2 border rounded mt-1" value="${item?.name?.ar || ''}" dir="rtl">
+                </div>
+                <div>
+                    <label class="font-semibold text-sm text-gray-700">اسم الوجبة (بالأجنبية)</label>
+                    <input type="text" id="item-name-fr" placeholder="Ex: Tacos Poulet" class="w-full p-2 border rounded mt-1" value="${item?.name?.fr || ''}" dir="ltr">
+                </div>
                 <input type="number" id="item-price" placeholder="السعر (د.ج)" class="w-full p-2 border rounded" value="${item ? item.price : ''}" required>
                 <textarea id="item-description" rows="3" placeholder="وصف قصير" class="w-full p-2 border rounded">${item ? item.description || '' : ''}</textarea>
                 <select id="item-category" class="w-full p-2 border rounded bg-white"><option value="">اختر قسم...</option>${categoryOptions}</select>
@@ -473,9 +519,9 @@
 
                 try {
                     let imageUrl = item?.imageUrl || null;
-                    if (selectedFileStore) {
+                    if (selectedFileStore.menuItem) {
                         showToast('جاري ضغط ورفع الصورة...', 'success');
-                        const compressedFile = await compressImage(selectedFileStore);
+                        const compressedFile = await compressImage(selectedFileStore.menuItem);
                         const uploadResult = await uploadImageToImgBB(compressedFile);
 
                         if (uploadResult.success) {
@@ -488,23 +534,25 @@
                             return; 
                         }
                     }
+                    
+                    const nameAr = document.getElementById('item-name-ar').value.trim();
+                    const nameFr = document.getElementById('item-name-fr').value.trim();
+
+                    if ((!nameAr && !nameFr) || !document.getElementById('item-price').value) { 
+                        showToast('الرجاء إدخال اسم الوجبة (بلغة واحدة على الأقل) والسعر.', 'error'); 
+                        setButtonLoading(confirmBtn, false); 
+                        return;
+                    }
 
                     const data = {
-                        name: document.getElementById('item-name').value, 
+                        name: { ar: nameAr, fr: nameFr },
                         price: parseFloat(document.getElementById('item-price').value),
                         description: document.getElementById('item-description').value, 
                         categoryId: document.getElementById('item-category').value,
                         imageUrl: imageUrl, 
-                        // --- FIX: Prevent undefined value for isAvailable ---
                         isAvailable: item?.isAvailable ?? true,
                         updatedAt: serverTimestamp(),
                     };
-
-                    if (!data.name || isNaN(data.price)) { 
-                        showToast('الرجاء إدخال اسم وسعر الوجبة.', 'error'); 
-                        setButtonLoading(confirmBtn, false); 
-                        return;
-                    }
                     
                     if (item) {
                         await updateDoc(doc(db, "products", item.id), data);
@@ -524,15 +572,15 @@
             });
             document.getElementById('item-image-file').onchange = (evt) => {
                 if (evt.target.files && evt.target.files[0]) {
-                    selectedFileStore = evt.target.files[0];
+                    selectedFileStore.menuItem = evt.target.files[0];
                     const reader = new FileReader();
                     reader.onload = (e) => document.querySelector('#image-preview img').src = e.target.result;
-                    reader.readAsDataURL(selectedFileStore);
+                    reader.readAsDataURL(selectedFileStore.menuItem);
                 }
             };
         }
 
-        // --- OFFERS SECTION (IMPROVED) ---
+        // --- OFFERS SECTION ---
         function loadOffers() {
             const panel = document.getElementById('offers-panel');
             panel.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">العروض والباقات</h1>
@@ -567,7 +615,7 @@
             });
         }
         function showOfferModal(offer = null) {
-            selectedFileStore = null;
+            selectedFileStore.offer = null;
             const content = `<div class="space-y-4">
                 <input type="text" id="offer-title" placeholder="عنوان العرض" class="w-full p-2 border rounded" value="${offer?.title || ''}" required>
                 <input type="number" id="offer-price" placeholder="سعر العرض (د.ج)" class="w-full p-2 border rounded" value="${offer?.price || ''}" required>
@@ -583,9 +631,9 @@
                 setButtonLoading(confirmBtn, true);
                 try {
                     let imageUrl = offer?.imageUrl || null;
-                    if (selectedFileStore) {
+                    if (selectedFileStore.offer) {
                         showToast('جاري ضغط ورفع الصورة...', 'success');
-                        const compressedFile = await compressImage(selectedFileStore);
+                        const compressedFile = await compressImage(selectedFileStore.offer);
                         const uploadResult = await uploadImageToImgBB(compressedFile);
 
                         if(uploadResult.success) {
@@ -617,10 +665,10 @@
             });
             document.getElementById('offer-image-file').onchange = (evt) => {
                 if (evt.target.files && evt.target.files[0]) {
-                    selectedFileStore = evt.target.files[0];
+                    selectedFileStore.offer = evt.target.files[0];
                     const reader = new FileReader();
                     reader.onload = (e) => document.querySelector('#image-preview img').src = e.target.result;
-                    reader.readAsDataURL(selectedFileStore);
+                    reader.readAsDataURL(selectedFileStore.offer);
                 }
             };
         }
@@ -631,14 +679,14 @@
             panel.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">الأقسام</h1><button id="add-cat-btn" class="bg-orange-600 text-white px-5 py-2 rounded-lg font-semibold"><i class="fas fa-plus mr-2"></i> إضافة قسم</button></div>
                 <div id="categories-list" class="space-y-3"></div>`;
             document.getElementById('add-cat-btn').onclick = () => showCategoryModal();
-            onSnapshot(query(collection(db, "categories"), orderBy("name")), snapshot => {
+            onSnapshot(query(collection(db, "categories"), orderBy("name.ar")), snapshot => {
                 categoriesCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                 const list = document.getElementById('categories-list');
                 list.innerHTML = '';
                 categoriesCache.forEach(cat => {
                     const el = document.createElement('div');
                     el.className = 'bg-white p-4 rounded-xl shadow-md flex justify-between items-center';
-                    el.innerHTML = `<h4 class="text-xl font-bold">${cat.name}</h4><div>
+                    el.innerHTML = `<h4 class="text-xl font-bold">${cat.name.ar || ''} <span class="text-base text-gray-500 font-normal">${cat.name.fr ? '/ ' + cat.name.fr : ''}</span></h4><div>
                         <button class="edit-cat-btn text-indigo-500 mr-4" data-id="${cat.id}"><i class="fas fa-edit"></i></button>
                         <button class="delete-cat-btn text-red-500" data-id="${cat.id}"><i class="fas fa-trash"></i></button></div>`;
                     list.appendChild(el);
@@ -652,11 +700,30 @@
             });
         }
         function showCategoryModal(cat = null) {
-            showModal(cat ? 'تعديل قسم' : 'إضافة قسم', `<input type="text" id="cat-name" placeholder="اسم القسم" class="w-full p-2 border rounded" value="${cat ? cat.name : ''}">`, async () => {
-                const name = document.getElementById('cat-name').value.trim();
-                if (!name) { showToast('اسم القسم مطلوب.', 'error'); return; }
-                if (cat) await updateDoc(doc(db, "categories", cat.id), { name });
-                else await addDoc(collection(db, "categories"), { name });
+            const content = `<div class="space-y-4">
+                <div>
+                    <label class="font-semibold text-sm text-gray-700">اسم القسم (بالعربية)</label>
+                    <input type="text" id="cat-name-ar" placeholder="مثال: تاكوس" class="w-full p-2 border rounded mt-1" value="${cat?.name?.ar || ''}" dir="rtl">
+                </div>
+                <div>
+                    <label class="font-semibold text-sm text-gray-700">اسم القسم (بالأجنبية)</label>
+                    <input type="text" id="cat-name-fr" placeholder="Ex: Tacos" class="w-full p-2 border rounded mt-1" value="${cat?.name?.fr || ''}" dir="ltr">
+                </div>
+            </div>`;
+            showModal(cat ? 'تعديل قسم' : 'إضافة قسم', content, async () => {
+                const nameAr = document.getElementById('cat-name-ar').value.trim();
+                const nameFr = document.getElementById('cat-name-fr').value.trim();
+
+                if (!nameAr && !nameFr) { 
+                    showToast('يجب إدخال اسم القسم بلغة واحدة على الأقل.', 'error'); 
+                    return; 
+                }
+                
+                const nameData = { ar: nameAr, fr: nameFr };
+
+                if (cat) await updateDoc(doc(db, "categories", cat.id), { name: nameData });
+                else await addDoc(collection(db, "categories"), { name: nameData });
+
                 closeModal();
                 showToast(cat ? 'تم تعديل القسم' : 'تمت إضافة القسم', 'success');
             });
@@ -858,6 +925,15 @@
                 <h1 class="text-3xl font-bold text-gray-800 mb-6">إعدادات المطعم</h1>
                 <div class="space-y-8">
                     <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">شعار المطعم (اللوقو)</h3>
+                        <p class="text-sm text-gray-500 mb-3">هذا هو الشعار الذي يظهر للزبائن في صفحة الطلب.</p>
+                        <div id="logo-image-preview" class="mt-2 mb-3">
+                            <img src="${settings.logoUrl || 'https://via.placeholder.com/200x80.png?text=Logo'}" class="w-40 h-auto object-contain rounded-md bg-gray-100 p-2 border">
+                        </div>
+                        <input type="file" id="logo-image-file" accept="image/*" class="mt-2">
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-xl font-bold mb-4 border-b pb-2">حالة المطعم</h3>
                          <div class="flex items-center justify-between bg-red-50 p-4 rounded-lg">
                              <label for="manual-closed-toggle" class="font-semibold text-lg text-red-800">فرض إغلاق المطعم (للطوارئ)</label>
@@ -870,6 +946,14 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div><label class="font-semibold">وقت الفتح</label><input type="time" id="open-time" class="w-full p-2 mt-1 border rounded" value="${settings.openTime || ''}"></div>
                             <div><label class="font-semibold">وقت الإغلاق</label><input type="time" id="close-time" class="w-full p-2 mt-1 border rounded" value="${settings.closeTime || ''}"></div>
+                            <div>
+                                <label class="font-semibold">طريقة عرض الأسماء (في قائمة الزبائن)</label>
+                                <select id="name-display-preference" class="w-full p-2 mt-1 border rounded bg-white">
+                                    <option value="both" ${settings.nameDisplayPreference === 'both' ? 'selected' : ''}>عرض اللغتين معًا</option>
+                                    <option value="ar" ${settings.nameDisplayPreference === 'ar' ? 'selected' : ''}>عرض العربية فقط</option>
+                                    <option value="fr" ${settings.nameDisplayPreference === 'fr' ? 'selected' : ''}>عرض الأجنبية فقط</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="mt-4"><label class="font-semibold">رسالة الإغلاق</label><input type="text" id="closed-message" placeholder="مثال: المطعم مغلق حاليًا، نفتح غدًا على الساعة 11:00" class="w-full p-2 mt-1 border rounded" value="${settings.closedMessage || ''}"></div>
                     </div>
@@ -899,26 +983,56 @@
                 <div class="mt-8 text-right">
                     <button id="save-settings-btn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700">حفظ كل الإعدادات</button>
                 </div>`;
-            document.getElementById('save-settings-btn').onclick = saveGeneralSettings;
-        }
-        async function saveGeneralSettings() { 
-            const btn = document.getElementById('save-settings-btn');
-            setButtonLoading(btn, true, 'حفظ كل الإعدادات');
-            const settingsData = {
-                isManuallyClosed: document.getElementById('manual-closed-toggle').checked,
-                openTime: document.getElementById('open-time').value,
-                closeTime: document.getElementById('close-time').value,
-                closedMessage: document.getElementById('closed-message').value,
-                isFreeDeliveryActive: document.getElementById('free-delivery-toggle').checked,
-                freeDeliveryThreshold: parseFloat(document.getElementById('free-delivery-threshold').value) || 0,
-                socialLinks: {
-                    phone1: document.getElementById('social-phone1').value,
-                    whatsapp1: document.getElementById('social-whatsapp1').value,
-                    facebook1: document.getElementById('social-facebook1').value,
-                    instagram1: document.getElementById('social-instagram1').value,
+
+            document.getElementById('logo-image-file').onchange = (evt) => {
+                if (evt.target.files && evt.target.files[0]) {
+                    selectedFileStore.logo = evt.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => document.querySelector('#logo-image-preview img').src = e.target.result;
+                    reader.readAsDataURL(selectedFileStore.logo);
                 }
             };
+            
+            document.getElementById('save-settings-btn').onclick = () => saveGeneralSettings(settings);
+        }
+        async function saveGeneralSettings(currentSettings) { 
+            const btn = document.getElementById('save-settings-btn');
+            setButtonLoading(btn, true, 'حفظ كل الإعدادات');
+            
             try {
+                let logoUrl = currentSettings.logoUrl || null;
+
+                if (selectedFileStore.logo) {
+                    showToast('جاري رفع الشعار الجديد...', 'success');
+                    const compressedFile = await compressImage(selectedFileStore.logo, 400);
+                    const uploadResult = await uploadImageToImgBB(compressedFile);
+                    if (uploadResult.success) {
+                        logoUrl = uploadResult.url;
+                        selectedFileStore.logo = null;
+                    } else {
+                        showToast(`فشل رفع الشعار: ${uploadResult.error}`, 'error');
+                        setButtonLoading(btn, false, 'حفظ كل الإعدادات');
+                        return;
+                    }
+                }
+
+                const settingsData = {
+                    logoUrl: logoUrl,
+                    isManuallyClosed: document.getElementById('manual-closed-toggle').checked,
+                    openTime: document.getElementById('open-time').value,
+                    closeTime: document.getElementById('close-time').value,
+                    closedMessage: document.getElementById('closed-message').value,
+                    isFreeDeliveryActive: document.getElementById('free-delivery-toggle').checked,
+                    freeDeliveryThreshold: parseFloat(document.getElementById('free-delivery-threshold').value) || 0,
+                    nameDisplayPreference: document.getElementById('name-display-preference').value,
+                    socialLinks: {
+                        phone1: document.getElementById('social-phone1').value,
+                        whatsapp1: document.getElementById('social-whatsapp1').value,
+                        facebook1: document.getElementById('social-facebook1').value,
+                        instagram1: document.getElementById('social-instagram1').value,
+                    }
+                };
+            
                 await setDoc(doc(db, "settings", "config"), settingsData, { merge: true });
                 showToast('تم حفظ الإعدادات بنجاح!', 'success');
             } catch (error) {
@@ -927,9 +1041,6 @@
                 setButtonLoading(btn, false, 'حفظ كل الإعدادات');
             }
         }
-
-        // --- KICKSTART THE DASHBOARD ---
-        initializeDashboard();
     </script>
 </body>
 </html>

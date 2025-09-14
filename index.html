@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lalezar&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #f1f5f9; }
         html { scroll-behavior: smooth; }
@@ -19,19 +20,48 @@
         .modal-content { background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; max-height: 95vh; display: flex; flex-direction: column; animation: slideInUp 0.4s; position: relative; }
         .special-offer-card { border: 2px solid #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
         .special-offer-card::before { content: attr(data-tag); position: absolute; top: 12px; left: -8px; background-color: #f59e0b; color: white; padding: 4px 12px; border-radius: 5px; font-size: 14px; font-weight: bold; z-index: 10; }
-        #order-badge { position: absolute; top: -8px; left: -8px; background-color: #ef4444; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 2px solid white; }
         .sidebar { transition: transform 0.3s ease-in-out; }
         .sidebar-overlay { transition: opacity 0.3s ease-in-out; }
         .is-visible { opacity: 1; pointer-events: auto; }
         .is-hidden { opacity: 0; pointer-events: none; }
         .glowing-btn { animation: glow 1.5s infinite alternate; }
         @keyframes glow { from { box-shadow: 0 0 5px #14b8a6, 0 0 10px #14b8a6, 0 0 15px #14b8a6; } to { box-shadow: 0 0 20px #0d9488, 0 0 30px #0d9488, 0 0 40px #0d9488; } }
+        
         /* --- Toast Notification Styles --- */
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; align-items: center; }
         .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
         .toast.success { background-color: #2f855a; }
         .toast.error { background-color: #c53030; }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* --- IMPROVEMENT: Font & Name Display Styles --- */
+        .font-ar { font-family: 'Lalezar', 'Tajawal', sans-serif; font-size: 1.25rem; line-height: 1.4; color: #1f2937; }
+        .font-fr { font-family: 'Tajawal', sans-serif; font-size: 0.9rem; color: #4b5563; }
+        .product-name-container { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+        .category-button-container { display: flex; flex-direction: column; align-items: flex-start; text-align: right; }
+        
+        /* --- IMPROVEMENT: Floating Action Button (FAB) for Order on Mobile --- */
+        #fab-order-btn {
+            display: none; /* Hidden by default */
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 25;
+            transition: transform 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            #header-actions #order-btn { display: none; } /* Hide header button on mobile */
+            #fab-order-btn { display: flex; } /* Show FAB on mobile */
+        }
+
+        /* --- IMPROVEMENT: Button Success State --- */
+        .add-to-order-btn.is-added {
+            background-color: #16a34a !important; /* Green color */
+            cursor: not-allowed;
+        }
+
+        /* --- IMPROVEMENT: Image loading placeholder --- */
+        .img-placeholder { background-color: #e5e7eb; }
     </style>
 </head>
 <body>
@@ -42,7 +72,7 @@
     <header class="bg-white shadow-sm sticky top-0 z-30">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
              <div class="flex items-center gap-3">
-                <img src="https://i.ibb.co/6yV2L7p/texmex-logo.png" alt="TEXMEX Logo" class="h-10">
+                <img id="header-logo" src="https://i.ibb.co/6yV2L7p/texmex-logo.png" alt="TEXMEX Logo" class="h-10">
                 <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800">
                     TEX<span class="text-orange-500">MEX</span>
                 </h1>
@@ -50,8 +80,8 @@
             <div id="header-actions" class="flex items-center gap-4">
                 <button id="order-btn" class="relative text-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg">
                     <i class="fas fa-shopping-basket"></i>
-                    <span class="hidden md:inline">طلبيتي</span>
-                    <span id="order-badge" class="hidden">0</span>
+                    <span>طلبيتي</span>
+                    <span id="order-badge" class="hidden absolute top-0 left-0 -mt-2 -ml-2 bg-red-600 text-white rounded-full w-6 h-6 text-sm font-bold flex items-center justify-center border-2 border-white">0</span>
                 </button>
                 <button id="sidebar-toggle" class="md:hidden text-2xl text-gray-700 p-2">
                     <i class="fas fa-filter"></i>
@@ -95,6 +125,10 @@
                     <div id="offers-loader" class="text-center py-10"><div class="loader mx-auto"></div></div>
                     <div id="free-delivery-offer-container" class="hidden mb-6"></div>
                     <div id="offers-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6"></div>
+                    <div id="no-offers-msg" class="hidden text-center py-16 bg-white rounded-xl shadow-sm">
+                        <i class="fas fa-tags text-4xl text-gray-400"></i>
+                        <p class="mt-4 text-xl font-semibold text-gray-500">لا توجد عروض حصرية متاحة حاليًا.</p>
+                    </div>
                  </section>
 
                  <section id="menu-section">
@@ -118,6 +152,11 @@
             <p class="mt-8 text-gray-500 text-sm">&copy; 2025 TEXMEX. كل الحقوق محفوظة.</p>
         </div>
     </footer>
+
+    <button id="fab-order-btn" class="relative text-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 p-4 rounded-full transition-colors flex items-center gap-2 shadow-xl">
+        <i class="fas fa-shopping-basket fa-lg"></i>
+        <span id="fab-order-badge" class="hidden absolute top-0 right-0 -mt-1 -mr-1 bg-red-600 text-white rounded-full w-6 h-6 text-sm font-bold flex items-center justify-center border-2 border-white">0</span>
+    </button>
 
     <div id="modal-container"></div>
     <div id="toast-container"></div>
@@ -156,6 +195,8 @@
             footerPhone: document.getElementById('footer-phone'),
             orderBtn: document.getElementById('order-btn'),
             orderBadge: document.getElementById('order-badge'),
+            fabOrderBtn: document.getElementById('fab-order-btn'), // New FAB
+            fabOrderBadge: document.getElementById('fab-order-badge'), // New FAB badge
             statusBanner: document.getElementById('restaurant-status-banner'),
             statusMessage: document.getElementById('restaurant-status-message'),
             sidebar: document.getElementById('sidebar'),
@@ -165,12 +206,12 @@
             offersSection: document.getElementById('offers-section'),
             offersGrid: document.getElementById('offers-grid'),
             offersLoader: document.getElementById('offers-loader'),
+            noOffersMsg: document.getElementById('no-offers-msg'),
             freeDeliveryOfferContainer: document.getElementById('free-delivery-offer-container'),
             headerActions: document.getElementById('header-actions'),
             showOffersBtn: document.getElementById('show-offers-btn')
         };
         
-        // --- NEW: Toast Notification ---
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -181,7 +222,6 @@
             setTimeout(() => toast.remove(), 3000);
         };
 
-        // --- UTILITY FUNCTIONS ---
         const debounce = (func, delay = 300) => {
             let timeout;
             return (...args) => {
@@ -194,7 +234,9 @@
         const updateOrderIcon = () => {
             const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
             elements.orderBadge.textContent = totalItems;
+            elements.fabOrderBadge.textContent = totalItems;
             elements.orderBadge.classList.toggle('hidden', totalItems === 0);
+            elements.fabOrderBadge.classList.toggle('hidden', totalItems === 0);
         };
 
         const saveOrderToStorage = () => {
@@ -202,12 +244,9 @@
             updateOrderIcon();
         };
 
-        const addToOrder = (itemId) => {
+        const addToOrder = (itemId, buttonElement) => {
             if (!restaurantSettings.isOpen) {
-                showInfoModal(
-                    'المطعم مغلق حاليًا',
-                    restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي. يرجى مراجعة أوقات العمل.'
-                );
+                showInfoModal('المطعم مغلق حاليًا', restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي.');
                 return;
             }
             
@@ -219,8 +258,19 @@
             else order.push({ ...item, quantity: 1 });
             
             saveOrderToStorage();
-            // --- UPDATED: Use toast notification instead of alert ---
-            showToast(`تم إضافة "${item.name.replace(/<[^>]*>?/gm, '')}" إلى طلبيتك!`, 'success');
+            showToast(`تم إضافة "${item.name.ar}" إلى طلبيتك!`, 'success');
+
+            // --- IMPROVEMENT: Visual feedback on button ---
+            if (buttonElement) {
+                buttonElement.classList.add('is-added');
+                buttonElement.innerHTML = `<i class="fas fa-check"></i> تمت الإضافة!`;
+                buttonElement.disabled = true;
+                setTimeout(() => {
+                    buttonElement.classList.remove('is-added');
+                    buttonElement.innerHTML = `<i class="fas fa-plus"></i> أضف للطلبية`;
+                    buttonElement.disabled = false;
+                }, 1500);
+            }
         };
 
         window.updateOrderQuantity = (itemId, newQuantity) => {
@@ -269,9 +319,9 @@
                     const image = item.imageUrl || 'https://via.placeholder.com/150';
                     contentHTML += `
                         <div class="flex items-center gap-4 py-3 border-b">
-                            <img src="${image}" class="w-16 h-16 rounded-md object-cover bg-gray-100" alt="">
+                            <img src="${image}" class="w-16 h-16 rounded-md object-cover bg-gray-100" alt="${item.name.ar}">
                             <div class="flex-grow">
-                                <h4 class="font-bold">${item.name}</h4>
+                                <h4 class="font-bold">${item.name.ar} <span class="text-sm font-normal text-gray-500">${item.name.fr || ''}</span></h4>
                                 <p class="text-sm text-gray-500">${item.price.toLocaleString()} د.ج</p>
                             </div>
                             <div class="flex items-center gap-2">
@@ -378,62 +428,9 @@
             });
         };
 
-        const showSecondaryConfirmationChoiceModal = (orderId) => {
-            const modalHTML = `
-            <div class="modal-backdrop" id="modal-backdrop">
-                <div class="modal-content text-center p-6">
-                    <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">اختر طريقة التأكيد</h2><button id="modal-close" class="text-2xl hover:text-red-500">&times;</button></div>
-                    <p class="text-gray-600 my-4">كيف تفضل أن نتصل بك لتسريع تأكيد الطلب؟</p>
-                    <div id="confirmation-choices" class="space-y-3 my-5">
-                        <button data-choice="phone" class="w-full text-center bg-blue-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-600"><i class="fas fa-phone"></i> عبر اتصال هاتفي</button>
-                        <button data-choice="whatsapp" class="w-full text-center bg-green-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-green-600"><i class="fab fa-whatsapp"></i> عبر رسالة واتساب</button>
-                        <button data-choice="instagram" class="w-full text-center bg-pink-500 text-white font-bold p-3 rounded-lg flex items-center justify-center gap-2 hover:bg-pink-600"><i class="fab fa-instagram"></i> عبر رسالة انستغرام</button>
-                    </div>
-                </div>
-            </div>`;
-            elements.modalContainer.innerHTML = modalHTML;
-            
-            const handleChoice = async (choice) => {
-                const choiceButtons = document.getElementById('confirmation-choices');
-                choiceButtons.innerHTML = '<div class="small-loader mx-auto" style="border-top-color: #f97316;"></div>';
-                try {
-                    await updateDoc(doc(db, "orders", orderId), { confirmationPreference: choice });
-                } catch (error) {
-                    console.error("Failed to save confirmation preference: ", error);
-                } finally {
-                    elements.modalContainer.innerHTML = `
-                    <div class="modal-backdrop">
-                        <div class="modal-content text-center p-8">
-                            <i class="fas fa-thumbs-up text-6xl text-green-500 mb-4"></i>
-                            <h2 class="text-2xl font-bold">شكرًا لك!</h2>
-                            <p class="text-gray-600 my-4">تم تسجيل اختيارك، سنتواصل معك بالطريقة التي اخترتها قريبًا.</p>
-                            <button id="final-close" class="mt-4 bg-orange-500 text-white font-bold py-2 px-6 rounded-lg">إغلاق</button>
-                        </div>
-                    </div>`;
-                    document.getElementById('final-close').onclick = () => {
-                        elements.modalContainer.innerHTML = '';
-                        document.getElementById('expedite-btn')?.remove(); 
-                        sessionStorage.removeItem('recent_order_id');
-                    };
-                }
-            };
-
-            document.getElementById('confirmation-choices').addEventListener('click', e => {
-                const choiceBtn = e.target.closest('button');
-                if (choiceBtn && choiceBtn.dataset.choice) {
-                    handleChoice(choiceBtn.dataset.choice);
-                }
-            });
-            const close = () => elements.modalContainer.innerHTML = '';
-            document.getElementById('modal-close').onclick = close;
-            document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
-        };
-
-        // --- CRITICAL FIX: Restructured order submission logic ---
         const handleOrderSubmit = async (e) => {
             e.preventDefault();
             
-            // Step 1: Read all data from the form BEFORE closing the modal
             const form = document.getElementById('order-form');
             const submitBtn = document.getElementById('submit-order-btn');
             const customerName = document.getElementById('customer-name').value.trim();
@@ -460,29 +457,25 @@
                 customerInstructions: customerInstructions,
                 deliveryFee: deliveryFee,
                 totalPrice: subTotal + deliveryFee,
-                items: order.map(item => ({ name: item.name.replace(/<[^>]*>?/gm, ''), quantity: item.quantity, price: item.price })),
+                items: order.map(item => ({ name: item.name.ar, quantity: item.quantity, price: item.price })),
                 status: 'new',
                 createdAt: serverTimestamp(),
                 confirmationPreference: null
             };
 
-            // Step 2: Disable button, close checkout modal, and show countdown
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="small-loader"></span>';
-            elements.modalContainer.innerHTML = ''; // Now it's safe to close
+            elements.modalContainer.innerHTML = ''; 
             await showDhikrCountdownModal();
             
-            // Step 3: Try to submit the data
             try {
                 const docRef = await addDoc(collection(db, "orders"), orderData);
                 
                 showInfoModal(
                     'تم استلام طلبك بنجاح!',
-                    'شكرًا لطلبك من TEXMEX. يمكنك الضغط على زر "تأكيد ثانوي للطلبية" في الأعلى لاختيار طريقة تواصل أسرع.',
-                    () => { addExpediteButton(docRef.id); }
+                    'شكرًا لطلبك من TEXMEX. سنتصل بك قريبًا لتأكيد الطلبية.',
                 );
 
-                sessionStorage.setItem('recent_order_id', docRef.id);
                 order = [];
                 saveOrderToStorage();
 
@@ -493,23 +486,19 @@
             }
         };
 
-        const addExpediteButton = (orderId) => {
-            if (document.getElementById('expedite-btn')) return; 
-            const expediteBtn = document.createElement('button');
-            expediteBtn.id = 'expedite-btn';
-            // --- UPDATED: New style and text ---
-            expediteBtn.className = 'text-lg font-semibold text-white bg-teal-500 hover:bg-teal-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg glowing-btn';
-            expediteBtn.innerHTML = `<i class="fas fa-bolt"></i> <span class="hidden md:inline">تأكيد ثانوي للطلبية</span>`;
-            expediteBtn.onclick = () => showSecondaryConfirmationChoiceModal(orderId);
-            elements.headerActions.insertBefore(expediteBtn, elements.orderBtn);
-        };
-
         const renderMenuItems = () => {
             const activeCatBtn = document.querySelector('.category-filter-btn.bg-orange-100');
             const selectedCatId = activeCatBtn ? activeCatBtn.dataset.id : 'all';
             const searchTerm = elements.searchInput.value.toLowerCase().trim();
             const availableItems = menuItemsCache.filter(item => item.isAvailable !== false);
-            const filteredItems = availableItems.filter(item => (selectedCatId === 'all' || item.categoryId === selectedCatId) && item.name.toLowerCase().includes(searchTerm));
+            
+            const filteredItems = availableItems.filter(item => {
+                const matchesCategory = selectedCatId === 'all' || item.categoryId === selectedCatId;
+                const nameAr = item.name?.ar?.toLowerCase() || '';
+                const nameFr = item.name?.fr?.toLowerCase() || '';
+                const matchesSearch = nameAr.includes(searchTerm) || nameFr.includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
             
             elements.grid.innerHTML = '';
             if (filteredItems.length === 0) {
@@ -522,10 +511,44 @@
             filteredItems.forEach(item => {
                 const image = item.imageUrl || 'https://via.placeholder.com/300x224.png?text=TEXMEX';
                 const card = document.createElement('div');
-                card.className = `relative bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl ${item.isOffer ? 'special-offer-card' : ''}`;
-                if(item.isOffer) card.setAttribute('data-tag', item.offerTag || 'مميز');
-                const namePlainText = item.name.replace(/<[^>]*>?/gm, "");
-                card.innerHTML = `<div class="h-56 overflow-hidden relative"><img src="${image}" alt="${namePlainText}" class="w-full h-full object-cover bg-gray-100" loading="lazy"></div><div class="p-4 flex flex-col flex-grow"><h3 class="text-lg font-bold text-gray-800" title="${namePlainText}">${item.name}</h3><div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${item.description || ''}</p></div><p class="text-orange-600 text-2xl font-extrabold mt-2">${item.price.toLocaleString()} د.ج</p></div><div class="p-4 mt-auto pt-2 border-t border-gray-100"><button data-id="${item.id}" class="add-to-order-btn w-full bg-orange-500 text-white font-bold py-2.5 px-4 rounded-lg transition-colors hover:bg-orange-600 flex items-center justify-center gap-2"><i class="fas fa-plus"></i> أضف للطلبية</button></div>`;
+                card.className = `bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl`;
+                
+                const nameAr = item.name?.ar || item.name?.fr || 'اسم غير متوفر';
+                const nameFr = item.name?.fr || '';
+                const preference = restaurantSettings.nameDisplayPreference || 'both';
+                let nameHtml;
+
+                switch (preference) {
+                    case 'ar':
+                        nameHtml = `<span class="font-ar" dir="rtl">${nameAr}</span>`;
+                        break;
+                    case 'fr':
+                        nameHtml = `<span class="font-fr" dir="ltr">${nameFr || nameAr}</span>`;
+                        break;
+                    case 'both':
+                    default:
+                        nameHtml = `<div class="product-name-container">
+                                        <span class="font-ar" dir="rtl">${nameAr}</span>
+                                        ${(nameFr && nameFr !== nameAr) ? `<span class="font-fr" dir="ltr">${nameFr}</span>` : ''}
+                                    </div>`;
+                        break;
+                }
+                
+                const namePlainText = (item.name?.ar || '').replace(/<[^>]*>?/gm, "");
+                card.innerHTML = `
+                    <div class="h-56 overflow-hidden relative img-placeholder">
+                        <img src="${image}" alt="${namePlainText}" class="w-full h-full object-cover" loading="lazy">
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="text-lg font-bold text-gray-800" title="${namePlainText}">${nameHtml}</h3>
+                        <div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${item.description || ''}</p></div>
+                        <p class="text-orange-600 text-2xl font-extrabold mt-2">${item.price.toLocaleString()} د.ج</p>
+                    </div>
+                    <div class="p-4 mt-auto pt-2 border-t border-gray-100">
+                        <button data-id="${item.id}" class="add-to-order-btn w-full bg-orange-500 text-white font-bold py-2.5 px-4 rounded-lg transition-colors hover:bg-orange-600 flex items-center justify-center gap-2">
+                            <i class="fas fa-plus"></i> أضف للطلبية
+                        </button>
+                    </div>`;
                 elements.grid.appendChild(card);
             });
         };
@@ -545,19 +568,25 @@
                 }
 
                 const snapshot = await getDocs(query(collection(db, "offers"), orderBy("createdAt", "desc")));
-                if (snapshot.empty && !restaurantSettings.isFreeDeliveryActive) { 
-                    elements.offersSection.classList.add('hidden'); 
-                    return; 
-                }
-
+                
                 elements.offersSection.classList.remove('hidden');
                 elements.offersGrid.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    elements.noOffersMsg.classList.remove('hidden');
+                    if (!restaurantSettings.isFreeDeliveryActive) {
+                       elements.offersSection.classList.add('hidden');
+                    }
+                    return;
+                }
+
+                elements.noOffersMsg.classList.add('hidden');
                 snapshot.forEach(doc => {
                     const offer = { id: doc.id, ...doc.data() };
                     const hasImage = offer.imageUrl && offer.imageUrl.trim() !== '';
                     const card = document.createElement('div');
                     card.className = 'bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl';
-                    card.innerHTML = `${hasImage ? `<div class="h-56 overflow-hidden relative"><img src="${offer.imageUrl}" alt="${offer.title}" class="w-full h-full object-cover bg-gray-100" loading="lazy"></div>` : ''}<div class="p-4 flex flex-col flex-grow"><h3 class="text-lg font-bold text-gray-800">${offer.title}</h3><div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${offer.description || ''}</p></div><p class="text-green-600 text-2xl font-extrabold mt-2">${offer.price.toLocaleString()} د.ج</p></div>`;
+                    card.innerHTML = `${hasImage ? `<div class="h-56 overflow-hidden relative img-placeholder"><img src="${offer.imageUrl}" alt="${offer.title}" class="w-full h-full object-cover" loading="lazy"></div>` : ''}<div class="p-4 flex flex-col flex-grow"><h3 class="text-lg font-bold text-gray-800">${offer.title}</h3><div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${offer.description || ''}</p></div><p class="text-green-600 text-2xl font-extrabold mt-2">${offer.price.toLocaleString()} د.ج</p></div>`;
                     elements.offersGrid.appendChild(card);
                 });
             } catch (error) { console.error("Error fetching offers: ", error); elements.offersSection.classList.add('hidden');
@@ -595,16 +624,23 @@
 
         const initializeStore = async () => {
             try {
-                setInterval(() => { location.reload(); }, 300000);
-
                 const [settingsSnap, zonesSnap, categoriesSnap, productsSnap] = await Promise.all([
                     getDoc(doc(db, "settings", "config")),
                     getDocs(query(collection(db, "delivery_zones"), orderBy("name"))),
-                    getDocs(query(collection(db, "categories"), orderBy("name"))),
+                    getDocs(query(collection(db, "categories"), orderBy("name.ar"))),
                     getDocs(query(collection(db, "products"), orderBy("createdAt", "desc")))
                 ]);
 
                 restaurantSettings = settingsSnap.exists() ? settingsSnap.data() : {};
+                
+                // MODIFIED: Set the logo from settings
+                if (restaurantSettings.logoUrl) {
+                    const headerLogo = document.getElementById('header-logo');
+                    if (headerLogo) {
+                        headerLogo.src = restaurantSettings.logoUrl;
+                    }
+                }
+
                 const social = restaurantSettings.socialLinks || {};
                 let linksHTML = '';
                 if(social.facebook1) linksHTML += `<a href="${social.facebook1}" target="_blank" class="w-12 h-12 flex items-center justify-center bg-blue-600 rounded-full text-2xl hover:scale-110 transition-transform"><i class="fab fa-facebook-f"></i></a>`;
@@ -617,11 +653,23 @@
                 setInterval(checkRestaurantStatus, 60000);
 
                 deliveryZonesCache = zonesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
                 categoriesCache = categoriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                elements.categoriesContainer.innerHTML = '<button class="category-filter-btn w-full text-right p-2 rounded-md font-semibold transition-colors bg-orange-100 text-orange-700" data-id="all">كل الوجبات</button>';
-                categoriesCache.forEach(cat => { elements.categoriesContainer.innerHTML += `<button class="category-filter-btn w-full text-right p-2 rounded-md font-semibold transition-colors hover:bg-orange-100" data-id="${cat.id}">${cat.name}</button>`; });
                 
+                let categoriesHtml = '<button class="category-filter-btn w-full text-right p-3 rounded-md font-semibold transition-colors bg-orange-100 text-orange-700" data-id="all">كل الوجبات</button>';
+                const preference = restaurantSettings.nameDisplayPreference || 'both';
+                categoriesCache.forEach(cat => {
+                    const nameAr = cat.name.ar || cat.name.fr || '';
+                    const nameFr = cat.name.fr || '';
+                    let catNameHtml;
+                    switch(preference) {
+                        case 'ar': catNameHtml = `<span class="font-ar text-base">${nameAr}</span>`; break;
+                        case 'fr': catNameHtml = `<span class="font-fr text-base">${nameFr || nameAr}</span>`; break;
+                        default: catNameHtml = `<div class="category-button-container"><span class="font-ar text-base">${nameAr}</span>${(nameFr && nameFr !== nameAr) ? `<span class="font-fr">${nameFr}</span>` : ''}</div>`;
+                    }
+                    categoriesHtml += `<button class="category-filter-btn w-full text-right p-3 rounded-md font-semibold transition-colors hover:bg-orange-100" data-id="${cat.id}">${catNameHtml}</button>`; 
+                });
+                elements.categoriesContainer.innerHTML = categoriesHtml;
+
                 menuItemsCache = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 elements.loader.classList.add('hidden');
@@ -639,34 +687,35 @@
                 elements.sidebarToggle.onclick = toggleSidebar;
                 elements.closeSidebar.onclick = toggleSidebar;
                 elements.sidebarOverlay.onclick = toggleSidebar;
+                elements.fabOrderBtn.onclick = showOrderModal;
                 elements.showOffersBtn.onclick = () => {
                     elements.offersSection.scrollIntoView({ behavior: 'smooth' });
                     if (window.innerWidth < 768) toggleSidebar();
                 };
 
                 elements.categoriesContainer.addEventListener('click', e => {
-                    if (e.target.classList.contains('category-filter-btn')) {
-                        document.querySelectorAll('.category-filter-btn').forEach(btn => btn.classList.remove('bg-orange-100', 'text-orange-700'));
-                        e.target.classList.add('bg-orange-100', 'text-orange-700');
+                    const btn = e.target.closest('.category-filter-btn');
+                    if (btn) {
+                        document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('bg-orange-100', 'text-orange-700'));
+                        btn.classList.add('bg-orange-100', 'text-orange-700');
                         renderMenuItems();
                         if (window.innerWidth < 768) toggleSidebar();
                     }
                 });
                 elements.orderBtn.onclick = showOrderModal;
                 elements.searchInput.oninput = debouncedRender;
-                elements.grid.addEventListener('click', (e) => { const btn = e.target.closest('.add-to-order-btn'); if (btn) addToOrder(btn.dataset.id); });
+                elements.grid.addEventListener('click', (e) => { 
+                    const btn = e.target.closest('.add-to-order-btn'); 
+                    if (btn) addToOrder(btn.dataset.id, btn);
+                });
                 updateOrderIcon();
-
-                const recentOrderId = sessionStorage.getItem('recent_order_id');
-                if (recentOrderId) {
-                    addExpediteButton(recentOrderId);
-                }
 
             } catch (error) {
                 console.error("Initialization failed:", error);
                 elements.loader.innerHTML = '<p class="text-red-500">فشل تحميل بيانات المطعم. يرجى تحديث الصفحة.</p>';
             }
         };
+        
         initializeStore();
     </script>
 </body>
