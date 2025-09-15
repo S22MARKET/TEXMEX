@@ -18,31 +18,24 @@
         @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; translateY(0); } }
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s; padding: 1rem; }
         .modal-content { background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; max-height: 95vh; display: flex; flex-direction: column; animation: slideInUp 0.4s; position: relative; }
-        .special-offer-card { border: 2px solid #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
-        .special-offer-card::before { content: attr(data-tag); position: absolute; top: 12px; left: -8px; background-color: #f59e0b; color: white; padding: 4px 12px; border-radius: 5px; font-size: 14px; font-weight: bold; z-index: 10; }
         .sidebar { transition: transform 0.3s ease-in-out; }
         .sidebar-overlay { transition: opacity 0.3s ease-in-out; }
         .is-visible { opacity: 1; pointer-events: auto; }
         .is-hidden { opacity: 0; pointer-events: none; }
-        .glowing-btn { animation: glow 1.5s infinite alternate; }
-        @keyframes glow { from { box-shadow: 0 0 5px #14b8a6, 0 0 10px #14b8a6, 0 0 15px #14b8a6; } to { box-shadow: 0 0 20px #0d9488, 0 0 30px #0d9488, 0 0 40px #0d9488; } }
         
-        /* --- Toast Notification Styles --- */
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; align-items: center; }
         .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
         .toast.success { background-color: #2f855a; }
         .toast.error { background-color: #c53030; }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-        /* --- IMPROVEMENT: Font & Name Display Styles --- */
         .font-ar { font-family: 'Lalezar', 'Tajawal', sans-serif; font-size: 1.25rem; line-height: 1.4; color: #1f2937; }
         .font-fr { font-family: 'Tajawal', sans-serif; font-size: 0.9rem; color: #4b5563; }
         .product-name-container { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
         .category-button-container { display: flex; flex-direction: column; align-items: flex-start; text-align: right; }
         
-        /* --- IMPROVEMENT: Floating Action Button (FAB) for Order on Mobile --- */
         #fab-order-btn {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             bottom: 2rem;
             left: 2rem;
@@ -50,17 +43,11 @@
             transition: transform 0.3s ease;
         }
         @media (max-width: 768px) {
-            #header-actions #order-btn { display: none; } /* Hide header button on mobile */
-            #fab-order-btn { display: flex; } /* Show FAB on mobile */
+            #header-actions #order-btn { display: none; }
+            #fab-order-btn { display: flex; }
         }
 
-        /* --- IMPROVEMENT: Button Success State --- */
-        .add-to-order-btn.is-added {
-            background-color: #16a34a !important; /* Green color */
-            cursor: not-allowed;
-        }
-
-        /* --- IMPROVEMENT: Image loading placeholder --- */
+        .add-to-order-btn.is-added { background-color: #16a34a !important; cursor: not-allowed; }
         .img-placeholder { background-color: #e5e7eb; }
     </style>
 </head>
@@ -163,7 +150,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, orderBy, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, orderBy, serverTimestamp, updateDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
@@ -183,6 +170,7 @@
         let deliveryZonesCache = [];
         let restaurantSettings = {};
         let order = JSON.parse(localStorage.getItem('texmex_order')) || [];
+        let appliedCoupon = null;
 
         const elements = {
             modalContainer: document.getElementById('modal-container'),
@@ -195,8 +183,8 @@
             footerPhone: document.getElementById('footer-phone'),
             orderBtn: document.getElementById('order-btn'),
             orderBadge: document.getElementById('order-badge'),
-            fabOrderBtn: document.getElementById('fab-order-btn'), // New FAB
-            fabOrderBadge: document.getElementById('fab-order-badge'), // New FAB badge
+            fabOrderBtn: document.getElementById('fab-order-btn'),
+            fabOrderBadge: document.getElementById('fab-order-badge'),
             statusBanner: document.getElementById('restaurant-status-banner'),
             statusMessage: document.getElementById('restaurant-status-message'),
             sidebar: document.getElementById('sidebar'),
@@ -230,7 +218,6 @@
             };
         };
         
-        // --- ORDER (CART) LOGIC ---
         const updateOrderIcon = () => {
             const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
             elements.orderBadge.textContent = totalItems;
@@ -244,23 +231,36 @@
             updateOrderIcon();
         };
 
-        const addToOrder = (itemId, buttonElement) => {
-            if (!restaurantSettings.isOpen) {
-                showInfoModal('المطعم مغلق حاليًا', restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي.');
-                return;
+        const createCartItemId = (itemId, addons, instructions) => {
+            const addonIds = (addons && addons.length > 0) ? addons.map(a => a.name.replace(/\s+/g, '_')).sort().join('-') : 'no-addons';
+            const instructionHash = instructions ? instructions.replace(/\s+/g, '_').substring(0, 20) : 'no-instructions';
+            return `${itemId}_${addonIds}_${instructionHash}`;
+        };
+
+        const addToOrder = (product, selectedAddons = [], cookingInstructions = '', buttonElement) => {
+            const cartId = createCartItemId(product.id, selectedAddons, cookingInstructions);
+            const existingItem = order.find(i => i.cartId === cartId);
+
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+                const finalPrice = product.price + addonsTotal;
+
+                order.push({
+                    ...product,
+                    price: finalPrice,
+                    basePrice: product.price,
+                    quantity: 1,
+                    selectedAddons: selectedAddons,
+                    cookingInstructions: cookingInstructions,
+                    cartId: cartId
+                });
             }
             
-            const item = menuItemsCache.find(p => p.id === itemId);
-            if (!item) return;
-
-            const existingItem = order.find(i => i.id === itemId);
-            if (existingItem) existingItem.quantity++;
-            else order.push({ ...item, quantity: 1 });
-            
             saveOrderToStorage();
-            showToast(`تم إضافة "${item.name.ar}" إلى طلبيتك!`, 'success');
+            showToast(`تم إضافة "${product.name.ar}" إلى طلبيتك!`, 'success');
 
-            // --- IMPROVEMENT: Visual feedback on button ---
             if (buttonElement) {
                 buttonElement.classList.add('is-added');
                 buttonElement.innerHTML = `<i class="fas fa-check"></i> تمت الإضافة!`;
@@ -272,9 +272,139 @@
                 }, 1500);
             }
         };
+        
+        const showProductOptionsModal = (product, buttonElement) => {
+            let addonsHtml = '';
+            if (product.addons && product.addons.length > 0) {
+                 addonsHtml = `
+                    <div class="border-b pb-3 mb-3">
+                        <p class="font-semibold text-gray-700 mb-2">إضافات اختيارية:</p>
+                        <div class="space-y-2">${
+                            product.addons.map((addon, index) => `
+                            <label for="addon-${index}" class="flex items-center justify-between p-3 border rounded-lg hover:bg-orange-50 cursor-pointer transition-colors">
+                                <div>
+                                    <span class="font-semibold">${addon.name}</span>
+                                    <span class="text-green-600 font-bold mr-2">(+${addon.price.toLocaleString()} د.ج)</span>
+                                </div>
+                                <input type="checkbox" id="addon-${index}" data-name="${addon.name}" data-price="${addon.price}" class="addon-checkbox h-5 w-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                            </label>`).join('')
+                        }</div>
+                    </div>`;
+            }
 
-        window.updateOrderQuantity = (itemId, newQuantity) => {
-            const itemIndex = order.findIndex(i => i.id === itemId);
+            const modalHTML = `
+            <div class="modal-backdrop" id="modal-backdrop">
+                <div class="modal-content !max-w-md">
+                    <div class="p-4 border-b flex justify-between items-center"><h2 class="text-xl font-bold">خيارات "${product.name.ar}"</h2><button id="modal-close-btn" class="text-2xl hover:text-red-500">&times;</button></div>
+                    <div class="p-4 space-y-3 overflow-y-auto">
+                        ${addonsHtml}
+                        <div>
+                           <label for="cooking-instructions" class="font-semibold text-gray-700">تعليمات خاصة للطهي (اختياري):</label>
+                           <textarea id="cooking-instructions" placeholder="مثال: بدون مايونيز، مطبوخ جيدًا..." rows="3" class="mt-1 w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                        </div>
+                        <div class="p-3 mt-3 bg-gray-100 rounded-lg text-right font-bold space-y-1">
+                            <div>السعر الأساسي: <span class="float-left">${product.price.toLocaleString()} د.ج</span></div>
+                            <div id="addons-total-display">مجموع الإضافات: <span class="float-left">0 د.ج</span></div>
+                            <hr class="my-1 border-gray-300">
+                            <div class="text-xl text-orange-600" id="final-price-display">الإجمالي: <span class="float-left">${product.price.toLocaleString()} د.ج</span></div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t bg-gray-50 flex justify-end gap-3">
+                        <button id="modal-cancel" class="bg-gray-200 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300">إلغاء</button>
+                        <button id="confirm-options-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg text-lg hover:bg-green-700">تأكيد وإضافة للطلبية</button>
+                    </div>
+                </div>
+            </div>`;
+            elements.modalContainer.innerHTML = modalHTML;
+
+            const updateTotal = () => {
+                let addonsTotal = 0;
+                document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => {
+                    addonsTotal += parseFloat(checkbox.dataset.price);
+                });
+                const addonsTotalDisplay = document.querySelector('#addons-total-display span');
+                if (addonsTotalDisplay) addonsTotalDisplay.textContent = `${addonsTotal.toLocaleString()} د.ج`;
+
+                const finalPriceDisplay = document.querySelector('#final-price-display span');
+                 if (finalPriceDisplay) finalPriceDisplay.textContent = `${(product.price + addonsTotal).toLocaleString()} د.ج`;
+            };
+
+            document.querySelectorAll('.addon-checkbox').forEach(cb => cb.onchange = updateTotal);
+
+            const close = () => elements.modalContainer.innerHTML = '';
+            document.getElementById('modal-cancel').onclick = close;
+            document.getElementById('modal-close-btn').onclick = close;
+            document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
+            document.getElementById('confirm-options-btn').onclick = () => {
+                const selectedAddons = [];
+                document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => {
+                    selectedAddons.push({
+                        name: checkbox.dataset.name,
+                        price: parseFloat(checkbox.dataset.price)
+                    });
+                });
+                const cookingInstructions = document.getElementById('cooking-instructions').value.trim();
+                addToOrder(product, selectedAddons, cookingInstructions, buttonElement);
+                close();
+            };
+            
+            updateTotal(); // Initial call
+        };
+
+        const showRecommendationModal = (onConfirm, onDecline) => {
+            const modalHTML = `
+            <div class="modal-backdrop" id="modal-backdrop">
+                <div class="modal-content text-center !max-w-md">
+                    <div class="p-6">
+                        <i class="fas fa-lightbulb text-5xl text-amber-400 mb-4"></i>
+                        <h2 class="text-2xl font-bold mb-2">هل تحتاج توصية؟</h2>
+                        <p class="text-gray-600 leading-relaxed">يمكننا أن نعرض عليك أفضل عروضنا الحصرية لتجربة مميزة!</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 border-t flex gap-3">
+                        <button id="modal-decline" class="w-full bg-gray-300 text-gray-800 font-bold py-2.5 px-6 rounded-lg hover:bg-gray-400 transition-colors">لا، شكرًا</button>
+                        <button id="modal-confirm" class="w-full bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-orange-600 transition-colors">نعم، أرني العروض</button>
+                    </div>
+                </div>
+            </div>`;
+            elements.modalContainer.innerHTML = modalHTML;
+            
+            const closeAndProceed = (action) => {
+                elements.modalContainer.innerHTML = '';
+                action();
+            };
+
+            document.getElementById('modal-confirm').onclick = () => {
+                elements.offersSection.scrollIntoView({ behavior: 'smooth' });
+                closeAndProceed(onConfirm);
+            };
+            document.getElementById('modal-decline').onclick = () => {
+                closeAndProceed(onDecline);
+            };
+        };
+
+        const handleAddToCartClick = (itemId, buttonElement) => {
+            if (!restaurantSettings.isOpen) {
+                showInfoModal('المطعم مغلق حاليًا', restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي.');
+                return;
+            }
+            
+            const product = menuItemsCache.find(p => p.id === itemId);
+            if (!product) return;
+
+            const recommendationOffered = sessionStorage.getItem('texmex_recommendation_offered');
+            if (!recommendationOffered) {
+                sessionStorage.setItem('texmex_recommendation_offered', 'true');
+                showRecommendationModal(
+                    () => showProductOptionsModal(product, buttonElement),
+                    () => showProductOptionsModal(product, buttonElement)
+                );
+            } else {
+                showProductOptionsModal(product, buttonElement);
+            }
+        };
+
+        window.updateOrderQuantity = (cartId, newQuantity) => {
+            const itemIndex = order.findIndex(i => i.cartId === cartId);
             if (itemIndex > -1) {
                 if (newQuantity > 0) order[itemIndex].quantity = newQuantity;
                 else order.splice(itemIndex, 1);
@@ -283,7 +413,6 @@
             }
         };
 
-        // --- MODAL & UI LOGIC ---
         const showInfoModal = (title, message, onConfirm = null) => {
             const modalHTML = `
             <div class="modal-backdrop" id="modal-backdrop">
@@ -317,19 +446,40 @@
                 order.forEach(item => {
                     const itemTotal = item.price * item.quantity;
                     const image = item.imageUrl || 'https://via.placeholder.com/150';
+
+                    let addonsHtml = '';
+                    if (item.selectedAddons && item.selectedAddons.length > 0) {
+                        addonsHtml = '<ul class="text-xs text-gray-500 mt-1 pr-4 list-disc list-inside">';
+                        item.selectedAddons.forEach(addon => {
+                            addonsHtml += `<li>${addon.name} (+${addon.price.toLocaleString()} د.ج)</li>`;
+                        });
+                        addonsHtml += '</ul>';
+                    }
+
+                    let instructionsHtml = '';
+                    if (item.cookingInstructions) {
+                        instructionsHtml = `<div class="text-xs text-blue-600 bg-blue-50 p-1 rounded mt-1 mr-4">
+                            <i class="fas fa-comment-dots ml-1"></i> ${item.cookingInstructions}
+                        </div>`;
+                    }
+
                     contentHTML += `
-                        <div class="flex items-center gap-4 py-3 border-b">
-                            <img src="${image}" class="w-16 h-16 rounded-md object-cover bg-gray-100" alt="${item.name.ar}">
+                        <div class="flex items-start gap-4 py-3 border-b">
+                            <img src="${image}" class="w-16 h-16 rounded-md object-cover bg-gray-100 flex-shrink-0" alt="${item.name.ar}">
                             <div class="flex-grow">
                                 <h4 class="font-bold">${item.name.ar} <span class="text-sm font-normal text-gray-500">${item.name.fr || ''}</span></h4>
-                                <p class="text-sm text-gray-500">${item.price.toLocaleString()} د.ج</p>
+                                ${addonsHtml}
+                                ${instructionsHtml}
+                                <p class="text-sm text-gray-500 mt-1">${item.price.toLocaleString()} د.ج (للقطعة)</p>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <button onclick="window.updateOrderQuantity('${item.id}', ${item.quantity - 1})" class="w-7 h-7 bg-gray-200 rounded-md font-bold">-</button>
-                                <span class="w-8 text-center font-semibold">${item.quantity}</span>
-                                <button onclick="window.updateOrderQuantity('${item.id}', ${item.quantity + 1})" class="w-7 h-7 bg-gray-200 rounded-md font-bold">+</button>
+                            <div class="flex flex-col items-center gap-2">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="window.updateOrderQuantity('${item.cartId}', ${item.quantity - 1})" class="w-7 h-7 bg-gray-200 rounded-md font-bold">-</button>
+                                    <span class="w-8 text-center font-semibold">${item.quantity}</span>
+                                    <button onclick="window.updateOrderQuantity('${item.cartId}', ${item.quantity + 1})" class="w-7 h-7 bg-gray-200 rounded-md font-bold">+</button>
+                                </div>
+                                <p class="font-bold text-md mt-2">${itemTotal.toLocaleString()} د.ج</p>
                             </div>
-                            <p class="font-bold w-24 text-left">${itemTotal.toLocaleString()} د.ج</p>
                         </div>`;
                 });
             }
@@ -350,6 +500,7 @@
         };
 
         const showCheckoutModal = () => {
+            appliedCoupon = null;
             const deliveryOptions = deliveryZonesCache.map(zone => `<option value="${zone.id}" data-price-normal="${zone.price_normal}" data-price-fast="${zone.price_fast}">${zone.name}</option>`).join('');
             const modalHTML = `<div class="modal-backdrop" id="modal-backdrop"><div class="modal-content"><div class="p-5 border-b flex justify-between items-center"><h2 class="text-xl font-bold">معلومات التوصيل</h2><button id="modal-close" class="text-2xl hover:text-red-500">&times;</button></div><form id="order-form" class="p-5 overflow-y-auto space-y-4">
                 <input type="text" id="customer-name" required placeholder="الاسم الكامل" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -359,71 +510,130 @@
                     <select id="customer-location" required class="mt-1 w-full p-3 border bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"><option value="" disabled selected>-- اختر المنطقة --</option>${deliveryOptions}</select>
                 </div>
                 <textarea id="customer-instructions" placeholder="تعليمات إضافية للتوصيل (اختياري)..." rows="2" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
-                <div id="total-price-summary" class="p-4 bg-gray-100 rounded-lg text-center font-bold text-lg space-y-2"></div>
+                
+                <div class="border-t pt-4">
+                    <label class="font-semibold text-sm text-gray-700">لديك كوبون تخفيض؟</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="text" id="coupon-code" placeholder="أدخل الكود هنا" class="flex-grow p-3 border rounded-lg uppercase focus:outline-none focus:ring-2 focus:ring-orange-500" dir="ltr">
+                        <button type="button" id="apply-coupon-btn" class="bg-gray-700 text-white font-bold py-3 px-5 rounded-lg hover:bg-gray-800">تطبيق</button>
+                    </div>
+                </div>
+
+                <div id="total-price-summary" class="p-4 bg-gray-100 rounded-lg text-right font-bold text-lg space-y-2"></div>
             </form><div class="p-4 border-t bg-gray-50"><button id="submit-order-btn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg text-lg hover:bg-orange-600" disabled>أكمل الطلب</button></div></div></div>`;
             elements.modalContainer.innerHTML = modalHTML;
             
-            const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
             const locationSelect = document.getElementById('customer-location');
             const summaryDiv = document.getElementById('total-price-summary');
             const submitBtn = document.getElementById('submit-order-btn');
 
             const updateTotal = () => {
+                const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
                 const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+                
                 if (!selectedOption || !selectedOption.value) {
-                    summaryDiv.innerHTML = `<span>المجموع: ${subTotal.toLocaleString()} د.ج</span><span class="text-sm text-gray-500 block">الرجاء اختيار منطقة التوصيل</span>`;
+                    summaryDiv.innerHTML = `<div class="flex justify-between"><span>المجموع:</span><span>${subTotal.toLocaleString()} د.ج</span></div><div class="text-sm text-gray-500 mt-2 text-center">الرجاء اختيار منطقة التوصيل لحساب الإجمالي</div>`;
                     submitBtn.disabled = true; return;
                 }
                 const deliveryFee = parseFloat(selectedOption.dataset.priceNormal);
                 
                 let finalDeliveryFee = deliveryFee;
-                let deliveryMessage = `التوصيل: ${deliveryFee.toLocaleString()} د.ج`;
-
+                let deliveryMessage = `<span>${deliveryFee.toLocaleString()} د.ج</span>`;
                 if (restaurantSettings.isFreeDeliveryActive && subTotal >= restaurantSettings.freeDeliveryThreshold) {
                     finalDeliveryFee = 0;
-                    deliveryMessage = `<span class="text-green-600 font-bold">التوصيل: مجاني! 🎉</span>`;
+                    deliveryMessage = `<span class="text-green-600 font-bold">مجاني! 🎉</span>`;
                 }
 
-                const grandTotal = subTotal + finalDeliveryFee;
+                let discountAmount = 0;
+                let discountHtml = '';
+                if (appliedCoupon) {
+                    if(appliedCoupon.discountType === 'percentage') {
+                         discountAmount = subTotal * (appliedCoupon.discountValue / 100);
+                    } else {
+                        discountAmount = appliedCoupon.discountValue;
+                    }
+                    discountAmount = Math.min(subTotal, discountAmount);
+                    discountHtml = `<div class="flex justify-between text-green-600 border-t pt-2 mt-2"><span>خصم (${appliedCoupon.code}):</span><span>-${discountAmount.toLocaleString()} د.ج</span></div>`;
+                }
+
+                const grandTotal = subTotal + finalDeliveryFee - discountAmount;
                 summaryDiv.innerHTML = `
-                    <span>المنتجات: ${subTotal.toLocaleString()} د.ج</span>
-                    <span>+ ${deliveryMessage}</span>
-                    <hr class="my-1">
-                    <span class="text-2xl">الإجمالي: ${grandTotal.toLocaleString()} د.ج</span>
-                `;
+                    <div class="flex justify-between"><span>سعر المنتجات:</span><span>${subTotal.toLocaleString()} د.ج</span></div>
+                    <div class="flex justify-between"><span>سعر التوصيل:</span>${deliveryMessage}</div>
+                    ${discountHtml}
+                    <hr class="my-1 border-gray-300">
+                    <div class="flex justify-between text-2xl mt-2"><span>الإجمالي:</span><span>${grandTotal.toLocaleString()} د.ج</span></div>`;
                 submitBtn.disabled = false;
             };
 
             updateTotal();
             locationSelect.onchange = updateTotal;
-            const close = () => elements.modalContainer.innerHTML = '';
+            const close = () => { appliedCoupon = null; elements.modalContainer.innerHTML = ''; };
             document.getElementById('modal-close').onclick = close;
             document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
             document.getElementById('order-form').addEventListener('submit', handleOrderSubmit);
             document.getElementById('submit-order-btn').onclick = () => document.getElementById('order-form').requestSubmit();
+            document.getElementById('apply-coupon-btn').onclick = handleApplyCoupon;
+        };
+        
+        const handleApplyCoupon = async () => {
+            const codeInput = document.getElementById('coupon-code');
+            const code = codeInput.value.trim().toUpperCase();
+            if (!code) { showToast("الرجاء إدخال كود الكوبون", "error"); return; }
+            
+            const q = query(collection(db, "coupons"), where("code", "==", code));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) { showToast("الكوبون غير صالح أو غير موجود.", "error"); return; }
+
+            const couponDoc = snapshot.docs[0];
+            const coupon = { id: couponDoc.id, ...couponDoc.data() };
+            const now = Timestamp.now();
+
+            if (!coupon.isActive) { showToast("هذا الكوبون غير نشط حاليًا.", "error"); return; }
+            if (coupon.expiresAt && coupon.expiresAt < now) { showToast("هذا الكوبون منتهي الصلاحية.", "error"); return; }
+            
+            if (coupon.appliesTo === 'specific_products') {
+                const cartProductIds = new Set(order.map(item => item.id));
+                const couponApplies = coupon.productIds.some(productId => cartProductIds.has(productId));
+                if (!couponApplies) {
+                    showToast("هذا الكوبون لا ينطبق على أي من المنتجات في سلتك.", "error"); return;
+                }
+            }
+
+            appliedCoupon = coupon;
+            showToast(`تم تطبيق الكوبون بنجاح!`, 'success');
+            
+            const applyBtn = document.getElementById('apply-coupon-btn');
+            codeInput.disabled = true;
+            applyBtn.textContent = 'إزالة';
+            applyBtn.classList.remove('bg-gray-700', 'hover:bg-gray-800');
+            applyBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            applyBtn.onclick = () => {
+                appliedCoupon = null;
+                showToast('تم إزالة الكوبون.');
+                codeInput.disabled = false;
+                codeInput.value = '';
+                applyBtn.textContent = 'تطبيق';
+                applyBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                applyBtn.classList.add('bg-gray-700', 'hover:bg-gray-800');
+                applyBtn.onclick = handleApplyCoupon;
+                document.getElementById('customer-location').dispatchEvent(new Event('change'));
+            };
+            
+            document.getElementById('customer-location').dispatchEvent(new Event('change'));
         };
 
         const showDhikrCountdownModal = () => {
             return new Promise(resolve => {
                 let seconds = 5;
-                const modalHTML = `
-                <div class="modal-backdrop">
-                    <div class="modal-content text-center p-8">
-                        <h2 class="text-2xl font-bold mb-3">جاري إرسال طلبك...</h2>
-                        <p class="text-gray-600 mb-4">بينما تنتظر، لنجعل هذا الوقت مباركًا.</p>
-                        <p class="text-3xl font-bold text-orange-600 my-4">استغفر الله العظيم</p>
-                        <div id="countdown-timer" class="text-5xl font-bold text-gray-800">${seconds}</div>
-                    </div>
-                </div>`;
+                const modalHTML = `<div class="modal-backdrop"><div class="modal-content text-center p-8"><h2 class="text-2xl font-bold mb-3">جاري إرسال طلبك...</h2><p class="text-gray-600 mb-4">بينما تنتظر، لنجعل هذا الوقت مباركًا.</p><p class="text-3xl font-bold text-orange-600 my-4">سبحان الله وبحمده</p><div id="countdown-timer" class="text-5xl font-bold text-gray-800">${seconds}</div></div></div>`;
                 elements.modalContainer.innerHTML = modalHTML;
                 const timerElement = document.getElementById('countdown-timer');
                 const interval = setInterval(() => {
                     seconds--;
                     if(timerElement) timerElement.textContent = seconds;
-                    if (seconds <= 0) {
-                        clearInterval(interval);
-                        resolve();
-                    }
+                    if (seconds <= 0) { clearInterval(interval); resolve(); }
                 }, 1000);
             });
         };
@@ -433,15 +643,11 @@
             
             const form = document.getElementById('order-form');
             const submitBtn = document.getElementById('submit-order-btn');
-            const customerName = document.getElementById('customer-name').value.trim();
-            const customerContact = document.getElementById('customer-contact').value.trim();
-            const customerInstructions = document.getElementById('customer-instructions').value.trim();
             const locationSelect = document.getElementById('customer-location');
             const selectedZone = locationSelect.options[locationSelect.selectedIndex];
             
             if (!form.checkValidity() || !selectedZone.value) {
-                showToast("الرجاء ملء جميع الحقول المطلوبة.", "error");
-                return;
+                showToast("الرجاء ملء جميع الحقول المطلوبة.", "error"); return;
             }
 
             const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -450,17 +656,37 @@
                 deliveryFee = 0;
             }
 
+            let discountAmount = 0;
+            if (appliedCoupon) {
+                if (appliedCoupon.discountType === 'percentage') {
+                    discountAmount = subTotal * (appliedCoupon.discountValue / 100);
+                } else {
+                    discountAmount = appliedCoupon.discountValue;
+                }
+                discountAmount = Math.min(subTotal, discountAmount);
+            }
+            
+            const finalTotalPrice = subTotal + deliveryFee - discountAmount;
+
             const orderData = {
-                customerName: customerName,
-                customerContact: customerContact,
+                customerName: document.getElementById('customer-name').value.trim(),
+                customerContact: document.getElementById('customer-contact').value.trim(),
                 customerLocation: selectedZone.text,
-                customerInstructions: customerInstructions,
+                customerInstructions: document.getElementById('customer-instructions').value.trim(),
                 deliveryFee: deliveryFee,
-                totalPrice: subTotal + deliveryFee,
-                items: order.map(item => ({ name: item.name.ar, quantity: item.quantity, price: item.price })),
+                totalPrice: finalTotalPrice,
+                items: order.map(item => ({ 
+                    name: item.name.ar, 
+                    quantity: item.quantity, 
+                    price: item.price, 
+                    id: item.id, 
+                    selectedAddons: item.selectedAddons || [],
+                    cookingInstructions: item.cookingInstructions || ''
+                })),
                 status: 'new',
                 createdAt: serverTimestamp(),
-                confirmationPreference: null
+                couponCode: appliedCoupon ? appliedCoupon.code : null,
+                discountAmount: discountAmount
             };
 
             submitBtn.disabled = true;
@@ -470,13 +696,19 @@
             
             try {
                 const docRef = await addDoc(collection(db, "orders"), orderData);
-                
-                showInfoModal(
-                    'تم استلام طلبك بنجاح!',
-                    'شكرًا لطلبك من TEXMEX. سنتصل بك قريبًا لتأكيد الطلبية.',
-                );
 
+                if (appliedCoupon) {
+                    const couponRef = doc(db, "coupons", appliedCoupon.id);
+                    const couponSnap = await getDoc(couponRef);
+                    if (couponSnap.exists()) {
+                        const currentCount = couponSnap.data().usageCount || 0;
+                        await updateDoc(couponRef, { usageCount: currentCount + 1 });
+                    }
+                }
+                
+                showInfoModal('تم استلام طلبك بنجاح!', 'شكرًا لطلبك من TEXMEX. سنتصل بك قريبًا لتأكيد الطلبية.');
                 order = [];
+                appliedCoupon = null;
                 saveOrderToStorage();
 
             } catch (error) {
@@ -519,19 +751,9 @@
                 let nameHtml;
 
                 switch (preference) {
-                    case 'ar':
-                        nameHtml = `<span class="font-ar" dir="rtl">${nameAr}</span>`;
-                        break;
-                    case 'fr':
-                        nameHtml = `<span class="font-fr" dir="ltr">${nameFr || nameAr}</span>`;
-                        break;
-                    case 'both':
-                    default:
-                        nameHtml = `<div class="product-name-container">
-                                        <span class="font-ar" dir="rtl">${nameAr}</span>
-                                        ${(nameFr && nameFr !== nameAr) ? `<span class="font-fr" dir="ltr">${nameFr}</span>` : ''}
-                                    </div>`;
-                        break;
+                    case 'ar': nameHtml = `<span class="font-ar" dir="rtl">${nameAr}</span>`; break;
+                    case 'fr': nameHtml = `<span class="font-fr" dir="ltr">${nameFr || nameAr}</span>`; break;
+                    default: nameHtml = `<div class="product-name-container"><span class="font-ar" dir="rtl">${nameAr}</span>${(nameFr && nameFr !== nameAr) ? `<span class="font-fr" dir="ltr">${nameFr}</span>` : ''}</div>`; break;
                 }
                 
                 const namePlainText = (item.name?.ar || '').replace(/<[^>]*>?/gm, "");
@@ -541,7 +763,7 @@
                     </div>
                     <div class="p-4 flex flex-col flex-grow">
                         <h3 class="text-lg font-bold text-gray-800" title="${namePlainText}">${nameHtml}</h3>
-                        <div class="my-3 flex-grow"><p class="text-gray-600 text-sm">${item.description || ''}</p></div>
+                        <div class="description-content my-3 flex-grow text-gray-600 text-sm"></div>
                         <p class="text-orange-600 text-2xl font-extrabold mt-2">${item.price.toLocaleString()} د.ج</p>
                     </div>
                     <div class="p-4 mt-auto pt-2 border-t border-gray-100">
@@ -549,6 +771,7 @@
                             <i class="fas fa-plus"></i> أضف للطلبية
                         </button>
                     </div>`;
+                card.querySelector('.description-content').innerHTML = item.description || '';
                 elements.grid.appendChild(card);
             });
         };
@@ -556,14 +779,7 @@
         const renderOffers = async () => {
             try {
                 if (restaurantSettings.isFreeDeliveryActive && restaurantSettings.freeDeliveryThreshold > 0) {
-                    elements.freeDeliveryOfferContainer.innerHTML = `
-                        <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-xl shadow-lg flex items-center gap-6">
-                            <i class="fas fa-truck-fast fa-3x"></i>
-                            <div>
-                                <h3 class="text-2xl font-extrabold">توصيل مجاني!</h3>
-                                <p class="font-semibold">احصل على توصيل مجاني لطلباتك التي تفوق قيمتها ${restaurantSettings.freeDeliveryThreshold.toLocaleString()} د.ج!</p>
-                            </div>
-                        </div>`;
+                    elements.freeDeliveryOfferContainer.innerHTML = `<div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-6 rounded-xl shadow-lg flex items-center gap-6"><i class="fas fa-truck-fast fa-3x"></i><div><h3 class="text-2xl font-extrabold">توصيل مجاني!</h3><p class="font-semibold">احصل على توصيل مجاني لطلباتك التي تفوق قيمتها ${restaurantSettings.freeDeliveryThreshold.toLocaleString()} د.ج!</p></div></div>`;
                     elements.freeDeliveryOfferContainer.classList.remove('hidden');
                 }
 
@@ -572,15 +788,12 @@
                 elements.offersSection.classList.remove('hidden');
                 elements.offersGrid.innerHTML = '';
                 
-                if (snapshot.empty) {
-                    elements.noOffersMsg.classList.remove('hidden');
-                    if (!restaurantSettings.isFreeDeliveryActive) {
-                       elements.offersSection.classList.add('hidden');
-                    }
+                if (snapshot.empty && !restaurantSettings.isFreeDeliveryActive) {
+                    elements.offersSection.classList.add('hidden');
                     return;
                 }
+                elements.noOffersMsg.classList.toggle('hidden', !snapshot.empty);
 
-                elements.noOffersMsg.classList.add('hidden');
                 snapshot.forEach(doc => {
                     const offer = { id: doc.id, ...doc.data() };
                     const hasImage = offer.imageUrl && offer.imageUrl.trim() !== '';
@@ -608,17 +821,15 @@
             const open = parseInt(openTime.split(':')[0]) * 60 + parseInt(openTime.split(':')[1]);
             const close = parseInt(closeTime.split(':')[0]) * 60 + parseInt(closeTime.split(':')[1]);
             
-            if (close < open) {
+            if (close < open) { // Overnight case
                 restaurantSettings.isOpen = (currentTime >= open || currentTime < close);
             } else {
                 restaurantSettings.isOpen = (currentTime >= open && currentTime < close);
             }
             
-            if(restaurantSettings.isOpen) {
-                elements.statusBanner.classList.add('hidden');
-            } else {
+            elements.statusBanner.classList.toggle('hidden', restaurantSettings.isOpen);
+            if (!restaurantSettings.isOpen) {
                 elements.statusMessage.textContent = closedMessage || `المطعم مغلق حاليًا. نفتح من ${openTime} إلى ${closeTime}.`; 
-                elements.statusBanner.classList.remove('hidden');
             }
         };
 
@@ -633,12 +844,9 @@
 
                 restaurantSettings = settingsSnap.exists() ? settingsSnap.data() : {};
                 
-                // MODIFIED: Set the logo from settings
                 if (restaurantSettings.logoUrl) {
                     const headerLogo = document.getElementById('header-logo');
-                    if (headerLogo) {
-                        headerLogo.src = restaurantSettings.logoUrl;
-                    }
+                    if (headerLogo) headerLogo.src = restaurantSettings.logoUrl;
                 }
 
                 const social = restaurantSettings.socialLinks || {};
@@ -683,7 +891,6 @@
                     elements.sidebarOverlay.classList.toggle('is-visible');
                 };
                 
-                // --- Event Listeners ---
                 elements.sidebarToggle.onclick = toggleSidebar;
                 elements.closeSidebar.onclick = toggleSidebar;
                 elements.sidebarOverlay.onclick = toggleSidebar;
@@ -706,7 +913,9 @@
                 elements.searchInput.oninput = debouncedRender;
                 elements.grid.addEventListener('click', (e) => { 
                     const btn = e.target.closest('.add-to-order-btn'); 
-                    if (btn) addToOrder(btn.dataset.id, btn);
+                    if (btn && !btn.disabled) {
+                        handleAddToCartClick(btn.dataset.id, btn);
+                    }
                 });
                 updateOrderIcon();
 
