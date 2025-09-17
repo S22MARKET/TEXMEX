@@ -178,6 +178,45 @@
              quillEditor = null; // Clear Quill instance on modal close
             document.getElementById('modal-container').innerHTML = '';
         }
+
+        /**
+         * Shows a confirmation modal requiring a specific code to proceed with deletion.
+         * @param {Function} onConfirmCallback - The function to execute if the code is correct.
+         */
+        function showDeletionConfirmModal(onConfirmCallback) {
+            const content = `
+                <p class="mb-4 text-lg">الرئيسي  عملية الحذف، الرجاء إدخال الرمز التالي:</p>
+                <div class="text-center mb-4">
+                    <code class="text-2xl font-bold bg-gray-100 p-2 rounded-lg text-orange-600 select-all"> </code>
+                </div>
+                <input type="text" id="deletion-code-input" placeholder="أدخل الرمز هنا للتأكيد" class="w-full p-3 border rounded-lg text-center tracking-widest uppercase focus:ring-2 focus:ring-orange-400 focus:border-orange-400">
+                <p id="deletion-error-msg" class="text-red-600 text-sm mt-2 text-center hidden">الرمز الذي أدخلته غير صحيح. الرجاء المحاولة مرة أخرى.</p>
+            `;
+
+            showModal('تأكيد عملية الحذف', content, () => {
+                // This is the action for the modal's main confirm button ('تأكيد الحذف')
+                const codeInput = document.getElementById('deletion-code-input');
+                const errorMsg = document.getElementById('deletion-error-msg');
+                if (codeInput.value.trim().toUpperCase() === 'S22MARKET') {
+                    onConfirmCallback(); // Execute the actual deletion logic
+                    closeModal();
+                } else {
+                    errorMsg.classList.remove('hidden');
+                    codeInput.classList.add('border-red-500');
+                    codeInput.focus();
+                }
+            }, 'تأكيد الحذف', true);
+
+            // Add an input listener to give real-time feedback (hide error on typing)
+            const codeInput = document.getElementById('deletion-code-input');
+            const errorMsg = document.getElementById('deletion-error-msg');
+            codeInput.addEventListener('input', () => {
+                errorMsg.classList.add('hidden');
+                codeInput.classList.remove('border-red-500');
+            });
+        }
+
+
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -445,9 +484,10 @@
                 updateDoc(doc(db, "orders", e.target.dataset.id), { deliveryPersonId: personId, deliveryPersonName: personName });
             });
             document.querySelectorAll('.delete-order-btn').forEach(btn => btn.onclick = e => {
-                if(confirm('هل أنت متأكد من حذف هذا الطلب نهائيًا؟')){
-                    deleteDoc(doc(db, "orders", e.currentTarget.dataset.id)).then(() => showToast('تم حذف الطلب.', 'success'));
-                }
+                const docId = e.currentTarget.dataset.id;
+                showDeletionConfirmModal(() => {
+                    deleteDoc(doc(db, "orders", docId)).then(() => showToast('تم حذف الطلب.', 'success'));
+                });
             });
             document.querySelectorAll('.copy-order-btn').forEach(btn => btn.onclick = e => {
                 const order = ordersCache.find(o => o.id === e.currentTarget.dataset.id);
@@ -528,11 +568,12 @@
         }
         function attachMenuItemActionListeners() {
             document.querySelectorAll('.edit-menu-item-btn').forEach(btn => btn.onclick = e => showMenuItemModal(menuItemsCache.find(i => i.id === e.currentTarget.dataset.id)));
-            document.querySelectorAll('.delete-menu-item-btn').forEach(btn => btn.onclick = async e => {
-                if (confirm('هل أنت متأكد؟')) {
-                    await deleteDoc(doc(db, "products", e.currentTarget.dataset.id));
+            document.querySelectorAll('.delete-menu-item-btn').forEach(btn => btn.onclick = e => {
+                const docId = e.currentTarget.dataset.id;
+                showDeletionConfirmModal(async () => {
+                    await deleteDoc(doc(db, "products", docId));
                     showToast('تم حذف الوجبة بنجاح.', 'success');
-                }
+                });
             });
             document.querySelectorAll('.availability-toggle').forEach(toggle => toggle.onchange = async e => {
                 await updateDoc(doc(db, "products", e.currentTarget.dataset.id), { isAvailable: e.currentTarget.checked });
@@ -743,11 +784,12 @@
                     list.appendChild(card);
                 });
                 document.querySelectorAll('.edit-offer-btn').forEach(btn => btn.onclick = e => showOfferModal(offersCache.find(o => o.id === e.currentTarget.dataset.id)));
-                document.querySelectorAll('.delete-offer-btn').forEach(btn => btn.onclick = async e => {
-                    if (confirm('هل أنت متأكد من حذف هذا العرض؟')) {
-                        await deleteDoc(doc(db, "offers", e.currentTarget.dataset.id));
+                document.querySelectorAll('.delete-offer-btn').forEach(btn => btn.onclick = e => {
+                    const docId = e.currentTarget.dataset.id;
+                    showDeletionConfirmModal(async () => {
+                        await deleteDoc(doc(db, "offers", docId));
                         showToast('تم حذف العرض بنجاح.', 'success');
-                    }
+                    });
                 });
             });
         }
@@ -868,9 +910,10 @@
 
             document.querySelectorAll('.edit-coupon-btn').forEach(btn => btn.onclick = e => showCouponModal(couponsCache.find(c => c.id === e.currentTarget.dataset.id)));
             document.querySelectorAll('.delete-coupon-btn').forEach(btn => btn.onclick = e => {
-                if (confirm('هل أنت متأكد من حذف هذا الكوبون؟')) {
-                    deleteDoc(doc(db, "coupons", e.currentTarget.dataset.id)).then(() => showToast('تم حذف الكوبون', 'success'));
-                }
+                const docId = e.currentTarget.dataset.id;
+                showDeletionConfirmModal(() => {
+                    deleteDoc(doc(db, "coupons", docId)).then(() => showToast('تم حذف الكوبون', 'success'));
+                });
             });
         }
         function showCouponModal(coupon = null) {
@@ -994,9 +1037,10 @@
                 });
                 document.querySelectorAll('.edit-cat-btn').forEach(btn => btn.onclick = e => showCategoryModal(categoriesCache.find(c => c.id === e.currentTarget.dataset.id)));
                 document.querySelectorAll('.delete-cat-btn').forEach(btn => btn.onclick = e => {
-                    if (confirm('هل أنت متأكد؟ سيؤثر حذف القسم على الوجبات المرتبطة به.')) {
-                        deleteDoc(doc(db, "categories", e.currentTarget.dataset.id)).then(() => showToast('تم حذف القسم', 'success'));
-                    }
+                    const docId = e.currentTarget.dataset.id;
+                    showDeletionConfirmModal(() => {
+                        deleteDoc(doc(db, "categories", docId)).then(() => showToast('تم حذف القسم', 'success'));
+                    });
                 });
             });
         }
@@ -1052,9 +1096,10 @@
                 });
                 document.querySelectorAll('.edit-personnel-btn').forEach(btn => btn.onclick = e => showPersonnelModal(deliveryPersonnelCache.find(p => p.id === e.currentTarget.dataset.id)));
                 document.querySelectorAll('.delete-personnel-btn').forEach(btn => btn.onclick = e => {
-                    if (confirm('هل أنت متأكد؟')) {
-                        deleteDoc(doc(db, "delivery_personnel", e.currentTarget.dataset.id)).then(() => showToast('تم حذف العامل', 'success'));
-                    }
+                    const docId = e.currentTarget.dataset.id;
+                    showDeletionConfirmModal(() => {
+                        deleteDoc(doc(db, "delivery_personnel", docId)).then(() => showToast('تم حذف العامل', 'success'));
+                    });
                 });
             });
         }
@@ -1210,9 +1255,10 @@
                 });
                 document.querySelectorAll('.edit-zone-btn').forEach(btn => btn.onclick = e => showZoneModal(deliveryZonesCache.find(z => z.id === e.currentTarget.dataset.id)));
                 document.querySelectorAll('.delete-zone-btn').forEach(btn => btn.onclick = e => {
-                    if (confirm('هل أنت متأكد من حذف هذه المنطقة؟')) {
-                        deleteDoc(doc(db, "delivery_zones", e.currentTarget.dataset.id)).then(() => showToast('تم حذف المنطقة', 'success'));
-                    }
+                    const docId = e.currentTarget.dataset.id;
+                    showDeletionConfirmModal(() => {
+                        deleteDoc(doc(db, "delivery_zones", docId)).then(() => showToast('تم حذف المنطقة', 'success'));
+                    });
                 });
             });
         }

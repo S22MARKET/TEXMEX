@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEXMEX - شاشة المطبخ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #111827;
+            --primary-bg: #1f2937;
+            --secondary-bg: #374151;
+            --border-color: #4b5563;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-color: #f97316;
+        }
+        body { font-family: 'Tajawal', sans-serif; background-color: var(--dark-bg); color: var(--text-primary); }
+        .hidden { display: none; }
+        .active-tab { background-color: var(--accent-color); color: white; }
+        .panel { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Refresh Button Animation */
+        .refresh-spin { animation: spin 0.7s ease-in-out; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive Table adjustments for dark theme */
+        @media (max-width: 768px) { 
+            .responsive-table thead { display: none; } 
+            .responsive-table tr { display: block; background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; } 
+            .responsive-table td { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0.2rem; border-bottom: 1px solid var(--secondary-bg); font-size: 0.95rem; } 
+            .responsive-table td:last-child { border-bottom: none; } 
+            .responsive-table td::before { content: attr(data-label); font-weight: 700; color: var(--text-primary); margin-left: 0.5rem; } 
+        }
+
+        .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--secondary-bg); color: var(--text-primary); transition: all 0.2s; }
+        .filter-btn.active { background-color: var(--accent-color); color: white; border-color: var(--accent-color); box-shadow: 0 0 10px rgba(249, 115, 22, 0.5); }
+        
+        #new-order-banner {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+            background: linear-gradient(45deg, #fb923c, #f97316); color: white;
+            padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: 800;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); cursor: pointer;
+            animation: slideDown 0.5s ease-out, pulse-bg 1.5s infinite;
+        }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        @keyframes pulse-bg {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+
+        .time-badge { padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 0.9rem; min-width: 70px; text-align: center; }
+        .time-badge.new { background-color: #10b981; color: white; }
+        .time-badge.medium { background-color: #f59e0b; color: white; }
+        .time-badge.old { background-color: #ef4444; color: white; animation: blink 1.2s infinite ease-in-out; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+
+    <div id="new-order-banner" class="hidden">
+        <i class="fas fa-bell animate-bounce mr-3"></i>
+        <span>طلب جديــــــــد ورد الآن! (اضغط هنا للإخفاء)</span>
+    </div>
+
+    <div id="dashboard-page">
+        <header class="bg-gray-900 shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold">TEX<span class="text-orange-500">MEX</span> Kitchen</h1>
+                <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" class="text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-sync-alt fa-lg"></i>
+                </button>
+            </div>
+            <nav class="flex items-center gap-2 md:gap-4">
+                <a href="#orders" class="dashboard-tab active-tab text-sm md:text-lg font-semibold px-3 py-2 rounded-md"><i class="fas fa-clipboard-list fa-fw md:ml-2"></i><span class="hidden md:inline">الطلبات</span></a>
+                <a href="#menu-items" class="dashboard-tab text-sm md:text-lg font-semibold px-3 py-2 rounded-md"><i class="fas fa-utensils fa-fw md:ml-2"></i><span class="hidden md:inline">القائمة</span></a>
+            </nav>
+        </header>
+        <main class="flex-1 p-3 md:p-6 lg:p-8">
+            <div id="orders-panel" class="panel"></div>
+            <div id="menu-items-panel" class="panel hidden"></div>
+        </main>
+    </div>
+
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-notification-947.mp3" preload="auto"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
+            authDomain: "texmexfoodannaba23.firebaseapp.com",
+            projectId: "texmexfoodannaba23",
+            storageBucket: "texmexfoodannaba23.appspot.com",
+            messagingSenderId: "712480664933",
+            appId: "1:712480664933:web:a5310190bf63115ac9058c",
+            measurementId: "G-38D210X1EG"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let ordersCache = [];
+        let deliveryPersonnelCache = [];
+        let isInitialOrdersLoad = true;
+        let currentOrderStatusFilter = 'new';
+
+        const newOrderBanner = document.getElementById('new-order-banner');
+        newOrderBanner.onclick = () => newOrderBanner.classList.add('hidden');
+        
+        function showNewOrderAlert() {
+            newOrderBanner.classList.remove('hidden');
+            document.getElementById('notification-sound').play();
+        }
+        
+        function initializeDashboard() {
+            const tabs = document.querySelectorAll('.dashboard-tab');
+            const panels = document.querySelectorAll('.panel');
+            const manualRefreshBtn = document.getElementById('manual-refresh-btn');
+            
+            const switchTab = (hash) => {
+                const targetId = hash.substring(1) + '-panel';
+                tabs.forEach(t => t.classList.toggle('active-tab', t.getAttribute('href') === hash));
+                panels.forEach(p => p.classList.toggle('hidden', p.id !== targetId));
+            };
+
+            tabs.forEach(tab => tab.addEventListener('click', e => { e.preventDefault(); window.location.hash = tab.getAttribute('href'); }));
+            window.addEventListener('hashchange', () => switchTab(window.location.hash || '#orders'));
+            
+            manualRefreshBtn.onclick = forceUIRefresh;
+
+            loadOrders();
+            loadMenuItems();
+            loadDeliveryPersonnel();
+            switchTab(window.location.hash || '#orders');
+
+            // Interval to update time counters
+            setInterval(renderOrdersTable, 30000);
+        }
+
+        function forceUIRefresh() {
+            const icon = document.querySelector('#manual-refresh-btn i');
+            icon.classList.add('refresh-spin');
+            renderOrdersTable();
+            setTimeout(() => icon.classList.remove('refresh-spin'), 700);
+        }
+
+        function loadOrders() {
+            const panel = document.getElementById('orders-panel');
+            panel.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                    <h1 class="text-3xl font-bold text-gray-100">الطلبات الواردة</h1>
+                    <div class="flex items-center gap-2 p-1 bg-gray-800 rounded-lg flex-wrap justify-center" id="order-status-filters">
+                        <button class="filter-btn active" data-status="new">جديد</button>
+                        <button class="filter-btn" data-status="completed">مكتمل</button>
+                        <button class="filter-btn" data-status="canceled">ملغي</button>
+                        <button class="filter-btn" data-status="all">الكل</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto bg-gray-900 rounded-xl shadow-lg">
+                    <table class="w-full min-w-full text-right responsive-table">
+                        <thead class="bg-gray-800 text-gray-300">
+                            <tr>
+                                <th class="p-4">العميل</th>
+                                <th class="p-4">الوقت المنقضي</th>
+                                <th class="p-4 w-1/3">الطلبية</th>
+                                <th class="p-4">المبلغ</th>
+                                <th class="p-4">الحالة</th>
+                                <th class="p-4">عامل التوصيل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body" class="divide-y divide-gray-700"></tbody>
+                    </table>
+                </div>`;
+            
+            document.querySelectorAll('#order-status-filters .filter-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelector('#order-status-filters .filter-btn.active').classList.remove('active');
+                    e.currentTarget.classList.add('active');
+                    currentOrderStatusFilter = e.currentTarget.dataset.status;
+                    renderOrdersTable();
+                };
+            });
+
+            onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), snapshot => {
+                if (!isInitialOrdersLoad && snapshot.docChanges().some(c => c.type === "added")) { 
+                    showNewOrderAlert(); 
+                }
+                isInitialOrdersLoad = false;
+                ordersCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                renderOrdersTable();
+            });
+        }
+
+        function calculateTimeSince(timestamp) {
+            if (!timestamp?.toDate) return { text: 'قيد الحساب', class: 'new' };
+            const now = new Date();
+            const orderDate = timestamp.toDate();
+            const diffMinutes = Math.floor((now - orderDate) / 60000);
+
+            if (diffMinutes < 5) return { text: `منذ ${diffMinutes} د`, class: 'new' };
+            if (diffMinutes < 15) return { text: `منذ ${diffMinutes} د`, class: 'medium' };
+            return { text: `منذ ${diffMinutes} د`, class: 'old' };
+        }
+
+        /**
+         * A robust function to render the orders table.
+         * It's wrapped in a try-catch block to prevent a single bad order from crashing the UI updates.
+         */
+        function renderOrdersTable() {
+            try {
+                const tableBody = document.getElementById('orders-table-body');
+                if (!tableBody) return;
+                
+                const filteredOrders = ordersCache.filter(order => currentOrderStatusFilter === 'all' || order.status === currentOrderStatusFilter);
+                
+                if (filteredOrders.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 text-lg">لا توجد طلبات.</td></tr>`;
+                    return;
+                }
+
+                // Use DocumentFragment for performance boost
+                const fragment = document.createDocumentFragment();
+                filteredOrders.forEach(order => {
+                    const statusColors = { new: 'bg-blue-600 text-white', completed: 'bg-green-600 text-white', canceled: 'bg-red-600 text-white' };
+                    const itemsHtml = (order.items || []).map(item => {
+                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span></div>`;
+                        if (item.selectedAddons && item.selectedAddons.length > 0) {
+                            itemText += item.selectedAddons.map(addon => 
+                                `<div class="text-xs text-gray-400 mr-4">+ ${addon.name}</div>`
+                            ).join('');
+                        }
+                        return itemText;
+                    }).join('');
+
+                    const deliveryPersonnelOptions = deliveryPersonnelCache.map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+                    
+                    const formattedDate = order.createdAt?.toDate() ? order.createdAt.toDate().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '...';
+                    const timeSince = calculateTimeSince(order.createdAt);
+                    
+                    const row = document.createElement('tr');
+                    row.className = `transition-colors ${order.status === 'new' ? 'bg-gray-800' : 'bg-gray-900'}`;
+                    row.innerHTML = `
+                        <td data-label="العميل" class="p-4 align-top"><div class="font-semibold text-lg text-white">${order.customerName}</div><div class="text-sm text-gray-400">${formattedDate}</div></td>
+                        <td data-label="الوقت" class="p-4 align-top text-center"><span class="time-badge ${timeSince.class}">${timeSince.text}</span></td>
+                        <td data-label="الطلبية" class="p-4 align-top text-sm">${itemsHtml}</td>
+                        <td data-label="المبلغ" class="p-4 align-top font-bold text-lg text-orange-400">${(order.totalPrice || 0).toLocaleString()} د.ج</td>
+                        <td data-label="الحالة" class="p-4 align-top">
+                            <select class="order-status-select p-2 rounded-lg border-0 font-bold w-full ${statusColors[order.status] || ''}" data-id="${order.id}">
+                                <option value="new" ${order.status === 'new' ? 'selected' : ''}>جديد</option>
+                                <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>مكتمل</option>
+                                <option value="canceled" ${order.status === 'canceled' ? 'selected' : ''}>ملغي</option>
+                            </select>
+                        </td>
+                        <td data-label="عامل التوصيل" class="p-4 align-top">
+                            <select class="delivery-person-select p-2 w-full rounded-lg bg-gray-700 border-gray-600 text-white" data-id="${order.id}"><option value="">--</option>${deliveryPersonnelOptions}</select>
+                        </td>`;
+                    fragment.appendChild(row);
+                });
+
+                tableBody.innerHTML = ''; // Clear previous content
+                tableBody.appendChild(fragment);
+
+                attachOrderActionListeners();
+            } catch (error) {
+                console.error("Failed to render orders table:", error);
+                // Optionally display an error message in the UI
+                const tableBody = document.getElementById('orders-table-body');
+                if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-400">حدث خطأ أثناء تحديث الواجهة. حاول التحديث اليدوي.</td></tr>`;
+            }
+        }
+
+        function attachOrderActionListeners() {
+            document.querySelectorAll('.order-status-select').forEach(sel => sel.onchange = e => updateDoc(doc(db, "orders", e.target.dataset.id), { status: e.target.value }));
+            document.querySelectorAll('.delivery-person-select').forEach(sel => sel.onchange = e => {
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                updateDoc(doc(db, "orders", e.target.dataset.id), { deliveryPersonId: selectedOption.value, deliveryPersonName: selectedOption.value ? selectedOption.text : null });
+            });
+        }
+
+        function loadMenuItems() {
+            const panel = document.getElementById('menu-items-panel');
+            panel.innerHTML = `<h1 class="text-3xl font-bold mb-6 text-gray-100">قائمة الطعام (للعرض فقط)</h1>
+                <div id="menu-items-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>`;
+            onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), snapshot => {
+                const menuItemsCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                const list = document.getElementById('menu-items-list');
+                list.innerHTML = '';
+                menuItemsCache.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = `bg-gray-800 p-4 rounded-xl shadow-lg ${item.isAvailable === false ? 'opacity-40' : ''}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-xl font-bold text-gray-100">${item.name?.ar || ''}</h3>
+                            <span class="font-semibold px-2 py-1 rounded-full text-xs ${item.isAvailable !== false ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${item.isAvailable !== false ? 'متوفر' : 'نفذ'}</span>
+                        </div>
+                        <p class="text-lg font-bold text-orange-500 mt-2">${(item.price || 0).toLocaleString()} د.ج</p>`;
+                    list.appendChild(card);
+                });
+            });
+        }
+
+        function loadDeliveryPersonnel() {
+            onSnapshot(query(collection(db, "delivery_personnel"), orderBy("name")), snapshot => {
+                deliveryPersonnelCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            });
+        }
+
+        initializeDashboard();
+
+    </script>
+</body>
+</html>
