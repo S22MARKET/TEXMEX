@@ -16,6 +16,7 @@
             --text-primary: #f3f4f6;
             --text-secondary: #9ca3af;
             --accent-color: #f97316;
+            --highlight-color: rgba(249, 115, 22, 0.3);
         }
         body { font-family: 'Tajawal', sans-serif; background-color: var(--dark-bg); color: var(--text-primary); }
         .hidden { display: none; }
@@ -26,6 +27,15 @@
         /* Refresh Button Animation */
         .refresh-spin { animation: spin 0.7s ease-in-out; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* New Order Row Highlight */
+        .new-order-highlight {
+            animation: highlight-fade 5s ease-out;
+        }
+        @keyframes highlight-fade {
+            0% { background-color: var(--highlight-color); }
+            100% { background-color: transparent; }
+        }
 
         /* Responsive Table adjustments for dark theme */
         @media (max-width: 768px) { 
@@ -58,6 +68,8 @@
         .time-badge.medium { background-color: #f59e0b; color: white; }
         .time-badge.old { background-color: #ef4444; color: white; animation: blink 1.2s infinite ease-in-out; }
         @keyframes blink { 50% { opacity: 0.6; } }
+
+        .spinner-dark { width: 48px; height: 48px; border: 5px solid rgba(255, 255, 255, 0.2); border-top-color: #f97316; border-radius: 50%; animation: spin 1s linear infinite; }
     </style>
 </head>
 <body>
@@ -71,6 +83,10 @@
         <header class="bg-gray-900 shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
             <div class="flex items-center gap-4">
                 <h1 class="text-xl font-bold">TEX<span class="text-orange-500">MEX</span> Kitchen</h1>
+                <div class="flex items-center gap-2" title="حالة الاتصال بالخادم">
+                    <span id="connection-status" class="h-3 w-3 bg-green-500 rounded-full animate-pulse"></span>
+                    <span id="connection-text" class="text-xs text-gray-400">متصل</span>
+                </div>
                 <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" class="text-gray-300 hover:text-white transition-colors">
                     <i class="fas fa-sync-alt fa-lg"></i>
                 </button>
@@ -107,15 +123,42 @@
 
         let ordersCache = [];
         let deliveryPersonnelCache = [];
+        let newlyAddedOrderIds = new Set();
         let isInitialOrdersLoad = true;
         let currentOrderStatusFilter = 'new';
+        let newOrderCount = 0;
+        let originalTitle = document.title;
+        let titleInterval = null;
 
         const newOrderBanner = document.getElementById('new-order-banner');
         newOrderBanner.onclick = () => newOrderBanner.classList.add('hidden');
         
+        function flashTitle() {
+            if (newOrderCount > 0) {
+                document.title = document.title === originalTitle 
+                    ? `(${newOrderCount}) طلب جديد! - TEXMEX` 
+                    : originalTitle;
+            } else {
+                document.title = originalTitle;
+                clearInterval(titleInterval);
+                titleInterval = null;
+            }
+        }
+        
+        window.onfocus = () => {
+            clearInterval(titleInterval);
+            titleInterval = null;
+            newOrderCount = 0;
+            document.title = originalTitle;
+        };
+
         function showNewOrderAlert() {
             newOrderBanner.classList.remove('hidden');
-            document.getElementById('notification-sound').play();
+            document.getElementById('notification-sound').play().catch(e => console.warn("Audio play was blocked by browser."));
+            newOrderCount++;
+            if (!titleInterval) {
+                titleInterval = setInterval(flashTitle, 1000);
+            }
         }
         
         function initializeDashboard() {
@@ -139,8 +182,8 @@
             loadDeliveryPersonnel();
             switchTab(window.location.hash || '#orders');
 
-            // Interval to update time counters
-            setInterval(renderOrdersTable, 30000);
+            // Interval to update time counters more frequently
+            setInterval(renderOrdersTable, 15000);
         }
 
         function forceUIRefresh() {
@@ -174,7 +217,9 @@
                                 <th class="p-4">عامل التوصيل</th>
                             </tr>
                         </thead>
-                        <tbody id="orders-table-body" class="divide-y divide-gray-700"></tbody>
+                        <tbody id="orders-table-body">
+                           <tr><td colspan="6" class="p-16 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-4 text-gray-400">جاري تحميل الطلبات...</p></td></tr>
+                        </tbody>
                     </table>
                 </div>`;
             
@@ -187,13 +232,36 @@
                 };
             });
 
-            onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), snapshot => {
-                if (!isInitialOrdersLoad && snapshot.docChanges().some(c => c.type === "added")) { 
-                    showNewOrderAlert(); 
+            const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            const statusIndicator = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            onSnapshot(q, snapshot => {
+                statusIndicator.classList.remove('bg-red-500');
+                statusIndicator.classList.add('bg-green-500', 'animate-pulse');
+                statusText.textContent = 'متصل';
+
+                if (!isInitialOrdersLoad) {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === "added") {
+                            const newOrder = {id: change.doc.id, ...change.doc.data()};
+                            showNewOrderAlert();
+                            newlyAddedOrderIds.add(newOrder.id);
+                        }
+                    });
                 }
+                
                 isInitialOrdersLoad = false;
                 ordersCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                 renderOrdersTable();
+
+            }, (error) => {
+                console.error("Firestore snapshot error: ", error);
+                statusIndicator.classList.remove('bg-green-500', 'animate-pulse');
+                statusIndicator.classList.add('bg-red-500');
+                statusText.textContent = 'خطأ';
+                const tableBody = document.getElementById('orders-table-body');
+                if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-400">حدث خطأ في الاتصال بالخادم. التحديثات متوقفة.</td></tr>`;
             });
         }
 
@@ -208,23 +276,24 @@
             return { text: `منذ ${diffMinutes} د`, class: 'old' };
         }
 
-        /**
-         * A robust function to render the orders table.
-         * It's wrapped in a try-catch block to prevent a single bad order from crashing the UI updates.
-         */
         function renderOrdersTable() {
             try {
                 const tableBody = document.getElementById('orders-table-body');
                 if (!tableBody) return;
                 
-                const filteredOrders = ordersCache.filter(order => currentOrderStatusFilter === 'all' || order.status === currentOrderStatusFilter);
+                const filteredOrders = ordersCache.filter(order => {
+                    if (currentOrderStatusFilter === 'all') return true;
+                    if (currentOrderStatusFilter === 'new') return order.status === 'new';
+                    if (currentOrderStatusFilter === 'completed') return order.status === 'completed';
+                    if (currentOrderStatusFilter === 'canceled') return order.status === 'canceled';
+                    return true;
+                });
                 
                 if (filteredOrders.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 text-lg">لا توجد طلبات.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 text-lg">لا توجد طلبات تطابق هذه الفئة.</td></tr>`;
                     return;
                 }
 
-                // Use DocumentFragment for performance boost
                 const fragment = document.createDocumentFragment();
                 filteredOrders.forEach(order => {
                     const statusColors = { new: 'bg-blue-600 text-white', completed: 'bg-green-600 text-white', canceled: 'bg-red-600 text-white' };
@@ -244,7 +313,16 @@
                     const timeSince = calculateTimeSince(order.createdAt);
                     
                     const row = document.createElement('tr');
-                    row.className = `transition-colors ${order.status === 'new' ? 'bg-gray-800' : 'bg-gray-900'}`;
+                    
+                    let rowClasses = `transition-colors ${order.status === 'new' ? 'bg-gray-800' : 'bg-gray-900'}`;
+                    if (newlyAddedOrderIds.has(order.id)) {
+                        rowClasses += ' new-order-highlight';
+                        // Clean up after animation
+                        setTimeout(() => newlyAddedOrderIds.delete(order.id), 5000);
+                    }
+                    row.className = rowClasses;
+                    row.id = `order-${order.id}`;
+
                     row.innerHTML = `
                         <td data-label="العميل" class="p-4 align-top"><div class="font-semibold text-lg text-white">${order.customerName}</div><div class="text-sm text-gray-400">${formattedDate}</div></td>
                         <td data-label="الوقت" class="p-4 align-top text-center"><span class="time-badge ${timeSince.class}">${timeSince.text}</span></td>
@@ -263,13 +341,12 @@
                     fragment.appendChild(row);
                 });
 
-                tableBody.innerHTML = ''; // Clear previous content
+                tableBody.innerHTML = '';
                 tableBody.appendChild(fragment);
 
                 attachOrderActionListeners();
             } catch (error) {
                 console.error("Failed to render orders table:", error);
-                // Optionally display an error message in the UI
                 const tableBody = document.getElementById('orders-table-body');
                 if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-400">حدث خطأ أثناء تحديث الواجهة. حاول التحديث اليدوي.</td></tr>`;
             }
