@@ -20,24 +20,23 @@
         }
         body { font-family: 'Tajawal', sans-serif; background-color: var(--dark-bg); color: var(--text-primary); }
         .hidden { display: none; }
-        .active-tab { background-color: var(--accent-color); color: white; }
         .panel { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Refresh Button Animation */
         .refresh-spin { animation: spin 0.7s ease-in-out; }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* New Order Row Highlight */
-        .new-order-highlight {
-            animation: highlight-fade 5s ease-out;
-        }
+        .new-order-highlight { animation: highlight-fade 5s ease-out; }
         @keyframes highlight-fade {
             0% { background-color: var(--highlight-color); }
             100% { background-color: transparent; }
         }
 
-        /* Responsive Table adjustments for dark theme */
+        .selected-order {
+            background-color: var(--secondary-bg) !important;
+            outline: 2px solid var(--accent-color);
+        }
+
         @media (max-width: 768px) { 
             .responsive-table thead { display: none; } 
             .responsive-table tr { display: block; background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; } 
@@ -90,15 +89,18 @@
                 <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" class="text-gray-300 hover:text-white transition-colors">
                     <i class="fas fa-sync-alt fa-lg"></i>
                 </button>
+                <button id="mute-btn" title="كتم صوت الإشعارات" class="text-gray-300 hover:text-white transition-colors w-8 h-8 rounded-full flex items-center justify-center">
+                    <i id="mute-icon" class="fas fa-volume-up"></i>
+                </button>
             </div>
-            <nav class="flex items-center gap-2 md:gap-4">
-                <a href="#orders" class="dashboard-tab active-tab text-sm md:text-lg font-semibold px-3 py-2 rounded-md"><i class="fas fa-clipboard-list fa-fw md:ml-2"></i><span class="hidden md:inline">الطلبات</span></a>
-                <a href="#menu-items" class="dashboard-tab text-sm md:text-lg font-semibold px-3 py-2 rounded-md"><i class="fas fa-utensils fa-fw md:ml-2"></i><span class="hidden md:inline">القائمة</span></a>
-            </nav>
+            <div class="flex items-center gap-2 md:gap-4">
+                 <a href="indexdashboard.html" class="text-sm md:text-base font-semibold px-3 py-2 rounded-md hover:bg-gray-700 transition-colors" title="الذهاب للوحة التحكم الرئيسية">
+                    <i class="fas fa-tachometer-alt"></i>
+                 </a>
+            </div>
         </header>
         <main class="flex-1 p-3 md:p-6 lg:p-8">
             <div id="orders-panel" class="panel"></div>
-            <div id="menu-items-panel" class="panel hidden"></div>
         </main>
     </div>
 
@@ -122,13 +124,13 @@
         const db = getFirestore(app);
 
         let ordersCache = [];
-        let deliveryPersonnelCache = [];
         let newlyAddedOrderIds = new Set();
         let isInitialOrdersLoad = true;
         let currentOrderStatusFilter = 'new';
         let newOrderCount = 0;
         let originalTitle = document.title;
         let titleInterval = null;
+        let isMuted = false;
 
         const newOrderBanner = document.getElementById('new-order-banner');
         newOrderBanner.onclick = () => newOrderBanner.classList.add('hidden');
@@ -154,36 +156,31 @@
 
         function showNewOrderAlert() {
             newOrderBanner.classList.remove('hidden');
-            document.getElementById('notification-sound').play().catch(e => console.warn("Audio play was blocked by browser."));
+            if (!isMuted) {
+                document.getElementById('notification-sound').play().catch(e => console.warn("Audio play was blocked by browser."));
+            }
             newOrderCount++;
             if (!titleInterval) {
                 titleInterval = setInterval(flashTitle, 1000);
             }
         }
         
-        function initializeDashboard() {
-            const tabs = document.querySelectorAll('.dashboard-tab');
-            const panels = document.querySelectorAll('.panel');
+        function initializeKitchenApp() {
             const manualRefreshBtn = document.getElementById('manual-refresh-btn');
-            
-            const switchTab = (hash) => {
-                const targetId = hash.substring(1) + '-panel';
-                tabs.forEach(t => t.classList.toggle('active-tab', t.getAttribute('href') === hash));
-                panels.forEach(p => p.classList.toggle('hidden', p.id !== targetId));
-            };
-
-            tabs.forEach(tab => tab.addEventListener('click', e => { e.preventDefault(); window.location.hash = tab.getAttribute('href'); }));
-            window.addEventListener('hashchange', () => switchTab(window.location.hash || '#orders'));
+            const muteBtn = document.getElementById('mute-btn');
             
             manualRefreshBtn.onclick = forceUIRefresh;
+            muteBtn.onclick = toggleMute;
 
             loadOrders();
-            loadMenuItems();
-            loadDeliveryPersonnel();
-            switchTab(window.location.hash || '#orders');
-
-            // Interval to update time counters more frequently
             setInterval(renderOrdersTable, 15000);
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('mute-icon');
+            icon.className = isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
+            muteBtn.title = isMuted ? 'تشغيل صوت الإشعارات' : 'كتم صوت الإشعارات';
         }
 
         function forceUIRefresh() {
@@ -200,6 +197,7 @@
                     <h1 class="text-3xl font-bold text-gray-100">الطلبات الواردة</h1>
                     <div class="flex items-center gap-2 p-1 bg-gray-800 rounded-lg flex-wrap justify-center" id="order-status-filters">
                         <button class="filter-btn active" data-status="new">جديد</button>
+                        <button class="filter-btn" data-status="preparing">قيد التحضير</button>
                         <button class="filter-btn" data-status="completed">مكتمل</button>
                         <button class="filter-btn" data-status="canceled">ملغي</button>
                         <button class="filter-btn" data-status="all">الكل</button>
@@ -212,13 +210,12 @@
                                 <th class="p-4">العميل</th>
                                 <th class="p-4">الوقت المنقضي</th>
                                 <th class="p-4 w-1/3">الطلبية</th>
-                                <th class="p-4">المبلغ</th>
                                 <th class="p-4">الحالة</th>
-                                <th class="p-4">عامل التوصيل</th>
+                                <th class="p-4">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="orders-table-body">
-                           <tr><td colspan="6" class="p-16 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-4 text-gray-400">جاري تحميل الطلبات...</p></td></tr>
+                           <tr><td colspan="5" class="p-16 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-4 text-gray-400">جاري تحميل الطلبات...</p></td></tr>
                         </tbody>
                     </table>
                 </div>`;
@@ -237,16 +234,14 @@
             const statusText = document.getElementById('connection-text');
 
             onSnapshot(q, snapshot => {
-                statusIndicator.classList.remove('bg-red-500');
-                statusIndicator.classList.add('bg-green-500', 'animate-pulse');
+                statusIndicator.classList.remove('bg-red-500'); statusIndicator.classList.add('bg-green-500', 'animate-pulse');
                 statusText.textContent = 'متصل';
 
                 if (!isInitialOrdersLoad) {
                     snapshot.docChanges().forEach(change => {
                         if (change.type === "added") {
-                            const newOrder = {id: change.doc.id, ...change.doc.data()};
                             showNewOrderAlert();
-                            newlyAddedOrderIds.add(newOrder.id);
+                            newlyAddedOrderIds.add(change.doc.id);
                         }
                     });
                 }
@@ -257,20 +252,16 @@
 
             }, (error) => {
                 console.error("Firestore snapshot error: ", error);
-                statusIndicator.classList.remove('bg-green-500', 'animate-pulse');
-                statusIndicator.classList.add('bg-red-500');
-                statusText.textContent = 'خطأ';
+                statusIndicator.classList.remove('bg-green-500', 'animate-pulse'); statusIndicator.classList.add('bg-red-500');
+                statusText.textContent = 'خطأ في الاتصال';
                 const tableBody = document.getElementById('orders-table-body');
-                if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-400">حدث خطأ في الاتصال بالخادم. التحديثات متوقفة.</td></tr>`;
+                if(tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">فشل تحميل الطلبات. تأكد من أن قواعد الأمان في Firestore تسمح بالقراءة العامة.</td></tr>`;
             });
         }
 
         function calculateTimeSince(timestamp) {
-            if (!timestamp?.toDate) return { text: 'قيد الحساب', class: 'new' };
-            const now = new Date();
-            const orderDate = timestamp.toDate();
-            const diffMinutes = Math.floor((now - orderDate) / 60000);
-
+            if (!timestamp?.toDate) return { text: '...', class: 'new' };
+            const diffMinutes = Math.floor((new Date() - timestamp.toDate()) / 60000);
             if (diffMinutes < 5) return { text: `منذ ${diffMinutes} د`, class: 'new' };
             if (diffMinutes < 15) return { text: `منذ ${diffMinutes} د`, class: 'medium' };
             return { text: `منذ ${diffMinutes} د`, class: 'old' };
@@ -283,60 +274,69 @@
                 
                 const filteredOrders = ordersCache.filter(order => {
                     if (currentOrderStatusFilter === 'all') return true;
-                    if (currentOrderStatusFilter === 'new') return order.status === 'new';
-                    if (currentOrderStatusFilter === 'completed') return order.status === 'completed';
-                    if (currentOrderStatusFilter === 'canceled') return order.status === 'canceled';
-                    return true;
+                    return order.status === currentOrderStatusFilter;
                 });
                 
                 if (filteredOrders.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 text-lg">لا توجد طلبات تطابق هذه الفئة.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400 text-lg">لا توجد طلبات تطابق هذه الفئة.</td></tr>`;
                     return;
                 }
 
                 const fragment = document.createDocumentFragment();
                 filteredOrders.forEach(order => {
-                    const statusColors = { new: 'bg-blue-600 text-white', completed: 'bg-green-600 text-white', canceled: 'bg-red-600 text-white' };
+                    const statusConfig = {
+                        new: { text: 'جديد', color: 'bg-blue-600' },
+                        preparing: { text: 'تحضير', color: 'bg-yellow-500' },
+                        completed: { text: 'مكتمل', color: 'bg-green-600' },
+                        canceled: { text: 'ملغي', color: 'bg-red-600' }
+                    };
+                    const currentStatus = statusConfig[order.status] || { text: order.status, color: 'bg-gray-600' };
+
                     const itemsHtml = (order.items || []).map(item => {
-                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span></div>`;
+                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span> <span class="text-orange-400 font-mono">${item.price.toLocaleString()} دج</span></div>`;
                         if (item.selectedAddons && item.selectedAddons.length > 0) {
-                            itemText += item.selectedAddons.map(addon => 
-                                `<div class="text-xs text-gray-400 mr-4">+ ${addon.name}</div>`
-                            ).join('');
+                            itemText += item.selectedAddons.map(addon => `<div class="text-xs text-gray-400 mr-4">+ ${addon.name}</div>`).join('');
+                        }
+                        if (item.cookingInstructions) {
+                           itemText += `<div class="text-xs text-cyan-300 bg-cyan-900/50 p-1 rounded mt-1 mr-4"><i class="fas fa-comment-dots ml-1"></i> ${item.cookingInstructions}</div>`;
                         }
                         return itemText;
                     }).join('');
-
-                    const deliveryPersonnelOptions = deliveryPersonnelCache.map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
                     
                     const formattedDate = order.createdAt?.toDate() ? order.createdAt.toDate().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '...';
                     const timeSince = calculateTimeSince(order.createdAt);
                     
                     const row = document.createElement('tr');
                     
-                    let rowClasses = `transition-colors ${order.status === 'new' ? 'bg-gray-800' : 'bg-gray-900'}`;
+                    let rowClasses = `transition-colors cursor-pointer hover:bg-gray-700/50 ${order.status === 'new' ? 'bg-gray-800' : 'bg-gray-900'}`;
                     if (newlyAddedOrderIds.has(order.id)) {
                         rowClasses += ' new-order-highlight';
-                        // Clean up after animation
                         setTimeout(() => newlyAddedOrderIds.delete(order.id), 5000);
                     }
                     row.className = rowClasses;
                     row.id = `order-${order.id}`;
+                    row.dataset.orderId = order.id;
 
                     row.innerHTML = `
-                        <td data-label="العميل" class="p-4 align-top"><div class="font-semibold text-lg text-white">${order.customerName}</div><div class="text-sm text-gray-400">${formattedDate}</div></td>
+                        <td data-label="العميل" class="p-4 align-top">
+                            <div class="font-semibold text-lg text-white">${order.customerName}</div>
+                            <div class="text-sm text-gray-400">${formattedDate}</div>
+                            <div class="text-lg text-orange-400 font-bold mt-2">${(order.totalPrice || 0).toLocaleString()} د.ج</div>
+                        </td>
                         <td data-label="الوقت" class="p-4 align-top text-center"><span class="time-badge ${timeSince.class}">${timeSince.text}</span></td>
                         <td data-label="الطلبية" class="p-4 align-top text-sm">${itemsHtml}</td>
-                        <td data-label="المبلغ" class="p-4 align-top font-bold text-lg text-orange-400">${(order.totalPrice || 0).toLocaleString()} د.ج</td>
                         <td data-label="الحالة" class="p-4 align-top">
-                            <select class="order-status-select p-2 rounded-lg border-0 font-bold w-full ${statusColors[order.status] || ''}" data-id="${order.id}">
+                            <select class="order-status-select p-2 rounded-lg border-0 font-bold w-full text-white ${currentStatus.color}" data-id="${order.id}">
                                 <option value="new" ${order.status === 'new' ? 'selected' : ''}>جديد</option>
+                                <option value="preparing" ${order.status === 'preparing' ? 'selected' : ''}>قيد التحضير</option>
                                 <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>مكتمل</option>
                                 <option value="canceled" ${order.status === 'canceled' ? 'selected' : ''}>ملغي</option>
                             </select>
                         </td>
-                        <td data-label="عامل التوصيل" class="p-4 align-top">
-                            <select class="delivery-person-select p-2 w-full rounded-lg bg-gray-700 border-gray-600 text-white" data-id="${order.id}"><option value="">--</option>${deliveryPersonnelOptions}</select>
+                        <td data-label="الإجراءات" class="p-4 align-top text-center">
+                            <button class="print-order-btn text-xl text-gray-300 hover:text-white" data-id="${order.id}" title="طباعة الطلب">
+                                <i class="fas fa-print"></i>
+                            </button>
                         </td>`;
                     fragment.appendChild(row);
                 });
@@ -348,47 +348,72 @@
             } catch (error) {
                 console.error("Failed to render orders table:", error);
                 const tableBody = document.getElementById('orders-table-body');
-                if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-400">حدث خطأ أثناء تحديث الواجهة. حاول التحديث اليدوي.</td></tr>`;
+                if(tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">حدث خطأ أثناء تحديث الواجهة. حاول التحديث اليدوي.</td></tr>`;
             }
         }
 
         function attachOrderActionListeners() {
             document.querySelectorAll('.order-status-select').forEach(sel => sel.onchange = e => updateDoc(doc(db, "orders", e.target.dataset.id), { status: e.target.value }));
-            document.querySelectorAll('.delivery-person-select').forEach(sel => sel.onchange = e => {
-                const selectedOption = e.target.options[e.target.selectedIndex];
-                updateDoc(doc(db, "orders", e.target.dataset.id), { deliveryPersonId: selectedOption.value, deliveryPersonName: selectedOption.value ? selectedOption.text : null });
+            document.querySelectorAll('.print-order-btn').forEach(btn => btn.onclick = e => {
+                e.stopPropagation();
+                printOrder(e.currentTarget.dataset.id);
+            });
+            document.querySelectorAll('#orders-table-body tr').forEach(row => {
+                row.onclick = () => {
+                    document.querySelectorAll('.selected-order').forEach(selected => selected.classList.remove('selected-order'));
+                    row.classList.add('selected-order');
+                };
             });
         }
+        
+        function printOrder(orderId) {
+            const order = ordersCache.find(o => o.id === orderId);
+            if (!order) return;
 
-        function loadMenuItems() {
-            const panel = document.getElementById('menu-items-panel');
-            panel.innerHTML = `<h1 class="text-3xl font-bold mb-6 text-gray-100">قائمة الطعام (للعرض فقط)</h1>
-                <div id="menu-items-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>`;
-            onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), snapshot => {
-                const menuItemsCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-                const list = document.getElementById('menu-items-list');
-                list.innerHTML = '';
-                menuItemsCache.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = `bg-gray-800 p-4 rounded-xl shadow-lg ${item.isAvailable === false ? 'opacity-40' : ''}`;
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <h3 class="text-xl font-bold text-gray-100">${item.name?.ar || ''}</h3>
-                            <span class="font-semibold px-2 py-1 rounded-full text-xs ${item.isAvailable !== false ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${item.isAvailable !== false ? 'متوفر' : 'نفذ'}</span>
-                        </div>
-                        <p class="text-lg font-bold text-orange-500 mt-2">${(item.price || 0).toLocaleString()} د.ج</p>`;
-                    list.appendChild(card);
-                });
-            });
+            const printWindow = window.open('', '_blank');
+            const itemsHtml = (order.items || []).map(item => {
+                let addons = (item.selectedAddons || []).map(a => `<li>+ ${a.name}</li>`).join('');
+                if(addons) addons = `<ul style="font-size: 14px; margin-right: 15px;">${addons}</ul>`;
+                let instructions = item.cookingInstructions ? `<div style="font-style: italic; color: #333; font-size: 14px; margin-right: 15px;">** ${item.cookingInstructions}</div>` : '';
+
+                return `<div style="margin-bottom: 10px;">
+                    <div style="font-size: 18px;"><b>${item.quantity} x ${item.name}</b></div>
+                    ${addons}
+                    ${instructions}
+                </div>`;
+            }).join('');
+
+            printWindow.document.write(`
+                <html><head><title>Order #${order.id.substring(0,5)}</title>
+                <style>
+                    body { font-family: 'Tajawal', sans-serif; direction: rtl; margin: 20px; }
+                    .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+                    .info { margin-top: 15px; font-size: 18px; }
+                    .items { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px; }
+                    .total { text-align: left; font-size: 22px; font-weight: bold; margin-top: 20px; }
+                    ul { padding: 0; list-style: none; }
+                </style></head><body>
+                    <div class="header">
+                        <h1>TEXMEX</h1>
+                        <h2>طلب رقم: ...${order.id.substring(15)}</h2>
+                        <div>${new Date(order.createdAt.toDate()).toLocaleString('ar-DZ')}</div>
+                    </div>
+                    <div class="info">
+                        <div><b>العميل:</b> ${order.customerName}</div>
+                        <div><b>الموقع:</b> ${order.customerLocation}</div>
+                    </div>
+                    <div class="items"><h3>الطلبية:</h3>${itemsHtml}</div>
+                    <div class="total">الإجمالي: ${order.totalPrice.toLocaleString()} د.ج</div>
+                </body></html>`
+            );
+
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
         }
 
-        function loadDeliveryPersonnel() {
-            onSnapshot(query(collection(db, "delivery_personnel"), orderBy("name")), snapshot => {
-                deliveryPersonnelCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-            });
-        }
-
-        initializeDashboard();
+        // --- Call the initializer function to start the app ---
+        initializeKitchenApp();
 
     </script>
 </body>
