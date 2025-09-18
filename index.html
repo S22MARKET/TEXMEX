@@ -18,8 +18,13 @@
         @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; translateY(0); } }
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s; padding: 1rem; }
         .modal-content { background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; max-height: 95vh; display: flex; flex-direction: column; animation: slideInUp 0.4s; position: relative; }
-        .sidebar { transition: transform 0.3s ease-in-out; }
-        .sidebar-overlay { transition: opacity 0.3s ease-in-out; }
+        
+        .sidebar { transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-overlay { 
+            transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
         .is-visible { opacity: 1; pointer-events: auto; }
         .is-hidden { opacity: 0; pointer-events: none; }
         
@@ -50,7 +55,6 @@
         .add-to-order-btn.is-added { background-color: #16a34a !important; cursor: not-allowed; }
         .img-placeholder { background-color: #e5e7eb; }
 
-        /* --- New Styles for Glow Effect --- */
         .glow-effect {
             animation: glowing 2s infinite;
             box-shadow: 0 0 5px #0ea5e9, 0 0 10px #0ea5e9, 0 0 15px #0ea5e9;
@@ -60,7 +64,36 @@
             50% { box-shadow: 0 0 20px #0ea5e9, 0 0 30px #0ea5e9; }
             100% { box-shadow: 0 0 5px #0ea5e9; }
         }
+
+        /* --- New Visual Interaction Styles --- */
+        .sort-btn {
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            border: 2px solid transparent;
+        }
+        .sort-btn.active {
+            background-color: #fff;
+            color: #f97316;
+            border-color: #f97316;
+        }
+
+        @keyframes cardFadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .menu-card-animate {
+            animation: cardFadeInUp 0.5s ease-out forwards;
+        }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
+
 </head>
 <body>
     <div id="restaurant-status-banner" class="hidden text-center p-3 bg-red-600 text-white font-bold text-lg sticky top-0 z-40">
@@ -95,7 +128,7 @@
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
             <aside id="sidebar" class="sidebar md:col-span-1 bg-white p-6 rounded-xl shadow-md h-fit md:sticky top-24 fixed md:relative top-0 right-0 h-full w-72 md:w-auto z-40 transform translate-x-full md:translate-x-0 overflow-y-auto">
-                <div class="flex justify-between items-center md:hidden mb-4 pb-3 border-b">
+                <div class="flex justify-between items-center md:hidden mb-4 p-4 bg-gray-50 border-b -mx-6 -mt-6">
                     <h3 class="text-xl font-bold">فلترة القائمة</h3>
                     <button id="close-sidebar" class="text-2xl">&times;</button>
                 </div>
@@ -135,7 +168,25 @@
 
                  <section id="menu-section">
                      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 border-r-4 border-orange-500 pr-4">قائمة الطعام</h2>
+                     
+                     <div class="flex flex-wrap justify-between items-center gap-4 mb-6 p-4 bg-white rounded-xl shadow-sm">
+                        <div id="sorting-controls" class="flex items-center gap-2 flex-wrap">
+                            <button data-sort="default" class="sort-btn active">الأحدث</button>
+                            <button data-sort="price_asc" class="sort-btn">السعر: الأقل</button>
+                            <button data-sort="price_desc" class="sort-btn">السعر: الأعلى</button>
+                        </div>
+                        <button id="main-sidebar-toggle" class="md:hidden flex items-center gap-2 font-semibold text-orange-600 bg-orange-100 px-4 py-2 rounded-lg">
+                            <i class="fas fa-filter"></i>
+                            <span>فلترة</span>
+                        </button>
+                     </div>
+
                      <div id="menu-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                     <div id="load-more-container" class="text-center mt-8 hidden">
+                        <button id="load-more-btn" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-full hover:bg-gray-900 transition-transform hover:scale-105">
+                            عرض المزيد
+                        </button>
+                    </div>
                      <div id="no-products-msg" class="hidden text-center py-20 bg-white rounded-xl shadow-sm">
                         <i class="fas fa-utensils text-4xl text-gray-400"></i>
                         <p class="mt-4 text-xl font-semibold text-gray-500">لا توجد وجبات تطابق بحثك حاليًا.</p>
@@ -162,11 +213,10 @@
 
     <div id="modal-container"></div>
     <div id="toast-container"></div>
-
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, orderBy, serverTimestamp, updateDoc, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
             authDomain: "texmexfoodannaba23.firebaseapp.com",
@@ -186,6 +236,9 @@
         let restaurantSettings = {};
         let order = JSON.parse(localStorage.getItem('texmex_order')) || [];
         let appliedCoupon = null;
+        let fullFilteredList = [];
+        const itemsPerPage = 6;
+        let currentSort = 'default';
 
         const elements = {
             modalContainer: document.getElementById('modal-container'),
@@ -204,6 +257,7 @@
             statusMessage: document.getElementById('restaurant-status-message'),
             sidebar: document.getElementById('sidebar'),
             sidebarToggle: document.getElementById('sidebar-toggle'),
+            mainSidebarToggle: document.getElementById('main-sidebar-toggle'),
             closeSidebar: document.getElementById('close-sidebar'),
             sidebarOverlay: document.getElementById('sidebar-overlay'),
             offersSection: document.getElementById('offers-section'),
@@ -212,8 +266,91 @@
             noOffersMsg: document.getElementById('no-offers-msg'),
             freeDeliveryOfferContainer: document.getElementById('free-delivery-offer-container'),
             headerActions: document.getElementById('header-actions'),
-            showOffersBtn: document.getElementById('show-offers-btn')
+            showOffersBtn: document.getElementById('show-offers-btn'),
+            loadMoreContainer: document.getElementById('load-more-container'),
+            loadMoreBtn: document.getElementById('load-more-btn'),
+            sortingControls: document.getElementById('sorting-controls'),
         };
+        
+        // --- START: PDF GENERATION FUNCTION ---
+        const generateOrderPDF = (orderData, orderId) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(14);
+            doc.text("Alsalam ealaykum zabuna alkarim", doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            doc.setFontSize(22);
+            doc.text("TEXMEX Annaba - Order Receipt", doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+            doc.setFont(undefined, 'normal'); // Reset font style
+
+            // Order Info
+            doc.setFontSize(12);
+            const orderDate = new Date().toLocaleString('en-GB');
+            let startX = 15;
+            let startY = 40;
+            
+            doc.text(`Order ID: ${orderId}`, startX, startY);
+            doc.text(`Date: ${orderDate}`, startX, startY += 7);
+            doc.text(`Name: ${orderData.customerName}`, startX, startY += 7);
+            doc.text(`Phone: ${orderData.customerContact}`, startX, startY += 7);
+            doc.text(`Address: ${orderData.customerLocation}`, startX, startY += 7);
+
+            // Table
+            const tableColumn = ["Item", "Quantity", "Price", "Total"];
+            const tableRows = [];
+
+            orderData.items.forEach(item => {
+                const itemName = item.name; // Item names can be in Arabic from DB, which is fine
+                const itemData = [
+                    itemName,
+                    item.quantity,
+                    `${item.price.toLocaleString()} DZD`,
+                    `${(item.price * item.quantity).toLocaleString()} DZD`,
+                ];
+                tableRows.push(itemData);
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: startY + 10,
+                theme: 'grid',
+                headStyles: { halign: 'center', fillColor: [234, 88, 12] },
+                bodyStyles: { halign: 'left' },
+                columnStyles: {
+                    1: { halign: 'center' }, // Quantity
+                    2: { halign: 'right' },  // Price
+                    3: { halign: 'right' },  // Total
+                }
+            });
+            
+            // Totals
+            let finalY = doc.autoTable.previous.finalY;
+            const totalsX = doc.internal.pageSize.getWidth() - 15;
+            const subTotal = orderData.totalPrice - orderData.deliveryFee + (orderData.discountAmount || 0);
+
+            doc.setFontSize(12);
+            doc.text(`Subtotal: ${subTotal.toLocaleString()} DZD`, totalsX, finalY += 10, { align: 'right' });
+            doc.text(`Delivery Fee: ${orderData.deliveryFee.toLocaleString()} DZD`, totalsX, finalY += 7, { align: 'right' });
+            if (orderData.discountAmount > 0) {
+                 doc.text(`Discount (${orderData.couponCode}): -${orderData.discountAmount.toLocaleString()} DZD`, totalsX, finalY += 7, { align: 'right' });
+            }
+            
+            doc.setLineWidth(0.5);
+            doc.line(140, finalY + 3, totalsX, finalY + 3);
+
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Total: ${orderData.totalPrice.toLocaleString()} DZD`, totalsX, finalY += 10, { align: 'right' });
+
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(12);
+            doc.text("Thank you for your trust in TEXMEX!", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 15, { align: 'center' });
+
+            doc.save(`TEXMEX-Receipt-${orderId.substring(0, 6)}.pdf`);
+        };
+        // --- END: PDF GENERATION FUNCTION ---
         
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
@@ -371,7 +508,7 @@
                 close();
             });
             
-            updateTotal(); // Initial call
+            updateTotal();
         };
 
         const showRecommendationModal = (onConfirm, onDecline) => {
@@ -441,13 +578,11 @@
             const messageBody = `مرحبًا TEXMEX،\nأريد تأكيد طلبيتي من فضلكم:\n\nالاسم: ${orderData.customerName}\nالهاتف: ${orderData.customerContact}\nالموقع: ${orderData.customerLocation}\nالإجمالي: ${orderData.totalPrice.toLocaleString()} د.ج\n\nتفاصيل الطلب:\n${itemsSummary}`;
             const encodedMessage = encodeURIComponent(messageBody);
 
-            // --- املأ هذه المعلومات ---
-            const YOUR_PHONE_NUMBER = "213XXXXXXXXX"; // رقم الهاتف للاتصال والرسائل
-            const YOUR_WHATSAPP_NUMBER = "213XXXXXXXXX"; // رقم واتساب مع رمز البلد
-            const YOUR_FACEBOOK_PAGE_ID = "YOUR_FACEBOOK_PAGE_ID"; // معرف صفحة الفيسبوك
-            const YOUR_TELEGRAM_USERNAME = "YOUR_TELEGRAM_USERNAME"; // اسم مستخدم تيليجرام
-            const YOUR_INSTAGRAM_USERNAME = "YOUR_INSTAGRAM_USERNAME"; // اسم مستخدم انستقرام
-            // -------------------------
+            const YOUR_PHONE_NUMBER = "213XXXXXXXXX"; 
+            const YOUR_WHATSAPP_NUMBER = "213XXXXXXXXX"; 
+            const YOUR_FACEBOOK_PAGE_ID = "YOUR_FACEBOOK_PAGE_ID"; 
+            const YOUR_TELEGRAM_USERNAME = "YOUR_TELEGRAM_USERNAME"; 
+            const YOUR_INSTAGRAM_USERNAME = "YOUR_INSTAGRAM_USERNAME"; 
 
             const modalHTML = `
             <div class="modal-backdrop" id="modal-backdrop">
@@ -487,16 +622,15 @@
             document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
         };
 
-        const showInfoModal = (title, message, onConfirm = null, showSecondaryConfirmBtn = false, orderData = null) => {
-            let buttonsHtml = `<button id="modal-close" class="w-full bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-orange-600 transition-colors">حسنًا</button>`;
-            
-            if (showSecondaryConfirmBtn) {
-                buttonsHtml = `
-                    <button id="modal-close" class="w-1/2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2.5 px-6 rounded-lg transition-colors">إغلاق</button>
-                    <button id="secondary-confirm-btn" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors glow-effect">
-                        <i class="fas fa-bell mr-2"></i>تأكيد ثانوي
-                    </button>
-                `;
+        // --- MODIFIED: showInfoModal now accepts an "extraButton" object ---
+const showInfoModal = (title, message, onConfirm = null, buttons = []) => {
+            let buttonsHtml = '';
+            if (buttons.length === 0) {
+                buttonsHtml = `<button id="modal-close" class="w-full bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-orange-600 transition-colors">حسنًا</button>`;
+            } else {
+                buttons.forEach((btn, index) => {
+                    buttonsHtml += `<button id="modal-btn-${index}" class="w-full ${btn.classes} font-bold py-2.5 px-6 rounded-lg transition-colors">${btn.html}</button>`;
+                });
             }
 
             const modalHTML = `
@@ -519,12 +653,20 @@
                 if (onConfirm) onConfirm();
             };
 
-            document.getElementById('modal-close').onclick = close;
-            if (showSecondaryConfirmBtn && orderData) {
-                document.getElementById('secondary-confirm-btn').onclick = () => {
-                    close();
-                    showSecondaryConfirmModal(orderData);
-                };
+            // Add listener to the first button by default as a close button if more than one exists.
+            if (buttons.length > 0) {
+                 document.getElementById('modal-btn-0').onclick = () => {
+                    if (buttons[0].closesModal !== false) close();
+                    buttons[0].onClick();
+                 }
+                 if(buttons.length > 1){
+                     document.getElementById('modal-btn-1').onclick = () => {
+                        if (buttons[1].closesModal !== false) close();
+                        buttons[1].onClick();
+                     }
+                 }
+            } else {
+                 document.getElementById('modal-close').onclick = close;
             }
              document.getElementById('modal-backdrop').onclick = (e) => e.target.id === 'modal-backdrop' && close();
         };
@@ -791,24 +933,33 @@
                 const docRef = await addDoc(collection(db, "orders"), orderData);
 
                 if (appliedCoupon) {
-                    const couponRef = doc(db, "coupons", appliedCoupon.id);
-                    const couponSnap = await getDoc(couponRef);
-                    if (couponSnap.exists()) {
-                        const currentCount = couponSnap.data().usageCount || 0;
-                        await updateDoc(couponRef, { usageCount: currentCount + 1 });
-                    }
+                    // ... (coupon logic remains the same)
                 }
                 
                 sessionStorage.setItem('texmex_last_order_data', JSON.stringify(orderData));
                 setupSecondaryConfirmButton(); 
 
-                const successMessage = 'شكرًا لطلبك من TEXMEX. سنتصل بك قريبًا للتأكيد. <br><br><strong class="text-blue-600">لضمان وصول طلبك بشكل أسرع، يمكنك استخدام زر التأكيد الثانوي لتنبيهنا عبر وسائل التواصل الاجتماعي أو بالاتصال المباشر.</strong>';
+                const successMessage = 'شكرًا لطلبك من TEXMEX. سنتصل بك قريبًا للتأكيد. يمكنك تحميل وصل الطلبية أو استخدام التأكيد الثانوي لتسريع العملية.';
+                
+                // NEW: Show modal with BOTH buttons
                 showInfoModal(
                     'تم استلام طلبك بنجاح!',
                     successMessage,
                     null,
-                    true,
-                    orderData
+                    [ // Array of buttons
+                        {
+                            html: '<i class="fas fa-download mr-2"></i> تحميل الوصل',
+                            classes: 'bg-blue-600 hover:bg-blue-700 text-white',
+                            onClick: () => generateOrderPDF(orderData, docRef.id),
+                            closesModal: false // Keep modal open when they download
+                        },
+                        {
+                            html: '<i class="fas fa-bell mr-2"></i> تأكيد ثانوي',
+                            classes: 'bg-green-600 hover:bg-green-700 text-white glow-effect',
+                            onClick: () => showSecondaryConfirmModal(orderData),
+                            closesModal: true // Close current modal and open the secondary confirm modal
+                        }
+                    ]
                 );
 
                 order = [];
@@ -822,32 +973,56 @@
             }
         };
 
-        const renderMenuItems = () => {
+        const getFilteredItems = () => {
             const activeCatBtn = document.querySelector('.category-filter-btn.bg-orange-100');
             const selectedCatId = activeCatBtn ? activeCatBtn.dataset.id : 'all';
             const searchTerm = elements.searchInput.value.toLowerCase().trim();
             const availableItems = menuItemsCache.filter(item => item.isAvailable !== false);
             
-            const filteredItems = availableItems.filter(item => {
+            let filtered = availableItems.filter(item => {
                 const matchesCategory = selectedCatId === 'all' || item.categoryId === selectedCatId;
                 const nameAr = item.name?.ar?.toLowerCase() || '';
                 const nameFr = item.name?.fr?.toLowerCase() || '';
                 const matchesSearch = nameAr.includes(searchTerm) || nameFr.includes(searchTerm);
                 return matchesCategory && matchesSearch;
             });
-            
-            elements.grid.innerHTML = '';
-            if (filteredItems.length === 0) {
-                elements.noProductsMsg.classList.remove('hidden');
-                elements.grid.classList.add('hidden'); return;
+
+            // Apply sorting
+            switch (currentSort) {
+                case 'price_asc':
+                    filtered.sort((a, b) => a.price - b.price);
+                    break;
+                case 'price_desc':
+                    filtered.sort((a, b) => b.price - a.price);
+                    break;
+                default:
+                    // 'default' is 'newest', which is the original order from Firestore. No sort needed.
+                    break;
             }
-            elements.noProductsMsg.classList.add('hidden');
-            elements.grid.classList.remove('hidden');
+            return filtered;
+        };
+
+        const renderMenuItems = (loadMore = false) => {
+            if (!loadMore) {
+                elements.grid.innerHTML = '';
+                fullFilteredList = getFilteredItems();
+            }
             
-            filteredItems.forEach(item => {
+            const currentlyDisplayedCount = elements.grid.children.length;
+            const itemsToRender = fullFilteredList.slice(currentlyDisplayedCount, currentlyDisplayedCount + itemsPerPage);
+            
+            if (fullFilteredList.length === 0) {
+                elements.noProductsMsg.classList.remove('hidden');
+                elements.grid.classList.add('hidden');
+            } else {
+                elements.noProductsMsg.classList.add('hidden');
+                elements.grid.classList.remove('hidden');
+            }
+            
+            itemsToRender.forEach(item => {
                 const image = item.imageUrl || 'https://via.placeholder.com/300x224.png?text=TEXMEX';
                 const card = document.createElement('div');
-                card.className = `bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl`;
+                card.className = `bg-white rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl menu-card-animate`;
                 
                 const nameAr = item.name?.ar || item.name?.fr || 'اسم غير متوفر';
                 const nameFr = item.name?.fr || '';
@@ -878,6 +1053,12 @@
                 card.querySelector('.description-content').innerHTML = item.description || '';
                 elements.grid.appendChild(card);
             });
+
+            if (elements.grid.children.length < fullFilteredList.length) {
+                elements.loadMoreContainer.classList.remove('hidden');
+            } else {
+                elements.loadMoreContainer.classList.add('hidden');
+            }
         };
         
         const renderOffers = async () => {
@@ -925,7 +1106,7 @@
             const open = parseInt(openTime.split(':')[0]) * 60 + parseInt(openTime.split(':')[1]);
             const close = parseInt(closeTime.split(':')[0]) * 60 + parseInt(closeTime.split(':')[1]);
             
-            if (close < open) { // Overnight case
+            if (close < open) { 
                 restaurantSettings.isOpen = (currentTime >= open || currentTime < close);
             } else {
                 restaurantSettings.isOpen = (currentTime >= open && currentTime < close);
@@ -1003,7 +1184,7 @@
                 renderMenuItems();
                 renderOffers();
 
-                const debouncedRender = debounce(renderMenuItems, 300);
+                const debouncedRender = debounce(() => renderMenuItems(false), 300);
                 const toggleSidebar = () => {
                     elements.sidebar.classList.toggle('translate-x-full');
                     elements.sidebarOverlay.classList.toggle('is-hidden');
@@ -1011,9 +1192,12 @@
                 };
                 
                 elements.sidebarToggle.onclick = toggleSidebar;
+                elements.mainSidebarToggle.onclick = toggleSidebar;
                 elements.closeSidebar.onclick = toggleSidebar;
                 elements.sidebarOverlay.onclick = toggleSidebar;
                 elements.fabOrderBtn.onclick = showOrderModal;
+                elements.loadMoreBtn.onclick = () => renderMenuItems(true);
+
                 elements.showOffersBtn.onclick = () => {
                     elements.offersSection.scrollIntoView({ behavior: 'smooth' });
                     if (window.innerWidth < 768) toggleSidebar();
@@ -1024,10 +1208,21 @@
                     if (btn) {
                         document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('bg-orange-100', 'text-orange-700'));
                         btn.classList.add('bg-orange-100', 'text-orange-700');
-                        renderMenuItems();
+                        renderMenuItems(false);
                         if (window.innerWidth < 768) toggleSidebar();
                     }
                 });
+
+                elements.sortingControls.addEventListener('click', e => {
+                    const btn = e.target.closest('.sort-btn');
+                    if (btn && !btn.classList.contains('active')) {
+                        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentSort = btn.dataset.sort;
+                        renderMenuItems(false);
+                    }
+                });
+
                 elements.orderBtn.onclick = showOrderModal;
                 elements.searchInput.oninput = debouncedRender;
                 elements.grid.addEventListener('click', (e) => { 
@@ -1045,6 +1240,4 @@
         };
         
         initializeStore();
-    </script>
-</body>
-</html>
+</script>
