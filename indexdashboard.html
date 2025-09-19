@@ -34,14 +34,25 @@
         @media (max-width: 768px) { .responsive-table thead { display: none; } .responsive-table tr { display: block; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; } .responsive-table td { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; } .responsive-table td:last-child { border-bottom: none; } .responsive-table td::before { content: attr(data-label); font-weight: 600; margin-left: 0.5rem; } }
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background-color: white; transition: all 0.2s; }
         .filter-btn.active { background-color: #f97316; color: white; border-color: #f97316; }
-        /* Quill Editor Height */
         .ql-editor { min-height: 120px; }
-        /* NEW: Loyal Customer Accordion */
         .customer-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-to-print, #receipt-to-print * { visibility: visible; }
+            #receipt-to-print {
+                position: absolute; left: 0; top: 0; width: 100%;
+                padding: 20px; font-family: 'Tajawal', sans-serif; direction: rtl; color: black;
+            }
+            .receipt-header h1 { font-size: 24pt; color: black; border: none; }
+            .receipt-table th, .receipt-table td { color: black; }
+            .receipt-actions { display: none; }
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -106,11 +117,6 @@
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-
-
-
-
-
 <script type="module">
         // --- FIREBASE INITIALIZATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -145,7 +151,6 @@
             }
         });
 
-
         // --- GLOBAL CACHES & STATE ---
         let categoriesCache = [];
         let deliveryPersonnelCache = [];
@@ -157,7 +162,13 @@
         let isInitialOrdersLoad = true;
         let selectedFileStore = {}; 
         let currentOrderStatusFilter = 'all';
-        let quillEditor = null; // To hold the Quill instance
+        let quillEditor = null;
+
+        // --- NEW: Currency Formatting Helper ---
+        const formatCurrency = (number) => {
+            const num = Math.round(number) || 0;
+            return `${num} د.ج`;
+        };
 
         // --- UI & UX HELPERS (MODAL, TOAST) ---
         const showModal = (title, content, onConfirm, confirmText = 'حفظ', showCancel = true) => {
@@ -178,7 +189,7 @@
                 </div>`;
 
             const close = () => {
-                quillEditor = null; // Clear Quill instance on modal close
+                quillEditor = null;
                 modalContainer.innerHTML = '';
             }
             if (showCancel) document.getElementById('modal-cancel').onclick = close;
@@ -188,7 +199,7 @@
         };
 
         const closeModal = () => {
-             quillEditor = null; // Clear Quill instance on modal close
+             quillEditor = null;
             document.getElementById('modal-container').innerHTML = '';
         }
 
@@ -223,7 +234,6 @@
             });
         }
 
-
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -233,6 +243,7 @@
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         };
+
         const setButtonLoading = (btn, isLoading, text = 'حفظ') => {
             if (isLoading) {
                 btn.disabled = true;
@@ -243,84 +254,112 @@
             }
         };
 
-        // --- START: PDF GENERATION FUNCTION ---
-        const generateOrderPDF = (orderData, orderId) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        // --- IMPROVED: Receipt Generation with Clearer Totals ---
+        const generateReceiptContent = (orderData, orderId) => {
+            const orderDate = orderData.createdAt?.toDate ? orderData.createdAt.toDate().toLocaleString('ar-DZ') : new Date().toLocaleString('ar-DZ');
+            const itemsTotal = (orderData.items || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-            // Header
-            doc.setFontSize(14);
-            doc.text("Alsalam ealaykum zabuna alkarim", doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
-            doc.setFontSize(22);
-            doc.text("TEXMEX Annaba - Order Receipt", doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
-            doc.setFont(undefined, 'normal'); // Reset font style
-
-            // Order Info
-            doc.setFontSize(12);
-            const orderDate = orderData.createdAt?.toDate ? orderData.createdAt.toDate().toLocaleString('en-GB') : new Date().toLocaleString('en-GB');
-            let startX = 15;
-            let startY = 40;
-            
-            doc.text(`Order ID: ${orderId}`, startX, startY);
-            doc.text(`Date: ${orderDate}`, startX, startY += 7);
-            doc.text(`Name: ${orderData.customerName}`, startX, startY += 7);
-            doc.text(`Phone: ${orderData.customerContact}`, startX, startY += 7);
-            doc.text(`Address: ${orderData.customerLocation}`, startX, startY += 7);
-
-            // Table
-            const tableColumn = ["Item", "Quantity", "Price", "Total"];
-            const tableRows = [];
-
-            orderData.items.forEach(item => {
-                const itemName = item.name; // Item names can be in Arabic from DB, which is fine
-                const itemData = [
-                    itemName,
-                    item.quantity,
-                    `${item.price.toLocaleString()} DZD`,
-                    `${(item.price * item.quantity).toLocaleString()} DZD`,
-                ];
-                tableRows.push(itemData);
-            });
-
-            doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: startY + 10,
-                theme: 'grid',
-                headStyles: { halign: 'center', fillColor: [234, 88, 12] },
-                bodyStyles: { halign: 'left' },
-                columnStyles: {
-                    1: { halign: 'center' }, // Quantity
-                    2: { halign: 'right' },  // Price
-                    3: { halign: 'right' },  // Total
+            const itemsHtml = (orderData.items || []).map(item => {
+                let addonsText = '';
+                if(item.selectedAddons && item.selectedAddons.length > 0) {
+                    addonsText = '<div style="font-size: 10pt; color: #555;">+ ' + item.selectedAddons.map(a => `${a.name} (${formatCurrency(a.price)})`).join(', ') + '</div>';
                 }
-            });
-            
-            let finalY = doc.autoTable.previous.finalY;
-            const totalsX = doc.internal.pageSize.getWidth() - 15;
-            const subTotal = orderData.totalPrice - orderData.deliveryFee + (orderData.discountAmount || 0);
+                const itemTotal = item.price * item.quantity;
+                return `
+                    <tr>
+                        <td style="border:1px solid #333; padding:8px;">${item.name}${addonsText}</td>
+                        <td style="border:1px solid #333; padding:8px;">${item.quantity}</td>
+                        <td style="border:1px solid #333; padding:8px;">${formatCurrency(item.price)}</td>
+                        <td style="border:1px solid #333; padding:8px;">${formatCurrency(itemTotal)}</td>
+                    </tr>
+                `;
+            }).join('');
 
-            doc.setFontSize(12);
-            doc.text(`Subtotal: ${subTotal.toLocaleString()} DZD`, totalsX, finalY += 10, { align: 'right' });
-            doc.text(`Delivery Fee: ${orderData.deliveryFee.toLocaleString()} DZD`, totalsX, finalY += 7, { align: 'right' });
-            if (orderData.discountAmount > 0) {
-                 doc.text(`Discount (${orderData.couponCode}): -${orderData.discountAmount.toLocaleString()} DZD`, totalsX, finalY += 7, { align: 'right' });
+            let financialSummaryHtml = '';
+            if (orderData.discountAmount && orderData.discountAmount > 0) {
+                const subtotalAfterDiscount = itemsTotal - orderData.discountAmount;
+                financialSummaryHtml = `
+                    <div style="font-weight:bold;">مجموع المنتجات: ${formatCurrency(itemsTotal)}</div>
+                    <div style="font-weight:bold; color: #c53030;">الخصم (${orderData.couponCode || ''}): -${formatCurrency(orderData.discountAmount)}</div>
+                    <div style="font-weight:bold;">المجموع بعد الخصم: ${formatCurrency(subtotalAfterDiscount)}</div>
+                    <div style="font-weight:bold;">سعر التوصيل: ${formatCurrency(orderData.deliveryFee)}</div>
+                `;
+            } else {
+                 financialSummaryHtml = `
+                    <div style="font-weight:bold;">مجموع المنتجات: ${formatCurrency(itemsTotal)}</div>
+                    <div style="font-weight:bold;">سعر التوصيل: ${formatCurrency(orderData.deliveryFee)}</div>
+                `;
             }
-            
-            doc.setLineWidth(0.5);
-            doc.line(140, finalY + 3, totalsX, finalY + 3);
 
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text(`Total: ${orderData.totalPrice.toLocaleString()} DZD`, totalsX, finalY += 10, { align: 'right' });
-
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(12);
-            doc.text("Thank you for your trust in TEXMEX!", doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 15, { align: 'center' });
-
-            doc.save(`TEXMEX-Receipt-${orderId.substring(0, 6)}.pdf`);
+            return `
+                <div class="receipt-header" style="text-align:center; margin-bottom:40px;">
+                    <h1 style="font-size:24pt; border:none; margin:0;">TEXMEX Annaba</h1>
+                    <p style="font-size:12pt; margin:5px 0;">وصل الطلبية</p>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:12pt;">
+                    <div>
+                        <strong>العميل:</strong> ${orderData.customerName}<br>
+                        <strong>الهاتف:</strong> ${orderData.customerContact}<br>
+                        <strong>العنوان:</strong> ${orderData.customerLocation}<br>
+                        <strong>رقم الطلب:</strong> ${orderId.substring(0, 6)}
+                    </div>
+                    <div><strong>التاريخ:</strong> ${orderDate}</div>
+                </div>
+                
+                <table class="receipt-table" style="width:100%; border-collapse:collapse; font-size:12pt; color: black;">
+                    <thead>
+                        <tr>
+                            <th style="border:1px solid #333; padding:8px; background-color: #eee;">الصنف</th>
+                            <th style="border:1px solid #333; padding:8px; background-color: #eee;">الكمية</th>
+                            <th style="border:1px solid #333; padding:8px; background-color: #eee;">سعر الوحدة</th>
+                            <th style="border:1px solid #333; padding:8px; background-color: #eee;">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                
+                <div style="text-align:left; margin-top:20px; font-size:12pt;">
+                    ${financialSummaryHtml}
+                    <hr style="margin: 5px 0;">
+                    <div style="font-size:14pt; font-weight:bold;">المبلغ الإجمالي: ${formatCurrency(orderData.totalPrice)}</div>
+                </div>
+            `;
         };
-        // --- END: PDF GENERATION FUNCTION ---
+
+        const printOrderReceiptHTML = (orderData, orderId) => {
+            const receiptContent = generateReceiptContent(orderData, orderId);
+            const printContent = `
+            <div id="receipt-to-print">
+                ${receiptContent}
+                <div class="receipt-actions" style="margin-top: 30px; text-align: center;">
+                    <button onclick="window.print()">طباعة</button>
+                    <button onclick="window.close()">إغلاق</button>
+                </div>
+            </div>`;
+            
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.write(`<html><head><title>طباعة الوصل</title><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><style>@media print { .receipt-actions { display: none; } } body { font-family: 'Tajawal', sans-serif; }</style></head><body>${printContent}</body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+        };
+        
+        const downloadOrderReceiptPDF = (orderData, orderId) => {
+            const receiptContent = generateReceiptContent(orderData, orderId);
+            const receiptContentHTML = `<div style="width: 100%; padding: 20px; font-family: 'Tajawal', sans-serif; direction: rtl; color: black; background-color: white;">${receiptContent}</div>`;
+
+            const element = document.createElement('div');
+            element.innerHTML = receiptContentHTML;
+
+            const opt = {
+                margin:       0.5,
+                filename:     `TEXMEX-وصل-${orderId.substring(0, 6)}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(element).set(opt).save();
+        };
 
         // --- IMAGE UPLOAD & COMPRESSION HELPERS ---
         async function compressImage(file, maxWidth = 1024) {
@@ -388,7 +427,6 @@
                 const targetId = hash.substring(1) + '-panel';
                 tabs.forEach(t => t.classList.toggle('active-tab', t.getAttribute('href') === hash));
                 panels.forEach(p => p.classList.toggle('hidden', p.id !== targetId));
-                // NEW: Load loyal customers when tab is active
                 if (hash === '#loyal-customers') {
                     loadLoyalCustomers();
                 }
@@ -437,7 +475,7 @@
             const cardsContainer = document.getElementById('summary-cards');
             const renderCards = (data) => {
                 cardsContainer.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4"><i class="fas fa-wallet fa-3x text-green-500"></i><div><p class="text-gray-500">مبيعات اليوم</p><p class="text-2xl font-bold">${(data.todayRevenue || 0).toLocaleString()} د.ج</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4"><i class="fas fa-wallet fa-3x text-green-500"></i><div><p class="text-gray-500">مبيعات اليوم</p><p class="text-2xl font-bold">${formatCurrency(data.todayRevenue)}</p></div></div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4"><i class="fas fa-concierge-bell fa-3x text-blue-500"></i><div><p class="text-gray-500">طلبات جديدة</p><p class="text-2xl font-bold">${data.newOrdersCount || 0}</p></div></div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4"><i class="fas fa-check-circle fa-3x text-teal-500"></i><div><p class="text-gray-500">طلبات مكتملة اليوم</p><p class="text-2xl font-bold">${data.completedTodayCount || 0}</p></div></div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4"><i class="fas fa-utensils fa-3x text-orange-500"></i><div><p class="text-gray-500">إجمالي الوجبات</p><p class="text-2xl font-bold">${data.totalMenuItems || 0}</p></div></div>`;
@@ -515,7 +553,7 @@
                     let itemText = `<div><span class="font-semibold">${item.quantity} x ${item.name}</span></div>`;
                     if (item.selectedAddons && item.selectedAddons.length > 0) {
                         const addonsText = item.selectedAddons.map(addon => 
-                            `<div class="text-xs text-gray-600 mr-4">+ ${addon.name} (${addon.price} د.ج)</div>`
+                            `<div class="text-xs text-gray-600 mr-4">+ ${addon.name} (${formatCurrency(addon.price)})</div>`
                         ).join('');
                         itemText += addonsText;
                     }
@@ -524,7 +562,7 @@
 
                 let couponHtml = '';
                 if(order.couponCode) {
-                    couponHtml = `<div class="text-xs text-green-600 font-bold mt-1">كوبون (${order.couponCode}) : -${(order.discountAmount || 0).toLocaleString()} د.ج</div>`;
+                    couponHtml = `<div class="text-xs text-green-600 font-bold mt-1">كوبون (${order.couponCode}) : -${formatCurrency(order.discountAmount)}</div>`;
                 }
                 
                 const deliveryPersonnelOptions = deliveryPersonnelCache.filter(p => p.status === 'active').map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
@@ -544,7 +582,7 @@
                     </td>
                     <td data-label="الهاتف" class="p-3 font-mono" dir="ltr">${order.customerContact}</td>
                     <td data-label="الطلبية" class="p-3 text-sm">${itemsHtml}${couponHtml}</td>
-                    <td data-label="المبلغ" class="p-3 font-mono font-bold">${(order.totalPrice || 0).toLocaleString()} د.ج</td>
+                    <td data-label="المبلغ" class="p-3 font-mono font-bold">${formatCurrency(order.totalPrice)}</td>
                     <td data-label="الحالة" class="p-3">
                         <select class="order-status-select p-2 rounded-lg ${statusColors[order.status] || ''}" data-id="${order.id}">
                             <option value="new" ${order.status === 'new' ? 'selected' : ''}>جديد</option>
@@ -557,8 +595,9 @@
                             <option value="">-- اختر --</option> ${deliveryPersonnelOptions}
                         </select>
                     </td>
-                    <td data-label="إجراءات" class="p-3 flex items-center gap-3">
+                    <td data-label="إجراءات" class="p-3 flex items-center gap-4">
                         <button class="print-order-btn text-gray-600 hover:text-black" data-id="${order.id}" title="طباعة الوصل"><i class="fas fa-print fa-lg"></i></button>
+                        <button class="pdf-order-btn text-red-600 hover:text-red-800" data-id="${order.id}" title="تحميل PDF"><i class="fas fa-file-pdf fa-lg"></i></button>
                         <button class="copy-order-btn text-blue-500 hover:text-blue-700" data-id="${order.id}" title="نسخ"><i class="fas fa-copy fa-lg"></i></button>
                         <button class="delete-order-btn text-red-500 hover:text-red-700" data-id="${order.id}" title="حذف"><i class="fas fa-trash fa-lg"></i></button>
                     </td>`;
@@ -592,58 +631,115 @@
                     return mainText;
                 }).join('\n');
 
-                const couponText = order.couponCode ? `\n\n🎉 تم استخدام كوبون: ${order.couponCode}\n💰 التخفيض: ${order.discountAmount.toLocaleString()} د.ج` : '';
+                const couponText = order.couponCode ? `\n\n🎉 تم استخدام كوبون: ${order.couponCode}\n💰 التخفيض: ${formatCurrency(order.discountAmount)}` : '';
                 const deliveryPersonText = order.deliveryPersonName ? `\n🚚 بواسطة: ${order.deliveryPersonName}` : '';
-                const message = `طلب جديد من TEXMEX\n--------------------\n👤 الاسم: ${order.customerName}\n📞 الهاتف: ${order.customerContact}\n📍 العنوان: ${order.customerLocation}\n📋 الطلبية:\n${itemsText}${couponText}\n💰 السعر الإجمالي: ${order.totalPrice.toLocaleString()} د.ج${deliveryPersonText}\n--------------------`;
+                const message = `طلب جديد من TEXMEX\n--------------------\n👤 الاسم: ${order.customerName}\n📞 الهاتف: ${order.customerContact}\n📍 العنوان: ${order.customerLocation}\n📋 الطلبية:\n${itemsText}${couponText}\n💰 السعر الإجمالي: ${formatCurrency(order.totalPrice)}${deliveryPersonText}\n--------------------`;
                 navigator.clipboard.writeText(message).then(() => showToast('تم نسخ معلومات الطلب بنجاح!'));
             });
-            // NEW: PDF Button Listener
+            
             document.querySelectorAll('.print-order-btn').forEach(btn => btn.onclick = e => {
                 const orderId = e.currentTarget.dataset.id;
                 const order = ordersCache.find(o => o.id === orderId);
-                if (order) {
-                    generateOrderPDF(order, orderId);
-                }
+                if (order) printOrderReceiptHTML(order, orderId);
+            });
+
+            document.querySelectorAll('.pdf-order-btn').forEach(btn => btn.onclick = e => {
+                const orderId = e.currentTarget.dataset.id;
+                const order = ordersCache.find(o => o.id === orderId);
+                if (order) downloadOrderReceiptPDF(order, orderId);
             });
         }
 
-        // --- NEW: LOYAL CUSTOMERS SECTION ---
-        function loadLoyalCustomers() {
+        // --- ENHANCED: LOYAL CUSTOMERS SECTION ---
+        async function loadLoyalCustomers() {
             const panel = document.getElementById('loyal-customers-panel');
             panel.innerHTML = `<div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
                     <h1 class="text-3xl font-bold text-gray-800">العملاء الأوفياء</h1>
-                    <div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="loyal-customer-search" placeholder="ابحث عن عميل بالاسم..." class="w-full md:w-64 pr-10 pl-3 py-2 border rounded-lg"></div>
+                    <div class="flex items-center gap-4">
+                        <div class="relative">
+                            <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="loyal-customer-search" placeholder="ابحث بالاسم أو الهاتف..." class="w-full md:w-64 pr-10 pl-3 py-2 border rounded-lg">
+                        </div>
+                        <button id="loyal-customer-settings-btn" title="إعدادات نظام المكافآت" class="text-gray-600 hover:text-orange-500 p-2 rounded-full bg-gray-100"><i class="fas fa-cog fa-lg"></i></button>
+                    </div>
                 </div>
                 <div id="loyal-customers-list" class="space-y-3">
-                    <div class="bg-white p-6 rounded-xl shadow-md text-center col-span-full"><div class="spinner-dark mx-auto"></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-md text-center col-span-full"><div class="spinner-dark mx-auto"></div><p class="mt-2">جاري تحليل بيانات العملاء...</p></div>
                 </div>`;
+            
+            document.getElementById('loyal-customer-settings-btn').onclick = showLoyalCustomerSettingsModal;
 
-            // Process data
             const completedOrders = ordersCache.filter(o => o.status === 'completed');
             const customersData = {};
 
             completedOrders.forEach(order => {
-                const name = order.customerName.trim().toLowerCase();
-                if (!customersData[name]) {
-                    customersData[name] = {
+                const contact = (order.customerContact || 'unknown').trim();
+                if (!contact || contact === 'unknown') return; 
+
+                if (!customersData[contact]) {
+                    customersData[contact] = {
+                        contact: contact,
                         displayName: order.customerName.trim(),
                         orders: [],
-                        totalSpent: 0
+                        totalSpent: 0,
+                        lastOrderDate: new Date(0)
                     };
                 }
-                customersData[name].orders.push(order);
-                customersData[name].totalSpent += order.totalPrice;
+                customersData[contact].orders.push(order);
+                customersData[contact].totalSpent += (order.totalPrice || 0);
+                
+                const orderDate = order.createdAt.toDate();
+                if (orderDate > customersData[contact].lastOrderDate) {
+                    customersData[contact].lastOrderDate = orderDate;
+                    customersData[contact].displayName = order.customerName.trim();
+                }
             });
 
             const customersList = Object.values(customersData).sort((a, b) => b.orders.length - a.orders.length);
             
+            try {
+                const notesSnapshot = await getDocs(collection(db, "customer_metadata"));
+                const notesMap = {};
+                notesSnapshot.forEach(doc => {
+                    notesMap[doc.id] = doc.data().notes;
+                });
+                customersList.forEach(customer => {
+                    customer.notes = notesMap[customer.contact] || '';
+                });
+            } catch (error) {
+                console.error("Could not fetch customer notes:", error);
+            }
+
             renderLoyalCustomers(customersList);
 
             document.getElementById('loyal-customer-search').addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
-                const filtered = customersList.filter(c => c.displayName.toLowerCase().includes(searchTerm));
+                const filtered = customersList.filter(c => c.displayName.toLowerCase().includes(searchTerm) || c.contact.includes(searchTerm));
                 renderLoyalCustomers(filtered);
+            });
+        }
+        
+        function showLoyalCustomerSettingsModal() {
+            const currentThreshold = localStorage.getItem('rewardThreshold') || 10;
+            const content = `
+                <div class="space-y-4">
+                    <div>
+                        <label for="reward-threshold-input" class="font-semibold text-gray-700">عدد الطلبات المطلوبة للحصول على مكافأة</label>
+                        <p class="text-sm text-gray-500 mt-1">بعد هذا العدد من الطلبات المكتملة، سيظهر العميل كمستحق لمكافأة في القائمة.</p>
+                        <input type="number" id="reward-threshold-input" class="w-full p-3 border rounded-lg mt-2 text-center text-xl" value="${currentThreshold}">
+                    </div>
+                </div>
+            `;
+            showModal('إعدادات نظام المكافآت', content, () => {
+                const threshold = document.getElementById('reward-threshold-input').value;
+                if (threshold && parseInt(threshold) > 0) {
+                    localStorage.setItem('rewardThreshold', threshold);
+                    showToast('تم حفظ الإعدادات بنجاح.', 'success');
+                    closeModal();
+                    loadLoyalCustomers(); // Reload the list with new settings
+                } else {
+                    showToast('الرجاء إدخال رقم صحيح أكبر من صفر.', 'error');
+                }
             });
         }
 
@@ -654,18 +750,23 @@
                 return;
             }
             
-            const REWARD_THRESHOLD = 10; // Example: reward every 10 orders
+            const REWARD_THRESHOLD = parseInt(localStorage.getItem('rewardThreshold')) || 10;
 
             container.innerHTML = customers.map(customer => {
                 const totalOrders = customer.orders.length;
                 const ordersUntilNextReward = REWARD_THRESHOLD - (totalOrders % REWARD_THRESHOLD);
                 const progressPercentage = ((totalOrders % REWARD_THRESHOLD) / REWARD_THRESHOLD) * 100;
+                const avgOrderValue = totalOrders > 0 ? customer.totalSpent / totalOrders : 0;
+                const lastOrderDateStr = customer.lastOrderDate.toLocaleDateString('ar-DZ');
 
                 const orderHistoryHtml = customer.orders.sort((a,b) => b.createdAt.toDate() - a.createdAt.toDate()).map(order => `
                     <tr class="border-b">
                         <td class="p-2">${order.createdAt.toDate().toLocaleDateString('ar-DZ')}</td>
-                        <td class="p-2 font-mono">${order.totalPrice.toLocaleString()} د.ج</td>
-                        <td class="p-2"><button class="print-order-btn text-gray-500 hover:text-black" data-id="${order.id}" title="طباعة الوصل"><i class="fas fa-print"></i></button></td>
+                        <td class="p-2 font-mono">${formatCurrency(order.totalPrice)}</td>
+                        <td class="p-2 flex items-center gap-3">
+                           <button class="print-order-btn text-gray-500 hover:text-black" data-id="${order.id}" title="طباعة الوصل"><i class="fas fa-print"></i></button>
+                           <button class="pdf-order-btn text-red-500 hover:text-red-700" data-id="${order.id}" title="تحميل PDF"><i class="fas fa-file-pdf"></i></button>
+                        </td>
                     </tr>
                 `).join('');
 
@@ -673,8 +774,12 @@
                 <div class="bg-white rounded-xl shadow-md overflow-hidden">
                     <button class="customer-accordion-toggle w-full text-right p-4 flex justify-between items-center hover:bg-gray-50">
                         <div>
-                            <h3 class="text-xl font-bold">${customer.displayName}</h3>
-                            <p class="text-sm text-gray-500">إجمالي الطلبات: <span class="font-bold">${totalOrders}</span> | إجمالي الإنفاق: <span class="font-bold font-mono">${customer.totalSpent.toLocaleString()} د.ج</span></p>
+                            <h3 class="text-xl font-bold">${customer.displayName} <span class="text-base font-normal text-gray-500 font-mono" dir="ltr">(${customer.contact})</span></h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                إجمالي الطلبات: <span class="font-bold text-blue-600">${totalOrders}</span> | 
+                                إجمالي الإنفاق: <span class="font-bold text-green-600 font-mono">${formatCurrency(customer.totalSpent)}</span> |
+                                آخر طلب: <span class="font-bold text-gray-700 font-mono">${lastOrderDateStr}</span>
+                            </p>
                         </div>
                         <i class="fas fa-chevron-down transition-transform"></i>
                     </button>
@@ -684,20 +789,22 @@
                                 <h4 class="font-bold mb-2">سجل الطلبيات</h4>
                                 <div class="max-h-60 overflow-y-auto pr-2">
                                     <table class="w-full text-sm">
-                                        <thead class="bg-gray-200"><tr><th class="p-2">التاريخ</th><th class="p-2">القيمة</th><th class="p-2">وصل</th></tr></thead>
+                                        <thead class="bg-gray-200"><tr><th class="p-2 text-right">التاريخ</th><th class="p-2 text-right">القيمة</th><th class="p-2 text-right">الإجراءات</th></tr></thead>
                                         <tbody>${orderHistoryHtml}</tbody>
                                     </table>
                                 </div>
                             </div>
                             <div>
-                                <h4 class="font-bold mb-2">نظام المكافآت (مثال)</h4>
                                 <div class="bg-white p-3 rounded-lg shadow-sm space-y-3">
-                                    <p>الطلبيات المتبقية للمكافأة التالية: <span class="font-bold text-orange-600 text-lg">${ordersUntilNextReward}</span></p>
+                                    <h4 class="font-bold mb-2">نظام المكافآت</h4>
+                                    <p class="text-sm">الطلبات المتبقية للمكافأة: <span class="font-bold text-orange-600 text-lg">${ordersUntilNextReward}</span></p>
                                     <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-green-500 h-2.5 rounded-full" style="width: ${progressPercentage}%"></div></div>
-                                    <button class="w-full bg-orange-500 text-white font-semibold py-2 rounded-lg hover:bg-orange-600 redeem-reward-btn" data-customer-name="${customer.displayName}">تسجيل استلام مكافأة</button>
+                                    <p class="text-sm">متوسط قيمة الطلب: <span class="font-bold font-mono">${formatCurrency(avgOrderValue)}</span></p>
+                                    <hr>
                                     <div>
-                                        <label class="text-sm font-semibold">ملاحظات:</label>
-                                        <textarea class="w-full mt-1 p-2 border rounded-md text-sm" rows="2" placeholder="أضف ملاحظات حول العميل..."></textarea>
+                                        <label class="text-sm font-semibold">ملاحظات العميل:</label>
+                                        <textarea class="customer-note-textarea w-full mt-1 p-2 border rounded-md text-sm" rows="3" placeholder="أضف ملاحظات حول العميل..." data-contact="${customer.contact}">${customer.notes || ''}</textarea>
+                                        <button class="save-note-btn w-full mt-2 bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600" data-contact="${customer.contact}">حفظ الملاحظة</button>
                                     </div>
                                 </div>
                             </div>
@@ -724,22 +831,34 @@
                 }
             });
 
-             document.querySelectorAll('.print-order-btn').forEach(btn => btn.onclick = e => {
-                e.stopPropagation(); // Prevent accordion from closing
+             document.querySelectorAll('#loyal-customers-panel .print-order-btn').forEach(btn => btn.onclick = e => {
+                e.stopPropagation();
                 const orderId = e.currentTarget.dataset.id;
                 const order = ordersCache.find(o => o.id === orderId);
-                if (order) generateOrderPDF(order, orderId);
+                if (order) printOrderReceiptHTML(order, orderId);
             });
 
-            document.querySelectorAll('.redeem-reward-btn').forEach(btn => {
-                btn.onclick = (e) => {
+            document.querySelectorAll('#loyal-customers-panel .pdf-order-btn').forEach(btn => btn.onclick = e => {
+                e.stopPropagation();
+                const orderId = e.currentTarget.dataset.id;
+                const order = ordersCache.find(o => o.id === orderId);
+                if (order) downloadOrderReceiptPDF(order, orderId);
+            });
+
+            document.querySelectorAll('.save-note-btn').forEach(btn => {
+                btn.onclick = async (e) => {
                     e.stopPropagation();
-                    const customerName = e.currentTarget.dataset.customerName;
-                    // In a real application, you would update a 'rewardsRedeemed' field
-                    // for this customer in a dedicated 'customers' collection in Firestore.
-                    console.log(`Reward redeemed for ${customerName}. Update Firestore here.`);
-                    showToast(`تم تسجيل مكافأة للعميل: ${customerName}`, 'success');
-                }
+                    const contact = e.currentTarget.dataset.contact;
+                    const textarea = document.querySelector(`.customer-note-textarea[data-contact="${contact}"]`);
+                    const noteText = textarea.value.trim();
+                    try {
+                        await setDoc(doc(db, "customer_metadata", contact), { notes: noteText }, { merge: true });
+                        showToast('تم حفظ الملاحظة بنجاح.', 'success');
+                    } catch (error) {
+                        console.error("Error saving note: ", error);
+                        showToast('فشل حفظ الملاحظة.', 'error');
+                    }
+                };
             });
         }
         
@@ -788,7 +907,7 @@
                         </div>
                     </div>
                     <div class="description-content text-gray-500 text-sm my-2 flex-grow">${item.description || ''}</div>
-                    <p class="text-lg font-bold text-orange-600">${(item.price || 0).toLocaleString()} د.ج</p>
+                    <p class="text-lg font-bold text-orange-600">${formatCurrency(item.price)}</p>
                     <div class="border-t mt-4 pt-3 flex justify-end gap-3">
                         <button class="edit-menu-item-btn text-indigo-500" data-id="${item.id}"><i class="fas fa-edit"></i> تعديل</button>
                         <button class="delete-menu-item-btn text-red-500" data-id="${item.id}"><i class="fas fa-trash"></i> حذف</button>
@@ -1004,7 +1123,7 @@
                         <img src="${offer.imageUrl || 'https://via.placeholder.com/300x160.png?text=Offer'}" class="w-full h-40 object-cover rounded-lg mb-4 bg-gray-100">
                         <h3 class="text-xl font-bold">${offer.title}</h3>
                         <p class="text-gray-500 text-sm my-2 flex-grow">${offer.description || ''}</p>
-                        <p class="text-lg font-bold text-green-600">${(offer.price || 0).toLocaleString()} د.ج</p>
+                        <p class="text-lg font-bold text-green-600">${formatCurrency(offer.price)}</p>
                         <div class="border-t mt-4 pt-3 flex justify-end gap-3">
                             <button class="edit-offer-btn text-indigo-500" data-id="${offer.id}"><i class="fas fa-edit"></i> تعديل</button>
                             <button class="delete-offer-btn text-red-500" data-id="${offer.id}"><i class="fas fa-trash"></i> حذف</button>
@@ -1112,7 +1231,7 @@
 
                 const discountText = coupon.discountType === 'percentage'
                     ? `${coupon.discountValue}%`
-                    : `${(coupon.discountValue || 0).toLocaleString()} د.ج`;
+                    : `${formatCurrency(coupon.discountValue)}`;
                 
                 let expiryText = 'لا يوجد';
                 if (expiryDate) {
@@ -1407,7 +1526,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                             <i class="fas fa-coins fa-3x text-yellow-500"></i>
-                            <div><p class="text-gray-500">إجمالي الإيرادات</p><p class="text-2xl font-bold">${totalRevenue.toLocaleString()} د.ج</p></div>
+                            <div><p class="text-gray-500">إجمالي الإيرادات</p><p class="text-2xl font-bold">${formatCurrency(totalRevenue)}</p></div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                             <i class="fas fa-receipt fa-3x text-purple-500"></i>
@@ -1420,7 +1539,7 @@
                             <div class="flex justify-between items-end h-64 gap-2 border-b border-gray-200 pb-2">
                                 ${chartData.map(day => `
                                     <div class="flex-1 flex flex-col items-center justify-end">
-                                        <div class="text-xs font-bold">${day.revenue > 0 ? day.revenue.toLocaleString() : ''}</div>
+                                        <div class="text-xs font-bold">${day.revenue > 0 ? formatCurrency(day.revenue) : ''}</div>
                                         <div class="w-3/4 bg-orange-200 rounded-t-lg" style="height: ${maxRevenue > 0 ? (day.revenue / maxRevenue) * 90 : 0}%;"></div>
                                         <div class="text-sm text-gray-500 mt-1">${day.label}</div>
                                     </div>
@@ -1473,8 +1592,8 @@
                 deliveryZonesCache.forEach(zone => {
                     tBody.innerHTML += `<tr class="border-b">
                         <td class="p-3 font-semibold">${zone.name}</td>
-                        <td class="p-3 font-mono">${(zone.price_normal || 0).toLocaleString()} د.ج</td>
-                        <td class="p-3 font-mono">${(zone.price_fast || 0).toLocaleString()} د.ج</td>
+                        <td class="p-3 font-mono">${formatCurrency(zone.price_normal)}</td>
+                        <td class="p-3 font-mono">${formatCurrency(zone.price_fast)}</td>
                         <td class="p-3">
                             <button class="edit-zone-btn text-indigo-500 mr-4" data-id="${zone.id}"><i class="fas fa-edit"></i></button>
                             <button class="delete-zone-btn text-red-500" data-id="${zone.id}"><i class="fas fa-trash"></i></button>
@@ -1638,3 +1757,5 @@
             }
         }
 </script>
+</body>
+</html>
