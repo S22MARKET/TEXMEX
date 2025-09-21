@@ -104,7 +104,7 @@
         </main>
     </div>
 
-    <audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
+    <audio id="notification-sound" src="alerta.mp3" preload="auto"></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -136,12 +136,20 @@
             element: document.getElementById('notification-sound'),
             isMuted: false,
 
-            // دالة تشغيل الصوت
+            // دالة تشغيل الصوت بشكل مستمر (Loop)
             play() {
-                if (!this.isMuted) {
-                    // *** تحسين: زيادة سرعة تشغيل الصوت بنسبة 50% ***
-                    this.element.playbackRate = 1.5;
-                    this.element.play().catch(e => console.warn("Audio play was blocked by browser."));
+                if (this.isMuted) return;
+
+                // أهم تعديل: التأكد من أن خاصية loop مفعلة دائماً
+                this.element.loop = true; 
+                this.element.playbackRate = 1.5;
+
+                // محاولة التشغيل، وفي حال فشلت (بسبب سياسات المتصفح)، ننتظر تفاعل المستخدم
+                const promise = this.element.play();
+                if (promise !== undefined) {
+                    promise.catch(error => {
+                        console.warn("Audio play was blocked by browser. User interaction is needed.");
+                    });
                 }
             },
 
@@ -302,7 +310,6 @@
             const statusIndicator = document.getElementById('connection-status');
             const statusText = document.getElementById('connection-text');
 
-            // --- منطق معالجة الطلبات الجديد والمُحسَّن (من ملف copy) ---
             onSnapshot(q, snapshot => {
                 statusIndicator.classList.remove('bg-red-500'); statusIndicator.classList.add('bg-green-500', 'animate-pulse');
                 statusText.textContent = 'متصل';
@@ -311,7 +318,6 @@
                     snapshot.docChanges().forEach(change => {
                         if (change.type === "added") {
                             const newOrderData = { id: change.doc.id, ...change.doc.data() };
-                            // التأكد من أن الطلب جديد فعلاً قبل إظهار التنبيه
                             const existingOrder = ordersCache.find(o => o.id === newOrderData.id);
                             if (!existingOrder) {
                                 showNewOrderAlert(newOrderData);
