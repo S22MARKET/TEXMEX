@@ -104,7 +104,7 @@
         </main>
     </div>
 
-<audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
+    <audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -171,7 +171,6 @@
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
         const modalOrderDetails = document.getElementById('modal-order-details');
         
-        // ربط زر التأكيد بإخفاء النافذة وإيقاف الصوت
         modalConfirmBtn.onclick = hideNewOrderAlert;
 
         function flashTitle() {
@@ -193,26 +192,43 @@
             document.title = originalTitle;
         };
 
-        // دالة إظهار تنبيه الطلب الجديد
+        // --- دالة إظهار الإشعار المحدثة مع تفاصيل الطلبية ---
         function showNewOrderAlert(order) {
             const formattedPrice = (order.totalPrice || 0).toLocaleString('fr-DZ');
+
+            const itemsHtml = (order.items || []).map(item => {
+                const addonsHtml = (item.selectedAddons && item.selectedAddons.length > 0)
+                    ? `<ul class="text-sm text-gray-400 mr-7 list-disc list-inside">${item.selectedAddons.map(addon => `<li>${addon.name}</li>`).join('')}</ul>`
+                    : '';
+                return `<div class="py-1">
+                            <span class="font-bold text-white text-lg">${item.quantity} x</span>
+                            <span class="text-gray-200 text-lg">${item.name}</span>
+                            ${addonsHtml}
+                        </div>`;
+            }).join('');
+
             modalOrderDetails.innerHTML = `
                 <div class="flex justify-between items-center text-lg">
                     <span class="text-gray-400">العميل:</span>
                     <span class="font-bold text-white">${order.customerName}</span>
                 </div>
-                <div class="flex justify-between items-center text-lg">
+                <div class="flex justify-between items-center text-lg mb-3">
                     <span class="text-gray-400">الهاتف:</span>
                     <span class="font-bold text-cyan-400" dir="ltr">${order.customerContact}</span>
                 </div>
-                <hr class="border-gray-700 my-2">
-                <div class="flex justify-between items-center text-xl">
+                
+                <div class="border-t border-b border-gray-700 py-3 my-3 text-right">
+                    <h4 class="text-xl font-bold text-orange-400 mb-2">محتوى الطلبية:</h4>
+                    <div class="space-y-1 pr-2">${itemsHtml}</div>
+                </div>
+
+                <div class="flex justify-between items-center text-2xl mt-4">
                     <span class="text-gray-400">الإجمالي:</span>
                     <span class="font-extrabold text-orange-400">${formattedPrice} د.ج</span>
                 </div>
             `;
             newOrderModal.classList.remove('hidden');
-            audioManager.play(); // ==> تشغيل الصوت المتكرر
+            audioManager.play();
             
             newOrderCount++;
             if (!titleInterval) {
@@ -220,10 +236,9 @@
             }
         }
 
-        // دالة إخفاء النافذة وإيقاف الصوت
         function hideNewOrderAlert() {
             newOrderModal.classList.add('hidden');
-            audioManager.stop(); // ==> إيقاف الصوت المتكرر
+            audioManager.stop();
         }
         
         function initializeKitchenApp() {
@@ -231,13 +246,11 @@
             const muteBtn = document.getElementById('mute-btn');
             
             manualRefreshBtn.onclick = forceUIRefresh;
-            muteBtn.onclick = () => audioManager.toggleMute(); // ==> استخدام الدالة الجديدة من مدير الصوت
+            muteBtn.onclick = () => audioManager.toggleMute();
 
             loadOrders();
             setInterval(renderOrdersTable, 15000);
         }
-
-        // ... باقي الكود يبقى كما هو بدون تغيير ...
 
         function forceUIRefresh() {
             const icon = document.querySelector('#manual-refresh-btn i');
@@ -289,6 +302,7 @@
             const statusIndicator = document.getElementById('connection-status');
             const statusText = document.getElementById('connection-text');
 
+            // --- منطق معالجة الطلبات الجديد والمُحسَّن (من ملف copy) ---
             onSnapshot(q, snapshot => {
                 statusIndicator.classList.remove('bg-red-500'); statusIndicator.classList.add('bg-green-500', 'animate-pulse');
                 statusText.textContent = 'متصل';
@@ -479,3 +493,5 @@
         initializeKitchenApp();
 
     </script>
+</body>
+</html>
