@@ -104,7 +104,7 @@
         </main>
     </div>
 
-    <audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
+<audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -131,38 +131,47 @@
         let originalTitle = document.title;
         let titleInterval = null;
 
-        // --- NEW Professional Audio Manager ---
+        // --- مدير الصوت المحترف والمُحسَّن ---
         const audioManager = {
             element: document.getElementById('notification-sound'),
             isMuted: false,
+
+            // دالة تشغيل الصوت
             play() {
                 if (!this.isMuted) {
-                    // *** IMPROVEMENT: Increase playback speed by 50% ***
+                    // *** تحسين: زيادة سرعة تشغيل الصوت بنسبة 50% ***
                     this.element.playbackRate = 1.5;
-                    this.element.play().catch(e => console.warn("Audio play was blocked by browser. User interaction needed."));
+                    this.element.play().catch(e => console.warn("Audio play was blocked by browser."));
                 }
             },
+
+            // دالة إيقاف الصوت
             stop() {
                 this.element.pause();
-                this.element.currentTime = 0;
+                this.element.currentTime = 0; // إعادة الصوت للبداية
             },
+
+            // دالة كتم/تشغيل الصوت المحدثة
             toggleMute() {
                 this.isMuted = !this.isMuted;
                 const icon = document.getElementById('mute-icon');
                 const muteBtn = document.getElementById('mute-btn');
                 icon.className = this.isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
                 muteBtn.title = this.isMuted ? 'تشغيل صوت الإشعارات' : 'كتم صوت الإشعارات';
+                
+                // إذا تم الكتم أثناء عمل الصوت، أوقفه فوراً
                 if (this.isMuted) {
-                    this.stop(); // Stop sound immediately if muted while playing
+                    this.stop();
                 }
             }
         };
 
-        // --- Modal Elements ---
+        // --- عناصر نافذة الطلب الجديد ---
         const newOrderModal = document.getElementById('new-order-modal');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
         const modalOrderDetails = document.getElementById('modal-order-details');
         
+        // ربط زر التأكيد بإخفاء النافذة وإيقاف الصوت
         modalConfirmBtn.onclick = hideNewOrderAlert;
 
         function flashTitle() {
@@ -184,7 +193,7 @@
             document.title = originalTitle;
         };
 
-        // --- IMPROVED Alert Function with Customer Phone ---
+        // دالة إظهار تنبيه الطلب الجديد
         function showNewOrderAlert(order) {
             const formattedPrice = (order.totalPrice || 0).toLocaleString('fr-DZ');
             modalOrderDetails.innerHTML = `
@@ -203,7 +212,7 @@
                 </div>
             `;
             newOrderModal.classList.remove('hidden');
-            audioManager.play(); // Play looping sound
+            audioManager.play(); // ==> تشغيل الصوت المتكرر
             
             newOrderCount++;
             if (!titleInterval) {
@@ -211,10 +220,10 @@
             }
         }
 
-        // --- NEW Function to Hide Modal and Stop Sound ---
+        // دالة إخفاء النافذة وإيقاف الصوت
         function hideNewOrderAlert() {
             newOrderModal.classList.add('hidden');
-            audioManager.stop(); // Stop looping sound
+            audioManager.stop(); // ==> إيقاف الصوت المتكرر
         }
         
         function initializeKitchenApp() {
@@ -222,11 +231,13 @@
             const muteBtn = document.getElementById('mute-btn');
             
             manualRefreshBtn.onclick = forceUIRefresh;
-            muteBtn.onclick = () => audioManager.toggleMute(); // Use audio manager
+            muteBtn.onclick = () => audioManager.toggleMute(); // ==> استخدام الدالة الجديدة من مدير الصوت
 
             loadOrders();
             setInterval(renderOrdersTable, 15000);
         }
+
+        // ... باقي الكود يبقى كما هو بدون تغيير ...
 
         function forceUIRefresh() {
             const icon = document.querySelector('#manual-refresh-btn i');
@@ -286,8 +297,12 @@
                     snapshot.docChanges().forEach(change => {
                         if (change.type === "added") {
                             const newOrderData = { id: change.doc.id, ...change.doc.data() };
-                            showNewOrderAlert(newOrderData); // Pass order data to the alert
-                            newlyAddedOrderIds.add(change.doc.id);
+                            // التأكد من أن الطلب جديد فعلاً قبل إظهار التنبيه
+                            const existingOrder = ordersCache.find(o => o.id === newOrderData.id);
+                            if (!existingOrder) {
+                                showNewOrderAlert(newOrderData);
+                                newlyAddedOrderIds.add(change.doc.id);
+                            }
                         }
                     });
                 }
@@ -301,7 +316,7 @@
                 statusIndicator.classList.remove('bg-green-500', 'animate-pulse'); statusIndicator.classList.add('bg-red-500');
                 statusText.textContent = 'خطأ في الاتصال';
                 const tableBody = document.getElementById('orders-table-body');
-                if(tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">فشل تحميل الطلبات. تأكد من أن قواعد الأمان في Firestore تسمح بالقراءة العامة.</td></tr>`;
+                if(tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">فشل تحميل الطلبات. تأكد من أن قواعد الأمان في Firestore تسمح بالقراءة.</td></tr>`;
             });
         }
 
@@ -460,9 +475,7 @@
             setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
         }
 
-        // --- Call the initializer function to start the app ---
+        // --- بدء تشغيل التطبيق ---
         initializeKitchenApp();
 
     </script>
-</body>
-</html>
