@@ -36,6 +36,12 @@
             background-color: var(--secondary-bg) !important;
             outline: 2px solid var(--accent-color);
         }
+        
+        .modal-content { animation: scaleIn 0.3s ease-out; }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
 
         @media (max-width: 768px) { 
             .responsive-table thead { display: none; } 
@@ -48,20 +54,6 @@
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--secondary-bg); color: var(--text-primary); transition: all 0.2s; }
         .filter-btn.active { background-color: var(--accent-color); color: white; border-color: var(--accent-color); box-shadow: 0 0 10px rgba(249, 115, 22, 0.5); }
         
-        #new-order-banner {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-            background: linear-gradient(45deg, #fb923c, #f97316); color: white;
-            padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: 800;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3); cursor: pointer;
-            animation: slideDown 0.5s ease-out, pulse-bg 1.5s infinite;
-        }
-        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-        @keyframes pulse-bg {
-            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
-        }
-
         .time-badge { padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 0.9rem; min-width: 70px; text-align: center; }
         .time-badge.new { background-color: #10b981; color: white; }
         .time-badge.medium { background-color: #f59e0b; color: white; }
@@ -73,9 +65,17 @@
 </head>
 <body>
 
-    <div id="new-order-banner" class="hidden">
-        <i class="fas fa-bell animate-bounce mr-3"></i>
-        <span>طلب جديــــــــد ورد الآن! (اضغط هنا للإخفاء)</span>
+    <div id="new-order-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
+        <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl p-8 text-center max-w-lg w-full border-t-4 border-orange-500">
+            <i class="fas fa-bell text-6xl text-orange-400 animate-bounce mb-5"></i>
+            <h2 class="text-4xl font-extrabold text-white mb-4">طلب جديــــــــد!</h2>
+            <div id="modal-order-details" class="bg-gray-900 p-4 rounded-lg mb-8 text-right space-y-2">
+                </div>
+            <button id="modal-confirm-btn" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xl py-3 px-10 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-400">
+                <i class="fas fa-check-circle mr-2"></i>
+                تأكيــــــــد
+            </button>
+        </div>
     </div>
 
     <div id="dashboard-page">
@@ -104,7 +104,7 @@
         </main>
     </div>
 
-    <audio id="notification-sound" src="notification_sound_hallyadiwari.mp3" preload="auto"></audio>
+    <audio id="notification-sound" src="alerta.mp3" preload="auto" loop></audio>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -130,11 +130,41 @@
         let newOrderCount = 0;
         let originalTitle = document.title;
         let titleInterval = null;
-        let isMuted = false;
 
-        const newOrderBanner = document.getElementById('new-order-banner');
-        newOrderBanner.onclick = () => newOrderBanner.classList.add('hidden');
+        // --- NEW Professional Audio Manager ---
+        const audioManager = {
+            element: document.getElementById('notification-sound'),
+            isMuted: false,
+            play() {
+                if (!this.isMuted) {
+                    // *** IMPROVEMENT: Increase playback speed by 50% ***
+                    this.element.playbackRate = 1.5;
+                    this.element.play().catch(e => console.warn("Audio play was blocked by browser. User interaction needed."));
+                }
+            },
+            stop() {
+                this.element.pause();
+                this.element.currentTime = 0;
+            },
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                const icon = document.getElementById('mute-icon');
+                const muteBtn = document.getElementById('mute-btn');
+                icon.className = this.isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
+                muteBtn.title = this.isMuted ? 'تشغيل صوت الإشعارات' : 'كتم صوت الإشعارات';
+                if (this.isMuted) {
+                    this.stop(); // Stop sound immediately if muted while playing
+                }
+            }
+        };
+
+        // --- Modal Elements ---
+        const newOrderModal = document.getElementById('new-order-modal');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalOrderDetails = document.getElementById('modal-order-details');
         
+        modalConfirmBtn.onclick = hideNewOrderAlert;
+
         function flashTitle() {
             if (newOrderCount > 0) {
                 document.title = document.title === originalTitle 
@@ -154,15 +184,37 @@
             document.title = originalTitle;
         };
 
-        function showNewOrderAlert() {
-            newOrderBanner.classList.remove('hidden');
-            if (!isMuted) {
-                document.getElementById('notification-sound').play().catch(e => console.warn("Audio play was blocked by browser."));
-            }
+        // --- IMPROVED Alert Function with Customer Phone ---
+        function showNewOrderAlert(order) {
+            const formattedPrice = (order.totalPrice || 0).toLocaleString('fr-DZ');
+            modalOrderDetails.innerHTML = `
+                <div class="flex justify-between items-center text-lg">
+                    <span class="text-gray-400">العميل:</span>
+                    <span class="font-bold text-white">${order.customerName}</span>
+                </div>
+                <div class="flex justify-between items-center text-lg">
+                    <span class="text-gray-400">الهاتف:</span>
+                    <span class="font-bold text-cyan-400" dir="ltr">${order.customerContact}</span>
+                </div>
+                <hr class="border-gray-700 my-2">
+                <div class="flex justify-between items-center text-xl">
+                    <span class="text-gray-400">الإجمالي:</span>
+                    <span class="font-extrabold text-orange-400">${formattedPrice} د.ج</span>
+                </div>
+            `;
+            newOrderModal.classList.remove('hidden');
+            audioManager.play(); // Play looping sound
+            
             newOrderCount++;
             if (!titleInterval) {
                 titleInterval = setInterval(flashTitle, 1000);
             }
+        }
+
+        // --- NEW Function to Hide Modal and Stop Sound ---
+        function hideNewOrderAlert() {
+            newOrderModal.classList.add('hidden');
+            audioManager.stop(); // Stop looping sound
         }
         
         function initializeKitchenApp() {
@@ -170,17 +222,10 @@
             const muteBtn = document.getElementById('mute-btn');
             
             manualRefreshBtn.onclick = forceUIRefresh;
-            muteBtn.onclick = toggleMute;
+            muteBtn.onclick = () => audioManager.toggleMute(); // Use audio manager
 
             loadOrders();
             setInterval(renderOrdersTable, 15000);
-        }
-
-        function toggleMute() {
-            isMuted = !isMuted;
-            const icon = document.getElementById('mute-icon');
-            icon.className = isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
-            muteBtn.title = isMuted ? 'تشغيل صوت الإشعارات' : 'كتم صوت الإشعارات';
         }
 
         function forceUIRefresh() {
@@ -240,7 +285,8 @@
                 if (!isInitialOrdersLoad) {
                     snapshot.docChanges().forEach(change => {
                         if (change.type === "added") {
-                            showNewOrderAlert();
+                            const newOrderData = { id: change.doc.id, ...change.doc.data() };
+                            showNewOrderAlert(newOrderData); // Pass order data to the alert
                             newlyAddedOrderIds.add(change.doc.id);
                         }
                     });
@@ -293,7 +339,7 @@
                     const currentStatus = statusConfig[order.status] || { text: order.status, color: 'bg-gray-600' };
 
                     const itemsHtml = (order.items || []).map(item => {
-                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span> <span class="text-orange-400 font-mono">${item.price.toLocaleString()} دج</span></div>`;
+                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span> <span class="text-orange-400 font-mono">${(item.price || 0).toLocaleString()} دج</span></div>`;
                         if (item.selectedAddons && item.selectedAddons.length > 0) {
                             itemText += item.selectedAddons.map(addon => `<div class="text-xs text-gray-400 mr-4">+ ${addon.name}</div>`).join('');
                         }
@@ -320,7 +366,8 @@
                     row.innerHTML = `
                         <td data-label="العميل" class="p-4 align-top">
                             <div class="font-semibold text-lg text-white">${order.customerName}</div>
-                            <div class="text-sm text-gray-400">${formattedDate}</div>
+                            <div class="text-sm text-cyan-400 font-semibold" dir="ltr">${order.customerContact}</div>
+                            <div class="text-sm text-gray-400 mt-1">${formattedDate}</div>
                             <div class="text-lg text-orange-400 font-bold mt-2">${(order.totalPrice || 0).toLocaleString()} د.ج</div>
                         </td>
                         <td data-label="الوقت" class="p-4 align-top text-center"><span class="time-badge ${timeSince.class}">${timeSince.text}</span></td>
@@ -400,6 +447,7 @@
                     </div>
                     <div class="info">
                         <div><b>العميل:</b> ${order.customerName}</div>
+                        <div><b>الهاتف:</b> ${order.customerContact}</div>
                         <div><b>الموقع:</b> ${order.customerLocation}</div>
                     </div>
                     <div class="items"><h3>الطلبية:</h3>${itemsHtml}</div>
