@@ -103,9 +103,38 @@
                 <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" class="text-gray-300 hover:text-white transition-colors">
                     <i class="fas fa-sync-alt fa-lg"></i>
                 </button>
+
+
                 <button id="mute-btn" title="كتم صوت الإشعارات" class="text-gray-300 hover:text-white transition-colors w-8 h-8 rounded-full flex items-center justify-center">
                     <i id="mute-icon" class="fas fa-volume-up"></i>
                 </button>
+
+
+
+<!-- زر تحديث الصفحة -->
+ <!-- زر تحديث الصفحة -->
+<!-- زر تحديث الصفحة -->
+<button id="refresh-btn"
+        title="تحديث الصفحة كلياً"
+        onclick="location.reload(true);"
+        class="group relative text-gray-300 hover:text-white transition-all duration-300 w-9 h-9 rounded-full flex items-center justify-center bg-gray-700/40 hover:bg-gray-600/60 shadow-md hover:shadow-lg ml-2 backdrop-blur-sm">
+    <i class="fas fa-rotate-right text-lg group-hover:animate-spin-slow"></i>
+    <span class="absolute -bottom-8 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">تحديث</span>
+</button>
+
+<style>
+/* حركة دوران بطيئة عند التحويم */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 1.2s linear infinite;
+}
+</style>
+
+
+
             </div>
             <div class="flex items-center gap-2 md:gap-4">
                  <a href="indexdashboard.html" class="text-sm md:text-base font-semibold px-3 py-2 rounded-md hover:bg-gray-700 transition-colors" title="الذهاب للوحة التحكم الرئيسية">
