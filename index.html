@@ -1254,3 +1254,542 @@
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S22MARKET - ترحيب وأذكار</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Scheherazade+New:wght@400;500;700&family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        /* =================================================================== */
+        /* S22MARKET - نظام النوافذ المدمج (الأذكار + الترحيب) V4       */
+        /* =================================================================== */
+
+        :root {
+            --theme-primary: #007bff;
+            --theme-primary-dark: #0056b3;
+            --theme-primary-light: #4dabf7;
+            --theme-accent: #f97316;
+            --theme-accent-dark: #ea580c;
+            --theme-success: #28a745;
+            --theme-text-primary: #1f2937;
+            --theme-text-secondary: #4b5563;
+            --theme-bg-light: #f8fafc;
+            --theme-border-light: #e5e7eb;
+        }
+
+        /* -- Keyframes for Animations -- */
+        @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalFadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes modalSlideInUp { from { transform: translateY(50px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        @keyframes modalSlideOutDown { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(50px) scale(0.95); opacity: 0; } }
+        @keyframes iconPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes contentFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.98); } }
+        @keyframes contentFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes glowing-s22 { 0%, 100% { text-shadow: 0 0 5px rgba(14, 165, 233, 0.6); } 50% { text-shadow: 0 0 20px rgba(14, 165, 233, 0.9); } }
+        
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Tajawal', 'Scheherazade New', serif; margin: 0; background-color: #f0f4f8; }
+
+        /* -- Backdrop Overlay (الخلفية الشاملة) -- */
+        .unified-modal-backdrop {
+            position: fixed; inset: 0; z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+            padding: 1rem;
+            background-color: rgba(30, 41, 51, 0.75);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            animation: modalFadeIn 0.4s ease-out forwards;
+        }
+        .unified-modal-backdrop.is-closing { animation: modalFadeOut 0.3s ease-in forwards; }
+
+        /* -- Modal Content (الهيكل الرئيسي الموحد للنافذة) -- */
+        .unified-modal-content {
+            position: relative;
+            background: linear-gradient(145deg, #ffffff, #f7f9fb);
+            border-radius: 1.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 520px; /* تم تعديل العرض ليناسب كل المحتويات */
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex; flex-direction: column;
+            animation: modalSlideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .unified-modal-content.is-closing { animation: modalSlideOutDown 0.4s cubic-bezier(0.7, 0, 0.84, 0) forwards; }
+        .unified-modal-content.is-fading-out { animation: contentFadeOut 0.3s ease-in forwards; }
+        .unified-modal-content.is-fading-in { animation: contentFadeIn 0.4s ease-out forwards; }
+        .modal-hidden { display: none !important; }
+
+        /* -- Icon Wrapper (حاوية الأيقونة العلوية) -- */
+        .unified-modal-icon-wrapper {
+            width: 80px; height: 80px;
+            margin: -40px auto 0;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 4px solid #fff;
+            animation: iconPulse 2.5s infinite ease-in-out;
+            z-index: 10;
+        }
+        .unified-modal-icon-wrapper i { color: #fff; font-size: 2rem; }
+        .icon-dhikr { background: var(--theme-primary); box-shadow: 0 10px 15px -3px rgba(0, 123, 255, 0.3); }
+        .icon-jumaa { background: #004d99; box-shadow: 0 10px 15px -3px rgba(0, 77, 153, 0.3); }
+        .icon-kahf { background: var(--theme-primary); box-shadow: 0 10px 15px -3px rgba(0, 123, 255, 0.3); }
+        .icon-texmex { background: var(--theme-accent); box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.4); }
+
+        /* -- Close 'X' Button (زر الإغلاق) -- */
+        .unified-modal-close-x {
+            position: absolute; top: 0.75rem; right: 0.75rem;
+            width: 32px; height: 32px; border: none;
+            background-color: #f1f5f9; color: #64748b;
+            border-radius: 50%; font-size: 1.5rem; line-height: 1;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s, transform 0.2s; z-index: 20;
+        }
+        .unified-modal-close-x:hover { background-color: #e2e8f0; transform: rotate(90deg); }
+
+        /* -- Body Content & Headers -- */
+        .unified-modal-body { padding: 1.5rem clamp(1.2rem, 5vw, 2.2rem) 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .unified-modal-header h2 { font-family: 'Scheherazade New', serif; font-size: clamp(1.8rem, 6vw, 2.5rem); font-weight: 700; color: var(--theme-text-primary); margin: 0; line-height: 1.4; }
+        .unified-tasks-header { font-size: clamp(1rem, 4vw, 1.2rem); line-height: 1.7; color: var(--theme-text-secondary); margin-top: 0.25rem; }
+        .quran-text { font-family: 'Amiri Quran', serif; font-size: clamp(1.3rem, 4.5vw, 1.6rem); line-height: 2.2; color: var(--theme-text-primary); }
+
+        /* -- Styled Buttons (تصميم موحد للأزرار) -- */
+        .styled-btn {
+            display: flex; align-items: center; justify-content: center;
+            padding: 0.8rem 1.5rem;
+            font-family: 'Tajawal', sans-serif; font-size: 1.1rem; font-weight: 700;
+            color: white;
+            border-radius: 0.75rem; border: none;
+            cursor: pointer; text-decoration: none;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            background-size: 200% 200%;
+        }
+        .styled-btn:hover:not(:disabled) {
+            transform: translateY(-4px) scale(1.02);
+            background-position: 100% 0;
+        }
+        .btn-dhikr { background: linear-gradient(45deg, var(--theme-primary), var(--theme-primary-light)); justify-content: space-between; font-family: 'Scheherazade New', serif; font-size: clamp(1.2rem, 5vw, 1.4rem); }
+        .btn-dhikr:hover:not(:disabled) { box-shadow: 0 10px 15px -3px rgba(0, 123, 255, 0.3); }
+        .btn-dhikr .icon { margin-left: 15px; font-size: 1.2em; }
+        .btn-dhikr .btn-text { flex-grow: 1; text-align: right; }
+        .btn-dhikr .counter { background-color: rgba(255, 255, 255, 0.2); padding: 0.2rem 0.8rem; border-radius: 50px; font-size: 0.9rem; }
+        .btn-dhikr:disabled { background: var(--theme-success); cursor: default; transform: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .btn-texmex { background: linear-gradient(45deg, #fb923c, var(--theme-accent), var(--theme-accent-dark)); gap: 0.5rem; }
+        .btn-texmex:hover { box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.35); }
+        .btn-texmex .btn-icon { transition: transform 0.3s ease; }
+        .btn-texmex:hover .btn-icon { transform: translateX(-4px); }
+        .btn-secondary { background: #6c757d; }
+        .btn-light { background: #e9ecef; color:#495057; }
+
+        /* -- Footer & Progress Bar -- */
+        .unified-modal-footer {
+            margin-top: auto; padding: 1.25rem;
+            background-color: var(--theme-bg-light);
+            border-bottom-left-radius: 1.25rem; border-bottom-right-radius: 1.25rem;
+            border-top: 1px solid var(--theme-border-light);
+        }
+        .quran-verse { font-family: 'Amiri Quran', serif; color: var(--theme-text-primary); font-weight: 700; font-size: clamp(1.1rem, 4vw, 1.3rem); line-height: 2; margin: 0; }
+        .progress-bar-container { background-color: rgba(0, 123, 255, 0.1); border-radius: 50px; height: 10px; overflow: hidden; margin-top: 1rem; }
+        #unified-progress-bar { width: 0%; height: 100%; background: var(--theme-success); border-radius: 50px; transition: width 0.6s ease-in-out; }
+        
+        /* -- Specific Modal Styles -- */
+        .jumaa-closing-message { background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 1rem; border-radius: 14px; color: #0c5460; font-weight: 700; font-size: clamp(1rem, 3.5vw, 1.1rem); }
+        .texmex-title { font-family: 'Lalezar', 'Tajawal', sans-serif; font-size: clamp(1.75rem, 5vw, 2.125rem); color: #1f2937; margin: 0 0 0.75rem 0; }
+        .texmex-text { font-size: clamp(0.95rem, 2.5vw, 1.05rem); color: #4b5563; line-height: 1.7; margin: 0; }
+        .brand-name { font-weight: 800; }
+        .brand-texmex { color: var(--theme-accent); }
+        .brand-s22 { color: #0ea5e9; animation: glowing-s22 2s infinite; }
+    </style>
+</head>
+<body>
+
+    <div id="unified-modal-backdrop" class="unified-modal-backdrop" style="display: none;">
+        
+        <div id="dhikr-modal-content" class="unified-modal-content modal-hidden">
+             <button class="unified-modal-close-x" aria-label="Close">&times;</button>
+             <div class="unified-modal-icon-wrapper icon-dhikr"> <i class="fa-solid fa-mosque"></i> </div>
+             <div class="unified-modal-body">
+                 <div class="unified-modal-header">
+                     <div id="welcome-message-container"></div>
+                     <h2>أهلاً بكم في متجركم</h2>
+                     <p class="unified-tasks-header">للمتابعة، نرجو إنجاز هذه الأذكار اليسيرة.</p>
+                 </div>
+                 <div id="unified-dhikr-tasks" style="display: flex; flex-direction: column; gap: 1rem;">
+                     <button class="styled-btn btn-dhikr"> <span class="btn-text"><i class="fa-solid fa-moon icon"></i>صلِّ على النبي ﷺ</span> <span class="counter">0/1</span> </button>
+                     <button class="styled-btn btn-dhikr"> <span class="btn-text"><i class="fa-solid fa-leaf icon"></i>سبحان الله وبحمده</span> <span class="counter">0/1</span> </button>
+                     <button class="styled-btn btn-dhikr"> <span class="btn-text"><i class="fa-solid fa-hands-praying icon"></i>استغفر الله</span> <span class="counter">0/1</span> </button>
+                 </div>
+             </div>
+             <div class="unified-modal-footer">
+                 <p class="quran-verse">﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾</p>
+                 <div class="progress-bar-container"> <div id="unified-progress-bar"></div> </div>
+             </div>
+        </div>
+
+        <div id="texmex-welcome-content" class="unified-modal-content modal-hidden">
+             <div class="unified-modal-icon-wrapper icon-texmex"> <i class="fas fa-utensils"></i> </div>
+             <div class="unified-modal-body">
+                 <h1 class="texmex-title">أهلاً بكم في عالم النكهات! 🌮</h1>
+                 <p class="texmex-text">
+                     استعدوا لتجربة لا تُقاوم! 🔥 يسرّنا في
+                     <span class="brand-name brand-texmex">TEXMEX</span> بالتعاون مع
+                     <span class="brand-name brand-s22">S22MARKET</span>
+                     أن نعلن عن بدء استقبال طلباتكم. نحن بانتظاركم!
+                 </p>
+             </div>
+             <div class="unified-modal-footer">
+                 <button class="styled-btn btn-texmex unified-modal-close-btn">
+                     <span>جاهز للطلب! 😋</span> <i class="fas fa-long-arrow-alt-left btn-icon"></i>
+                 </button>
+             </div>
+        </div>
+
+        <div id="jumaa-modal-content" class="unified-modal-content modal-hidden">
+             <div class="unified-modal-icon-wrapper icon-jumaa"> <i class="fa-solid fa-kaaba"></i> </div>
+             <div class="unified-modal-body">
+                 <h2>📿 تذكير بصلاة الجمعة</h2>
+                 <p class="quran-text" style="font-size: 1.5rem; line-height: 2;">يَٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوٓاْ إِذَا نُودِيَ لِلصَّلَوٰةِ مِن يَوۡمِ ٱلۡجُمُعَةِ فَٱسۡعَوۡاْ إِلَىٰ ذِكۡرِ ٱللَّهِ وَذَرُواْ ٱلۡبَيۡعَۚ</p>
+                 <p class="jumaa-closing-message">⛔ يغلق متجر <strong> TEXMEX   مطعم 
+                    
+                    و S22MARKET</strong> أبوابه يوم الجمعة من <strong>11:30</strong> إلى <strong>14:00</strong>.</p>
+                 <button class="styled-btn btn-secondary" onclick="location.reload();"> <span>اضغط هنا بعد الساعة 14:00</span> </button>
+             </div>
+        </div>
+
+        <div id="kahf-modal-content" class="unified-modal-content modal-hidden">
+            <button class="unified-modal-close-x" aria-label="Close">&times;</button>
+            <div class="unified-modal-icon-wrapper icon-kahf"> <i class="fa-solid fa-book-quran"></i> </div>
+            <div class="unified-modal-body">
+                 <h2>📿 فضل سورة الكهف</h2>
+                 <p class="quran-text">"من قرأ سورةَ الكهفِ في يومِ الجمعةِ أضاء له من النورِ ما بين الجمُعَتَين."</p>
+                 <div style="display:flex; gap:1rem; width: 100%;">
+                     <a href="سورة الكهف مكتوبة.html" class="styled-btn btn-dhikr" style="flex:1;">قراءة السورة</a>
+                     <button class="styled-btn btn-light unified-modal-close-btn" style="flex:1;">إغلاق</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            const backdrop = document.getElementById('unified-modal-backdrop');
+            const modals = {
+                dhikr: document.getElementById('dhikr-modal-content'),
+                texmex: document.getElementById('texmex-welcome-content'),
+                jumaa: document.getElementById('jumaa-modal-content'),
+                kahf: document.getElementById('kahf-modal-content')
+            };
+            const allCloseButtons = document.querySelectorAll('.unified-modal-close-x, .unified-modal-close-btn');
+
+            function openModal(modalElement) {
+                if (!modalElement) return;
+                Object.values(modals).forEach(m => m.classList.add('modal-hidden'));
+                modalElement.classList.remove('modal-hidden', 'is-fading-in', 'is-fading-out');
+                backdrop.style.display = 'flex';
+            }
+
+            // ===================================================================
+            //  [تم التعديل هنا] - تعديل دالة الإغلاق لتشمل التحقق من وقت الجمعة
+            // ===================================================================
+            function closeModal() {
+                const isJumaaModalVisible = modals.jumaa && !modals.jumaa.classList.contains('modal-hidden');
+
+                // إذا كانت نافذة صلاة الجمعة هي الظاهرة، تحقق من الوقت
+                if (isJumaaModalVisible) {
+                    const now = new Date();
+                    const day = now.getDay();
+                    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+                    // التحقق إذا كان اليوم جمعة والوقت قبل الساعة 14:00
+                    const isJumaaTimeLockActive = (day === 5) && (currentTimeInMinutes < (14 * 60));
+                    
+                    if (isJumaaTimeLockActive) {
+                        return; // منع الإغلاق بشكل كامل
+                    }
+                }
+
+                const visibleModal = backdrop.querySelector('.unified-modal-content:not(.modal-hidden)');
+                backdrop.classList.add('is-closing');
+                if (visibleModal) visibleModal.classList.add('is-closing');
+                
+                backdrop.addEventListener('animationend', () => {
+                    backdrop.style.display = 'none';
+                    backdrop.classList.remove('is-closing');
+                    if(visibleModal) visibleModal.classList.remove('is-closing');
+                }, { once: true });
+            }
+
+            function transitionToModal(nextModalElement) {
+                const currentModal = backdrop.querySelector('.unified-modal-content:not(.modal-hidden)');
+                if (!currentModal || !nextModalElement) return;
+
+                currentModal.classList.add('is-fading-out');
+                currentModal.addEventListener('animationend', () => {
+                    currentModal.classList.add('modal-hidden');
+                    currentModal.classList.remove('is-fading-out');
+                    
+                    nextModalElement.classList.remove('modal-hidden');
+                    nextModalElement.classList.add('is-fading-in');
+                    nextModalElement.addEventListener('animationend', () => {
+                        nextModalElement.classList.remove('is-fading-in');
+                    }, { once: true });
+
+                }, { once: true });
+            }
+
+            allCloseButtons.forEach(btn => btn.addEventListener('click', closeModal));
+            backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+            
+            function handleModalsVisibility() {
+                const now = new Date();
+                const day = now.getDay();
+                const isFriday = (day === 5);
+                let modalToShow = null;
+
+                if (isFriday) {
+                    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+                    const isJumaaClosingTime = currentTimeInMinutes >= (11 * 60 + 30) && currentTimeInMinutes < (14 * 60);
+                    if (isJumaaClosingTime) {
+                        modalToShow = modals.jumaa;
+                    } else {
+                        if (!sessionStorage.getItem('kahfModalShown')) {
+                            modalToShow = modals.kahf;
+                            sessionStorage.setItem('kahfModalShown', 'true');
+                        }
+                    }
+                } else {
+                    const DHIKR_COOLDOWN = 2 * 60 * 60 * 1000; // ساعتان
+                    const lastCompleted = localStorage.getItem('dhikrLastCompleted');
+                    if (!lastCompleted || (now.getTime() - lastCompleted > DHIKR_COOLDOWN)) {
+                        modalToShow = modals.dhikr;
+                    }
+                }
+                if (modalToShow) openModal(modalToShow);
+            }
+            
+            handleModalsVisibility();
+
+            const dhikrModule = (() => {
+                if (!modals.dhikr) return;
+                const buttons = Array.from(modals.dhikr.querySelectorAll('.btn-dhikr'));
+                if (buttons.length === 0) return;
+
+                const progressBar = document.getElementById('unified-progress-bar');
+                const tasksContainer = document.getElementById('unified-dhikr-tasks');
+                const totalClicksRequired = buttons.length;
+                let completedClicks = 0;
+
+                const onTaskComplete = () => {
+                    localStorage.setItem('dhikrLastCompleted', new Date().getTime());
+                    if (tasksContainer) tasksContainer.innerHTML = `<p style="color: var(--theme-success); font-size: 1.5rem; font-weight: bold;">جزاكم الله خيرًا!</p>`;
+                    
+                    setTimeout(() => {
+                        transitionToModal(modals.texmex);
+                    }, 1500);
+                };
+
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (btn.disabled) return;
+                        completedClicks++;
+                        if (progressBar) progressBar.style.width = `${(completedClicks / totalClicksRequired) * 100}%`;
+                        btn.disabled = true;
+                        
+                        const textSpan = btn.querySelector('.btn-text');
+                        if (textSpan) textSpan.innerHTML = (textSpan.querySelector('.icon')?.outerHTML || '') + 'أُنجِز';
+                        
+                        const counterSpan = btn.querySelector('.counter');
+                        if (counterSpan) counterSpan.style.display = 'none';
+
+                        if (completedClicks === totalClicksRequired) onTaskComplete();
+                    }, { once: true });
+                });
+            })();
+
+        } catch (error) {
+            console.error("Script Error:", error);
+            const backdrop = document.getElementById('unified-modal-backdrop');
+            if (backdrop) backdrop.style.display = 'none';
+        }
+    });
+    </script>
+
+</body>
+</html>
