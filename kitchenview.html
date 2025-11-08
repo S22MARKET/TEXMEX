@@ -61,9 +61,26 @@
         @keyframes blink { 50% { opacity: 0.6; } }
 
         .spinner-dark { width: 48px; height: 48px; border: 5px solid rgba(255, 255, 255, 0.2); border-top-color: #f97316; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        /* حركة دوران بطيئة عند التحويم */
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 1.2s linear infinite;
+        }
+
+        /* --- أنماط القائمة الجانبية المنزلقة --- */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        #sidebar-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
     </style>
 </head>
-<body>
+<body class="relative">
     
     <div id="sound-activation-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[10000]">
         <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl p-8 text-center max-w-lg w-full border-t-4 border-orange-500">
@@ -92,66 +109,68 @@
         </div>
     </div>
 
-    <div id="dashboard-page">
-        <header class="bg-gray-900 shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
-            <div class="flex items-center gap-3 md:gap-4">
-                <h1 class="text-xl font-bold">TEX<span class="text-orange-500">MEX</span> Kitchen</h1>
-                <div class="flex items-center gap-2" title="حالة الاتصال بالخادم">
-                    <span id="connection-status" class="h-3 w-3 bg-green-500 rounded-full animate-pulse"></span>
-                    <span id="connection-text" class="text-xs text-gray-400">متصل</span>
-                </div>
-                <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" class="text-gray-300 hover:text-white transition-colors">
-                    <i class="fas fa-sync-alt fa-lg"></i>
-                </button>
-
-
-                <button id="mute-btn" title="كتم صوت الإشعارات" class="text-gray-300 hover:text-white transition-colors w-8 h-8 rounded-full flex items-center justify-center">
-                    <i id="mute-icon" class="fas fa-volume-up"></i>
-                </button>
-
-
-
-<!-- زر تحديث الصفحة -->
- <!-- زر تحديث الصفحة -->
-<!-- زر تحديث الصفحة -->
-<button id="refresh-btn"
-        title="تحديث الصفحة كلياً"
-        onclick="location.reload(true);"
-        class="group relative text-gray-300 hover:text-white transition-all duration-300 w-9 h-9 rounded-full flex items-center justify-center bg-gray-700/40 hover:bg-gray-600/60 shadow-md hover:shadow-lg ml-2 backdrop-blur-sm">
-    <i class="fas fa-rotate-right text-lg group-hover:animate-spin-slow"></i>
-    <span class="absolute -bottom-8 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">تحديث</span>
-</button>
-
-<style>
-/* حركة دوران بطيئة عند التحويم */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.animate-spin-slow {
-  animation: spin-slow 1.2s linear infinite;
-}
-</style>
-
-
-
+    <header class="bg-gray-900 shadow-md p-4 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold">TEX<span class="text-orange-500">MEX</span> Kitchen</h1>
+            <div class="flex items-center gap-2" title="حالة الاتصال بالخادم">
+                <span id="connection-status" class="h-3 w-3 bg-green-500 rounded-full animate-pulse"></span>
+                <span id="connection-text" class="text-xs text-gray-400">متصل</span>
             </div>
-            <div class="flex items-center gap-2 md:gap-4">
-                 <a href="indexdashboard.html" class="text-sm md:text-base font-semibold px-3 py-2 rounded-md hover:bg-gray-700 transition-colors" title="الذهاب للوحة التحكم الرئيسية">
-                    <i class="fas fa-tachometer-alt"></i>
-                 </a>
-            </div>
-        </header>
-        <main class="flex-1 p-3 md:p-6 lg:p-8">
-            <div id="orders-panel" class="panel"></div>
-        </main>
-    </div>
+        </div>
+        
+        <button id="menu-toggle-btn" class="text-gray-300 hover:text-white transition-colors text-xl p-2">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
 
-<audio id="notification-sound" 
-       src="https://raw.githubusercontent.com/S22MARKET/TEXMEX/main/alerta.mp3" 
-       preload="auto" 
-       loop>
-</audio>
+    <aside id="sidebar" class="fixed top-0 right-0 h-screen w-72 bg-gray-900 shadow-xl z-50 p-6 flex flex-col transform translate-x-full">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-bold">القائمة</h2>
+            <button id="menu-close-btn" class="text-gray-400 hover:text-white text-2xl">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="flex flex-col gap-3">
+            <a href="indexdashboard.html" title="الذهاب للوحة التحكم الرئيسية" 
+               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-tachometer-alt text-lg w-6 text-center text-orange-400"></i>
+                <span class="text-base font-semibold">لوحة التحكم</span>
+            </a>
+            
+            <button id="mute-btn" title="كتم صوت الإشعارات" 
+                    class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <i id="mute-icon" class="fas fa-volume-up text-lg w-6 text-center"></i>
+                <span class="text-base font-semibold">الصوت</span>
+            </button>
+
+            <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" 
+                    class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-sync-alt text-lg w-6 text-center"></i>
+                <span class="text-base font-semibold">تحديث الواجهة</span>
+            </button>
+            
+            <button id="refresh-btn" title="تحديث الصفحة كلياً" onclick="location.reload(true);"
+                    class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-rotate-right text-lg w-6 text-center"></i>
+                <span class="text-base font-semibold">تحديث الصفحة</span>
+            </button>
+        </nav>
+    </aside>
+
+    <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/60 z-40"></div>
+
+
+    <main class="flex-1 p-3 md:p-6 lg:p-8">
+        <div id="orders-panel" class="panel"></div>
+    </main>
+
+
+    <audio id="notification-sound" 
+           src="https://raw.githubusercontent.com/S22MARKET/TEXMEX/main/alerta.mp3" 
+           preload="auto" 
+           loop>
+    </audio>
 
 
     <script type="module">
@@ -207,8 +226,6 @@
                 if (promise !== undefined) {
                     promise.catch(error => {
                         console.error("Audio play failed:", error);
-                        // If it fails here, it's likely due to a browser policy change
-                        // The user might need to interact again.
                     });
                 }
             },
@@ -222,7 +239,10 @@
                 this.isMuted = !this.isMuted;
                 const icon = document.getElementById('mute-icon');
                 const muteBtn = document.getElementById('mute-btn');
-                icon.className = this.isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
+                // تعديل بسيط للأيقونة لضمان الحفاظ على العرض
+                icon.className = this.isMuted 
+                    ? 'fas fa-volume-mute text-red-500 text-lg w-6 text-center' 
+                    : 'fas fa-volume-up text-lg w-6 text-center';
                 muteBtn.title = this.isMuted ? 'تشغيل صوت الإشعارات' : 'كتم صوت الإشعارات';
                 
                 if (this.isMuted) {
@@ -236,14 +256,12 @@
             const soundModal = document.getElementById('sound-activation-modal');
             const activateBtn = document.getElementById('activate-sound-btn');
             
-            // Check if the user has already activated sound
             if (localStorage.getItem('soundActivated') === 'true') {
                 audioManager.isUnlocked = true;
                 console.log("Sound was previously activated.");
                 return;
             }
 
-            // If not, show the modal
             soundModal.classList.remove('hidden');
 
             activateBtn.onclick = () => {
@@ -252,7 +270,6 @@
                 soundModal.classList.add('hidden');
             };
         }
-
 
         const newOrderModal = document.getElementById('new-order-modal');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
@@ -314,7 +331,7 @@
                 </div>
             `;
             newOrderModal.classList.remove('hidden');
-            audioManager.play(); // This will now work correctly
+            audioManager.play(); 
             
             newOrderCount++;
             if (!titleInterval) {
@@ -326,15 +343,51 @@
             newOrderModal.classList.add('hidden');
             audioManager.stop();
         }
+
+        // --- ***** كود القائمة الجانبية الجديد ***** ---
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const openBtn = document.getElementById('menu-toggle-btn');
+        const closeBtn = document.getElementById('menu-close-btn');
+
+        function openMenu() {
+            overlay.classList.remove('hidden');
+            sidebar.classList.remove('translate-x-full');
+            overlay.style.opacity = '1';
+        }
+
+        function closeMenu() {
+            overlay.style.opacity = '0';
+            sidebar.classList.add('translate-x-full');
+            // تأخير إخفاء الغطاء ليتزامن مع نهاية الحركة
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+        // --- ***** نهاية كود القائمة الجانبية ***** ---
         
+
         function initializeKitchenApp() {
             const manualRefreshBtn = document.getElementById('manual-refresh-btn');
             const muteBtn = document.getElementById('mute-btn');
             
-            manualRefreshBtn.onclick = forceUIRefresh;
-            muteBtn.onclick = () => audioManager.toggleMute();
+            // --- تعديل مشغلات الأزرار ---
+            // إضافة إغلاق القائمة بعد تنفيذ الأمر
+            manualRefreshBtn.onclick = () => {
+                forceUIRefresh();
+                closeMenu();
+            };
+            muteBtn.onclick = () => {
+                audioManager.toggleMute();
+                closeMenu();
+            };
+
+            // --- ربط مشغلات القائمة الجديدة ---
+            openBtn.onclick = openMenu;
+            closeBtn.onclick = closeMenu;
+            overlay.onclick = closeMenu;
             
-            setupSoundActivation(); // Call the new setup function
+            setupSoundActivation(); 
             loadOrders();
             setInterval(renderOrdersTable, 15000);
         }
@@ -386,11 +439,15 @@
             });
 
             const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            
+            // --- تبسيط كود حالة الاتصال ---
+            // الآن يوجد عنصر واحد فقط لحالة الاتصال في الهيدر
             const statusIndicator = document.getElementById('connection-status');
             const statusText = document.getElementById('connection-text');
 
             onSnapshot(q, snapshot => {
-                statusIndicator.classList.remove('bg-red-500'); statusIndicator.classList.add('bg-green-500', 'animate-pulse');
+                statusIndicator.classList.remove('bg-red-500'); 
+                statusIndicator.classList.add('bg-green-500', 'animate-pulse');
                 statusText.textContent = 'متصل';
 
                 if (!isInitialOrdersLoad) {
@@ -412,8 +469,10 @@
 
             }, (error) => {
                 console.error("Firestore snapshot error: ", error);
-                statusIndicator.classList.remove('bg-green-500', 'animate-pulse'); statusIndicator.classList.add('bg-red-500');
+                statusIndicator.classList.remove('bg-green-500', 'animate-pulse'); 
+                statusIndicator.classList.add('bg-red-500');
                 statusText.textContent = 'خطأ في الاتصال';
+                
                 const tableBody = document.getElementById('orders-table-body');
                 if(tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">فشل تحميل الطلبات. تأكد من أن قواعد الأمان في Firestore تسمح بالقراءة.</td></tr>`;
             });
@@ -505,9 +564,6 @@
                 tableBody.innerHTML = '';
                 tableBody.appendChild(fragment);
 
-       
-       
-       
                 attachOrderActionListeners();
             } catch (error) {
                 console.error("Failed to render orders table:", error);
@@ -530,7 +586,7 @@
             });
         }
         
-        // --- MAJORLY IMPROVED: Print Function ---
+        // --- (Print Function) ... لا تغيير هنا ---
         function printOrder(orderId) {
             const order = ordersCache.find(o => o.id === orderId);
             if (!order) return;
