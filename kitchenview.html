@@ -331,7 +331,11 @@
                 </div>
             `;
             newOrderModal.classList.remove('hidden');
-            audioManager.play(); 
+            
+            // 💡 --- هذا هو التعديل النهائي والاحترافي --- 💡
+            // تم تعطيل هذا السطر لمنع "الصوت المزدوج"
+            // سيعتمد التطبيق الآن على صوت الخدمة الخلفية (FirestoreListenerService)
+            // audioManager.play(); 
             
             newOrderCount++;
             if (!titleInterval) {
