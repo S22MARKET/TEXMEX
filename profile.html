@@ -117,7 +117,8 @@
         // --- إعدادات Firebase ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- تم التعديل: إضافة collection, addDoc, serverTimestamp ---
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
@@ -152,6 +153,11 @@
         const saveBtnText = document.getElementById('save-btn-text');
         const saveBtnLoader = document.getElementById('save-btn-loader');
 
+        // --- تمت الإضافة: متغيرات لحفظ القيم القديمة للمقارنة ---
+        let oldName = '';
+        let oldPhone = '';
+        // ----------------------------------------------------
+
         // --- دالة التنبيهات (Toast) ---
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
@@ -171,14 +177,20 @@
 
                 if (userDocSnap.exists()) {
                     const data = userDocSnap.data();
-                    profileName.value = data.displayName || user.displayName || '';
+                    // --- تم التعديل: حفظ القيم القديمة ---
+                    oldName = data.displayName || user.displayName || '';
+                    oldPhone = data.phone || '';
+                    profileName.value = oldName;
                     profileEmail.value = data.email || user.email || '';
-                    profilePhone.value = data.phone || '';
+                    profilePhone.value = oldPhone;
+                    // ------------------------------------
                 } else {
                     // في حال كان المستخدم موجوداً في Auth ولكن ليس في Firestore (نادر)
-                    profileName.value = user.displayName || '';
+                    oldName = user.displayName || '';
+                    oldPhone = user.phoneNumber || '';
+                    profileName.value = oldName;
                     profileEmail.value = user.email || '';
-                    profilePhone.value = user.phoneNumber || '';
+                    profilePhone.value = oldPhone;
                 }
 
                 authLoader.classList.add('hidden');
@@ -216,6 +228,28 @@
                     displayName: newName,
                     phone: newPhone
                 }, { merge: true }); // merge: true تضمن عدم مسح البيانات الأخرى مثل النقاط
+
+                // --- تمت الإضافة: نظام تسجيل التغييرات (Audit Log) ---
+                const changes = {};
+                if (newName !== oldName) {
+                    changes.displayName = { old: oldName, new: newName };
+                }
+                if (newPhone !== oldPhone) {
+                    changes.phone = { old: oldPhone, new: newPhone };
+                }
+
+                // إذا كان هناك أي تغيير، قم بتسجيله
+                if (Object.keys(changes).length > 0) {
+                    const changesCollectionRef = collection(db, 'users', user.uid, 'profileChanges');
+                    await addDoc(changesCollectionRef, {
+                        changes,
+                        timestamp: serverTimestamp()
+                    });
+                    // تحديث القيم القديمة بالجديدة
+                    oldName = newName;
+                    oldPhone = newPhone;
+                }
+                // --- نهاية إضافة نظام التسجيل ---
 
                 showToast('تم حفظ التعديلات بنجاح!', 'success');
                 // تحديث اسم القائمة في الهيدر
