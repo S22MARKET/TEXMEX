@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEXMEX - قائمة الطعام</title>
+    <title>TEXMEX - قائمة الطعام (مطور)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -93,9 +93,14 @@
                                     <input type="text" id="menu-search-input" placeholder="ابحث عن وجبة..." class="w-full md:w-64 pr-10 pl-3 py-2 border rounded-lg">
                                 </div>
                             </div>
-                            <button id="add-menu-item-btn" class="bg-orange-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-orange-700 h-fit">
-                                <i class="fas fa-plus mr-2"></i> إضافة وجبة
-                            </button>
+                            <div class="flex gap-3">
+                                <button id="manage-global-addons-btn" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 h-fit">
+                                    <i class="fas fa-tasks mr-2"></i> إدارة الإضافات العامة
+                                </button>
+                                <button id="add-menu-item-btn" class="bg-orange-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-orange-700 h-fit">
+                                    <i class="fas fa-plus mr-2"></i> إضافة وجبة
+                                </button>
+                            </div>
                         </div>
                         <div id="menu-items-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div class="col-span-full text-center p-8 bg-white rounded-lg shadow-sm">
@@ -158,6 +163,9 @@
     let registeredUsersCache = [];
     let quillEditor = null; 
     let selectedFileStore = {}; 
+    
+    // --- (جديد) كاش خاص بالإضافات العامة ---
+    let globalAddonsCache = [];
 
     // --- UI & UX HELPERS (مشتركة) ---
     
@@ -295,6 +303,9 @@
         // (جديد) جلب الأقسام أولاً لملء القائمة المنسدلة
         loadCategories();
         
+        // (جديد) جلب الإضافات العامة أولاً لملء قائمة الاختيار
+        loadGlobalAddons();
+        
         // (جديد) تحميل قائمة الطعام
         loadMenuItems();
         
@@ -309,9 +320,123 @@
         });
     }
 
+    // --- (جديد) دالة جلب الإضافات العامة (مطلوبة لهذه الصفحة) ---
+    function loadGlobalAddons() {
+        // (جديد) سيتم إنشاء مجموعة 'global_addons' لحفظ الإضافات الرئيسية
+        onSnapshot(query(collection(db, "global_addons"), orderBy("name")), snapshot => {
+            globalAddonsCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            console.log("Global Add-ons cache loaded:", globalAddonsCache.length);
+            
+            // (جديد) تحديث قائمة الإضافات في المودال إذا كان مفتوحاً
+            renderGlobalAddonsList('global-addons-list-container');
+        });
+    }
+
+    // --- (جديد) دوال خاصة بإدارة الإضافات العامة ---
+    
+    // (جديد) دالة لعرض قائمة الإضافات داخل المودال
+    function renderGlobalAddonsList(containerId) {
+        const listEl = document.getElementById(containerId);
+        if (!listEl) return;
+        
+        listEl.innerHTML = globalAddonsCache.length === 0 
+            ? `<p class="text-gray-500 p-3">لم تقم بإضافة أي إضافات عامة بعد.</p>`
+            : globalAddonsCache.map(addon => `
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded-md">
+                <span class="font-semibold">${addon.name} - <span class="font-mono font-bold">${formatCurrency(addon.price)}</span></span>
+                <div>
+                    <button class="edit-global-addon-btn text-indigo-500 mr-2" data-id="${addon.id}" data-name="${addon.name}" data-price="${addon.price}"><i class="fas fa-edit"></i></button>
+                    <button class="delete-global-addon-btn text-red-500" data-id="${addon.id}"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+
+        // ربط أحداث الحذف والتعديل
+        listEl.querySelectorAll('.delete-global-addon-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                const addonId = e.currentTarget.dataset.id;
+                showDeletionConfirmModal(async () => {
+                    await deleteDoc(doc(db, "global_addons", addonId));
+                    showToast('تم حذف الإضافة العامة.', 'success');
+                    // onSnapshot سيقوم بتحديث القائمة تلقائياً
+                });
+            };
+        });
+        
+        listEl.querySelectorAll('.edit-global-addon-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                const { id, name, price } = e.currentTarget.dataset;
+                document.getElementById('global-addon-id').value = id;
+                document.getElementById('global-addon-name-input').value = name;
+                document.getElementById('global-addon-price-input').value = price;
+                document.getElementById('global-addon-name-input').focus();
+            };
+        });
+    }
+
+    // (جديد) دالة لعرض مودال إدارة الإضافات العامة
+    function showGlobalAddonsModal() {
+        const content = `
+            <p class="text-gray-600 mb-4">هنا يمكنك إدارة القائمة الرئيسية للإضافات (مثل بطاطا، جبن) التي يمكنك ربطها بأي وجبة.</p>
+            <div class="border p-4 rounded-lg bg-gray-50 space-y-3">
+                <h4 class="font-bold text-gray-800">إضافة أو تعديل إضافة</h4>
+                <input type="hidden" id="global-addon-id"> <div class="flex gap-2 items-center">
+                    <input type="text" id="global-addon-name-input" placeholder="اسم الإضافة (مثال: جبن)" class="flex-grow p-2 border rounded">
+                    <input type="number" id="global-addon-price-input" placeholder="السعر" class="w-24 p-2 border rounded">
+                    <button type="button" id="save-global-addon-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700">حفظ</button>
+                </div>
+            </div>
+            <hr class="my-4">
+            <h4 class="font-bold text-gray-800 mb-3">قائمة الإضافات الحالية</h4>
+            <div id="global-addons-list-container" class="space-y-2 max-h-60 overflow-y-auto">
+                <div class="spinner-dark mx-auto"></div>
+            </div>
+        `;
+
+        // عرض المودال بدون أزرار "حفظ/إلغاء" سفلية (لأن الحفظ يتم من الداخل)
+        showModal('إدارة الإضافات العامة', content, null, '', false); 
+        
+        // عرض القائمة الحالية
+        renderGlobalAddonsList('global-addons-list-container');
+        
+        // ربط حدث زر الحفظ
+        document.getElementById('save-global-addon-btn').onclick = async () => {
+            const id = document.getElementById('global-addon-id').value;
+            const name = document.getElementById('global-addon-name-input').value.trim();
+            const price = parseFloat(document.getElementById('global-addon-price-input').value);
+
+            if (!name || isNaN(price) || price < 0) {
+                showToast('الرجاء إدخال اسم وسعر صحيحين.', 'error');
+                return;
+            }
+
+            const data = { name, price };
+            
+            try {
+                if (id) { // في حالة التعديل
+                    await updateDoc(doc(db, "global_addons", id), data);
+                    showToast('تم تعديل الإضافة.', 'success');
+                } else { // في حالة الإضافة
+                    await addDoc(collection(db, "global_addons"), data);
+                    showToast('تمت إضافة الإضافة.', 'success');
+                }
+                // مسح الحقول
+                document.getElementById('global-addon-id').value = '';
+                document.getElementById('global-addon-name-input').value = '';
+                document.getElementById('global-addon-price-input').value = '';
+            } catch (error) {
+                showToast('فشل الحفظ: ' + error.message, 'error');
+            }
+        };
+    }
+
+
     // --- MENU ITEMS SECTION (خاص بهذه الصفحة) ---
     function loadMenuItems() {
+        // ربط الأحداث للأزرار الرئيسية
         document.getElementById('add-menu-item-btn').onclick = () => showMenuItemModal();
+        document.getElementById('manage-global-addons-btn').onclick = showGlobalAddonsModal; // (جديد)
+        
         document.getElementById('menu-search-input').addEventListener('input', renderMenuItemsGrid);
         
         onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), snapshot => {
@@ -382,14 +507,16 @@
         });
     }
     
+    // --- (تم التطوير) دالة عرض مودال الوجبة ---
     function showMenuItemModal(item = null) {
         selectedFileStore.menuItem = null;
         
-        // (مهم) استخدام كاش الأقسام الذي تم جلبه
         const categoryOptions = categoriesCache.map(c => 
             `<option value="${c.id}" ${item && item.categoryId === c.id ? 'selected' : ''}>${c.name.ar}</option>`
         ).join('');
         
+        // --- (تم التغيير) ---
+        // تم حذف قسم الإضافات القديم واستبداله بقسم "ربط الإضافات" الجديد
         const content = `
             <div class="space-y-4">
                 <div><label class="font-semibold text-sm text-gray-700">اسم الوجبة (بالعربية)</label><input type="text" id="item-name-ar" placeholder="مثال: تاكوس دجاج" class="w-full p-2 border rounded mt-1" value="${item?.name?.ar || ''}" dir="rtl"></div>
@@ -402,16 +529,14 @@
                     <div id="image-preview" class="mt-2"><img src="${item?.imageUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 object-cover rounded-md bg-gray-200"></div>
                     <input type="file" id="item-image-file" class="mt-2" accept="image/*">
                 </div>
+                
                 <div class="border p-4 rounded-lg bg-gray-50 space-y-3">
-                    <h4 class="font-bold text-gray-800">إضافات اختيارية لهذه الوجبة</h4>
-                    <div id="addons-list" class="space-y-2"></div>
-                    <div class="flex gap-2 items-center border-t pt-3">
-                        <input type="text" id="addon-name-input" placeholder="اسم الإضافة (مثال: جبن)" class="flex-grow p-2 border rounded">
-                        <input type="number" id="addon-price-input" placeholder="السعر" class="w-24 p-2 border rounded">
-                        <button type="button" id="add-addon-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600">إضافة</button>
-                    </div>
+                    <h4 class="font-bold text-gray-800">ربط إضافات عامة بهذه الوجبة</h4>
+                    <p class="text-sm text-gray-600">اختر من القائمة العامة. (لإضافة المزيد، استخدم زر "إدارة الإضافات العامة" في الصفحة الرئيسية).</p>
+                    <div id="global-addons-checkbox-list" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded-md bg-white">
+                        </div>
                 </div>
-            </div>`;
+                </div>`;
         
         showModal(item ? 'تعديل وجبة' : 'إضافة وجبة', content, async () => {
             const confirmBtn = document.getElementById('modal-confirm');
@@ -440,9 +565,15 @@
                     return; 
                 }
                 
+                // --- (تم التغيير) ---
+                // جلب الإضافات المحددة من قائمة الاختيار
                 const addons = [];
-                document.querySelectorAll('.addon-item').forEach(el => { 
-                    addons.push({ name: el.dataset.name, price: parseFloat(el.dataset.price) }); 
+                document.querySelectorAll('#global-addons-checkbox-list input[type="checkbox"]:checked').forEach(checkbox => {
+                    addons.push({
+                        id: checkbox.dataset.id, // تخزين ID الإضافة العامة
+                        name: checkbox.dataset.name,
+                        price: parseFloat(checkbox.dataset.price)
+                    });
                 });
                 
                 const data = {
@@ -452,7 +583,7 @@
                     categoryId: document.getElementById('item-category').value,
                     imageUrl: imageUrl, 
                     isAvailable: item?.isAvailable ?? true,
-                    addons: addons, 
+                    addons: addons, // (تم التغيير) حفظ الإضافات الجديدة
                     updatedAt: serverTimestamp(),
                 };
                 
@@ -477,46 +608,32 @@
         quillEditor = new Quill('#item-description-editor', { modules: { toolbar: quillToolbarOptions }, theme: 'snow' });
         if (item?.description) { quillEditor.root.innerHTML = item.description; }
 
-        // --- منطق إدارة الإضافات ---
-        const addonsListEl = document.getElementById('addons-list');
-        const renderAddons = (addons) => {
-            addonsListEl.innerHTML = '';
-            addons.forEach((addon, index) => {
-                const addonEl = document.createElement('div');
-                addonEl.className = 'addon-item flex justify-between items-center bg-white p-2 rounded-md shadow-sm';
-                addonEl.dataset.name = addon.name;
-                addonEl.dataset.price = addon.price;
-                addonEl.innerHTML = `<span>${addon.name} - <span class="font-mono font-bold">${addon.price} د.ج</span></span><button type="button" class="delete-addon-btn text-red-500 hover:text-red-700" data-index="${index}">&times;</button>`;
-                addonsListEl.appendChild(addonEl);
-            });
-            document.querySelectorAll('.delete-addon-btn').forEach(btn => {
-                btn.onclick = (e) => {
-                   const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
-                   const currentAddons = Array.from(document.querySelectorAll('.addon-item')).map(el => ({name: el.dataset.name, price: el.dataset.price}));
-                   currentAddons.splice(indexToRemove, 1);
-                   renderAddons(currentAddons);
-                };
-            });
-        };
-        if (item && item.addons) { renderAddons(item.addons); }
+        // --- (جديد) منطق ملء قائمة الاختيار بالإضافات ---
+        const checkboxListContainer = document.getElementById('global-addons-checkbox-list');
+        if (globalAddonsCache.length === 0) {
+            checkboxListContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">لم تقم بإضافة أي إضافات عامة بعد. (اغلق النافذة وأضفها من "إدارة الإضافات العامة")</p>`;
+        } else {
+            // جلب ID الإضافات المرتبطة حالياً بهذه الوجبة
+            const linkedAddonIds = (item?.addons || []).map(a => a.id);
+            
+            checkboxListContainer.innerHTML = globalAddonsCache.map(addon => `
+                <label class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox"
+                           class="global-addon-checkbox"
+                           data-id="${addon.id}"
+                           data-name="${addon.name}"
+                           data-price="${addon.price}"
+                           ${linkedAddonIds.includes(addon.id) ? 'checked' : ''}>
+                    <span>${addon.name} (${formatCurrency(addon.price)})</span>
+                </label>
+            `).join('');
+        }
         
-        document.getElementById('add-addon-btn').onclick = () => {
-            const nameInput = document.getElementById('addon-name-input');
-            const priceInput = document.getElementById('addon-price-input');
-            const name = nameInput.value.trim();
-            const price = parseFloat(priceInput.value);
-            if (name && !isNaN(price)) {
-                const currentAddons = Array.from(document.querySelectorAll('.addon-item')).map(el => ({name: el.dataset.name, price: el.dataset.price}));
-                currentAddons.push({ name, price });
-                renderAddons(currentAddons);
-                nameInput.value = '';
-                priceInput.value = '';
-                nameInput.focus();
-            } else { 
-                showToast('الرجاء إدخال اسم وسعر صحيحين للإضافة.', 'error'); 
-            }
-        };
-        
+        // --- (تم الحذف) ---
+        // تم حذف كل الدوال القديمة الخاصة بـ
+        // renderAddons(), document.getElementById('add-addon-btn').onclick
+        // لأننا لم نعد بحاجتها.
+
         document.getElementById('item-image-file').onchange = (evt) => {
             if (evt.target.files && evt.target.files[0]) {
                 selectedFileStore.menuItem = evt.target.files[0];
