@@ -18,6 +18,26 @@
             --accent-color: #f97316;
             --highlight-color: rgba(249, 115, 22, 0.3);
         }
+
+        /* 💡 --- الإضافة الجديدة: متغيرات الوضع النهاري --- 💡 */
+        body.light-mode {
+            --dark-bg: #f3f4f6;       /* خلفية رمادية فاتحة جداً */
+            --primary-bg: #ffffff;     /* خلفية بيضاء */
+            --secondary-bg: #e5e7eb;   /* رمادي فاتح */
+            --border-color: #d1d5db;     /* حدود رمادية */
+            --text-primary: #111827;     /* نص أسود */
+            --text-secondary: #4b5563;   /* نص رمادي */
+            --highlight-color: rgba(249, 115, 22, 0.1);
+        }
+        
+        /* 💡 --- إضافة انتقالات ناعمة --- 💡 */
+        body, .filter-btn, .responsive-table tr, .responsive-table td {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        header, aside#sidebar {
+            transition: background-color 0.3s ease;
+        }
+
         body { font-family: 'Tajawal', sans-serif; background-color: var(--dark-bg); color: var(--text-primary); }
         .hidden { display: none; }
         .panel { animation: fadeIn 0.5s ease-out; }
@@ -62,7 +82,6 @@
 
         .spinner-dark { width: 48px; height: 48px; border: 5px solid rgba(255, 255, 255, 0.2); border-top-color: #f97316; border-radius: 50%; animation: spin 1s linear infinite; }
         
-        /* حركة دوران بطيئة عند التحويم */
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -71,13 +90,102 @@
           animation: spin-slow 1.2s linear infinite;
         }
 
-        /* --- أنماط القائمة الجانبية المنزلقة --- */
         #sidebar {
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease;
         }
         #sidebar-overlay {
             transition: opacity 0.3s ease-in-out;
         }
+
+        /* 💡 --- تعديلات الوضع النهاري --- 💡 */
+        body.light-mode header {
+            background-color: var(--primary-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        body.light-mode header h1,
+        body.light-mode #connection-text,
+        body.light-mode #menu-toggle-btn {
+            color: var(--text-primary);
+        }
+        body.light-mode aside#sidebar {
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            border-right: 1px solid var(--border-color);
+        }
+        body.light-mode aside#sidebar h2,
+        body.light-mode aside#sidebar span,
+        body.light-mode aside#sidebar #menu-close-btn {
+             color: var(--text-primary);
+        }
+        body.light-mode aside#sidebar nav a,
+        body.light-mode aside#sidebar nav button {
+            color: var(--text-primary);
+        }
+         body.light-mode aside#sidebar nav a:hover,
+         body.light-mode aside#sidebar nav button:hover {
+            background-color: #f3f4f6; /* hover فاتح */
+        }
+        
+        body.light-mode .overflow-x-auto {
+            background-color: var(--primary-bg); /* أبيض */
+        }
+        body.light-mode thead {
+            background-color: #f9fafb; /* رمادي فاتح للهيدر */
+            color: var(--text-secondary);
+        }
+        body.light-mode .responsive-table tr {
+            background-color: var(--primary-bg);
+            border-color: var(--border-color);
+        }
+        body.light-mode .responsive-table td {
+            border-color: var(--secondary-bg);
+        }
+        body.light-mode .responsive-table tr:hover {
+             background-color: #f9fafb; /* هوفر فاتح */
+        }
+        body.light-mode .responsive-table tr.bg-gray-800 { background-color: #fef3c7; } /* هايلايت الطلب الجديد (أصفر فاتح) */
+        body.light-mode .responsive-table tr.bg-gray-900 { background-color: var(--primary-bg); }
+        body.light-mode .selected-order {
+            background-color: #feefea !important; /* هايلايت برتقالي فاتح */
+            outline-color: var(--accent-color);
+        }
+        
+        body.light-mode #order-status-filters {
+            background-color: var(--primary-bg);
+        }
+        body.light-mode .filter-btn {
+            background-color: var(--secondary-bg);
+            color: var(--text-primary);
+        }
+        body.light-mode .filter-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        body.light-mode #sound-activation-modal .modal-content,
+        body.light-mode #new-order-modal .modal-content {
+            background-color: #ffffff;
+            color: var(--text-primary);
+        }
+        body.light-mode #sound-activation-modal h2,
+        body.light-mode #new-order-modal h2,
+        body.light-mode #sound-activation-modal p {
+            color: var(--text-primary);
+        }
+        body.light-mode #modal-order-details {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+        }
+        body.light-mode #modal-order-details .text-gray-400 { color: #6b7280; }
+        body.light-mode #modal-order-details .text-white { color: #1f2937; }
+        body.light-mode #modal-order-details .text-gray-200 { color: #374151; }
+        body.light-mode #modal-order-details .border-gray-700 { border-color: var(--border-color); }
+        
+        body.light-mode .spinner-dark {
+             border-top-color: #f97316;
+             border-color: rgba(0, 0, 0, 0.1);
+        }
+
     </style>
 </head>
 <body class="relative">
@@ -143,6 +251,12 @@
                 <i id="mute-icon" class="fas fa-volume-up text-lg w-6 text-center"></i>
                 <span class="text-base font-semibold">الصوت</span>
             </button>
+            
+            <button id="theme-toggle-btn" title="تغيير الوضع" 
+                    class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
+                <i id="theme-icon" class="fas fa-sun text-lg w-6 text-center text-yellow-400"></i>
+                <span id="theme-text" class="text-base font-semibold">وضع نهاري</span>
+            </button>
 
             <button id="manual-refresh-btn" title="تحديث يدوي للواجهة" 
                     class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors">
@@ -202,9 +316,8 @@
         const audioManager = {
             element: document.getElementById('notification-sound'),
             isMuted: false,
-            isUnlocked: false, // Flag to check if user has interacted
+            isUnlocked: false, 
 
-            // Function to unlock audio (called by user interaction)
             unlock() {
                 if (this.isUnlocked) return;
                 this.element.play().then(() => {
@@ -218,15 +331,11 @@
             
             play() {
                 if (this.isMuted || !this.isUnlocked) return;
-                
                 this.element.loop = true; 
                 this.element.playbackRate = 1.5;
-
                 const promise = this.element.play();
                 if (promise !== undefined) {
-                    promise.catch(error => {
-                        console.error("Audio play failed:", error);
-                    });
+                    promise.catch(error => { console.error("Audio play failed:", error); });
                 }
             },
 
@@ -239,7 +348,6 @@
                 this.isMuted = !this.isMuted;
                 const icon = document.getElementById('mute-icon');
                 const muteBtn = document.getElementById('mute-btn');
-                // تعديل بسيط للأيقونة لضمان الحفاظ على العرض
                 icon.className = this.isMuted 
                     ? 'fas fa-volume-mute text-red-500 text-lg w-6 text-center' 
                     : 'fas fa-volume-up text-lg w-6 text-center';
@@ -258,7 +366,6 @@
             
             if (localStorage.getItem('soundActivated') === 'true') {
                 audioManager.isUnlocked = true;
-                console.log("Sound was previously activated.");
                 return;
             }
 
@@ -332,9 +439,9 @@
             `;
             newOrderModal.classList.remove('hidden');
             
-            // 💡 --- هذا هو التعديل النهائي والاحترافي --- 💡
+            // 💡 --- هذا السطر معطل عن قصد --- 💡
             // تم تعطيل هذا السطر لمنع "الصوت المزدوج"
-            // سيعتمد التطبيق الآن على صوت الخدمة الخلفية (FirestoreListenerService)
+            // يعتمد التطبيق الآن على صوت الخدمة الخلفية (FirestoreListenerService)
             // audioManager.play(); 
             
             newOrderCount++;
@@ -345,7 +452,7 @@
 
         function hideNewOrderAlert() {
             newOrderModal.classList.add('hidden');
-            audioManager.stop();
+            audioManager.stop(); // هذا السطر لإيقاف الصوت إذا كان يعمل (احتياطي)
         }
 
         // --- ***** كود القائمة الجانبية الجديد ***** ---
@@ -363,20 +470,44 @@
         function closeMenu() {
             overlay.style.opacity = '0';
             sidebar.classList.add('translate-x-full');
-            // تأخير إخفاء الغطاء ليتزامن مع نهاية الحركة
             setTimeout(() => {
                 overlay.classList.add('hidden');
             }, 300);
         }
-        // --- ***** نهاية كود القائمة الجانبية ***** ---
         
+        // --- 💡 كود الوضع النهاري/الليلي الجديد 💡 ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                themeIcon.className = 'fas fa-moon text-lg w-6 text-center text-indigo-400';
+                themeText.textContent = 'وضع ليلي';
+                themeToggleBtn.title = 'تفعيل الوضع الليلي';
+            } else {
+                document.body.classList.remove('light-mode');
+                themeIcon.className = 'fas fa-sun text-lg w-6 text-center text-yellow-400';
+                themeText.textContent = 'وضع نهاري';
+                themeToggleBtn.title = 'تفعيل الوضع النهاري';
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('kitchenTheme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('kitchenTheme', newTheme);
+            applyTheme(newTheme);
+            closeMenu(); // 💡 لإغلاق القائمة بعد الضغط
+        }
+        // --- 💡 نهاية الكود الجديد 💡 ---
+
 
         function initializeKitchenApp() {
             const manualRefreshBtn = document.getElementById('manual-refresh-btn');
             const muteBtn = document.getElementById('mute-btn');
             
-            // --- تعديل مشغلات الأزرار ---
-            // إضافة إغلاق القائمة بعد تنفيذ الأمر
             manualRefreshBtn.onclick = () => {
                 forceUIRefresh();
                 closeMenu();
@@ -385,13 +516,20 @@
                 audioManager.toggleMute();
                 closeMenu();
             };
+            
+            // --- 💡 ربط زر الوضع الجديد 💡 ---
+            themeToggleBtn.onclick = toggleTheme;
 
             // --- ربط مشغلات القائمة الجديدة ---
             openBtn.onclick = openMenu;
             closeBtn.onclick = closeMenu;
             overlay.onclick = closeMenu;
             
-            setupSoundActivation(); 
+            // 💡 تطبيق الثيم المحفوظ عند التحميل
+            const savedTheme = localStorage.getItem('kitchenTheme') || 'dark';
+            applyTheme(savedTheme);
+            
+            // setupSoundActivation(); (معطل)
             loadOrders();
             setInterval(renderOrdersTable, 15000);
         }
@@ -407,7 +545,7 @@
             const panel = document.getElementById('orders-panel');
             panel.innerHTML = `
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                    <h1 class="text-3xl font-bold text-gray-100">الطلبات الواردة</h1>
+                    <h1 class="text-3xl font-bold">الطلبات الواردة</h1>
                     <div class="flex items-center gap-2 p-1 bg-gray-800 rounded-lg flex-wrap justify-center" id="order-status-filters">
                         <button class="filter-btn active" data-status="new">جديد</button>
                         <button class="filter-btn" data-status="preparing">قيد التحضير</button>
@@ -444,8 +582,6 @@
 
             const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
             
-            // --- تبسيط كود حالة الاتصال ---
-            // الآن يوجد عنصر واحد فقط لحالة الاتصال في الهيدر
             const statusIndicator = document.getElementById('connection-status');
             const statusText = document.getElementById('connection-text');
 
@@ -456,13 +592,26 @@
 
                 if (!isInitialOrdersLoad) {
                     snapshot.docChanges().forEach(change => {
+                        const newOrderData = { id: change.doc.id, ...change.doc.data() };
+                        
                         if (change.type === "added") {
-                            const newOrderData = { id: change.doc.id, ...change.doc.data() };
                             const existingOrder = ordersCache.find(o => o.id === newOrderData.id);
                             if (!existingOrder) {
-                                showNewOrderAlert(newOrderData);
+                                showNewOrderAlert(newOrderData); 
                                 newlyAddedOrderIds.add(change.doc.id);
                             }
+                        }
+                        
+                        if (change.type === "modified") {
+                            const oldOrder = ordersCache.find(o => o.id === change.doc.id);
+                            const newOrder = change.doc.data();
+                            if (oldOrder && oldOrder.status === 'new' && newOrder.status !== 'new') {
+                                hideNewOrderAlert(); 
+                            }
+                        }
+                        
+                        if (change.type === "removed") {
+                            hideNewOrderAlert(); 
                         }
                     });
                 }
@@ -516,7 +665,7 @@
                     const currentStatus = statusConfig[order.status] || { text: order.status, color: 'bg-gray-600' };
 
                     const itemsHtml = (order.items || []).map(item => {
-                        let itemText = `<div><span class="font-semibold text-white">${item.quantity} x ${item.name}</span> <span class="text-orange-400 font-mono">${(item.price || 0).toLocaleString()} دج</span></div>`;
+                        let itemText = `<div><span class="font-semibold">${item.quantity} x ${item.name}</span> <span class="text-orange-400 font-mono">${(item.price || 0).toLocaleString()} دج</span></div>`;
                         if (item.selectedAddons && item.selectedAddons.length > 0) {
                             itemText += item.selectedAddons.map(addon => `<div class="text-xs text-gray-400 mr-4">+ ${addon.name}</div>`).join('');
                         }
@@ -542,7 +691,7 @@
 
                     row.innerHTML = `
                         <td data-label="العميل" class="p-4 align-top">
-                            <div class="font-semibold text-lg text-white">${order.customerName}</div>
+                            <div class="font-semibold text-lg">${order.customerName}</div>
                             <div class="text-sm text-cyan-400 font-semibold" dir="ltr">${order.customerContact}</div>
                             <div class="text-sm text-gray-400 mt-1">${formattedDate}</div>
                             <div class="text-lg text-orange-400 font-bold mt-2">${(order.totalPrice || 0).toLocaleString()} د.ج</div>
@@ -577,7 +726,9 @@
         }
 
         function attachOrderActionListeners() {
+            // 👇 [مفعّل] هذا السطر يفعّل زر تغيير الحالة
             document.querySelectorAll('.order-status-select').forEach(sel => sel.onchange = e => updateDoc(doc(db, "orders", e.target.dataset.id), { status: e.target.value }));
+            
             document.querySelectorAll('.print-order-btn').forEach(btn => btn.onclick = e => {
                 e.stopPropagation();
                 printOrder(e.currentTarget.dataset.id);
@@ -590,7 +741,6 @@
             });
         }
         
-        // --- (Print Function) ... لا تغيير هنا ---
         function printOrder(orderId) {
             const order = ordersCache.find(o => o.id === orderId);
             if (!order) return;
@@ -633,12 +783,10 @@
                     .header h1 { margin: 0; font-size: 24px; }
                     .header .order-id { font-size: 14px; }
                     .header .date { font-size: 12px; color: #555; }
-
                     .customer-info { margin-bottom: 15px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; font-size: 14px; }
                     .info-item { margin-bottom: 5px; }
                     .info-item b { min-width: 50px; display: inline-block; }
                     .info-item a { color: #007bff; text-decoration: none; }
-
                     .items-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
                     .items-table .table-header { text-align: right; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; }
                     .items-table .item-row td { padding: 8px 0; vertical-align: top; }
@@ -646,7 +794,6 @@
                     .items-table .item-details .item-name { font-weight: 500; font-size: 16px; }
                     .items-table .addons-list { list-style: none; padding-right: 15px; margin: 5px 0 0; font-size: 12px; color: #333; }
                     .items-table .instructions { font-size: 12px; color: #d9534f; background-color: #f2f2f2; padding: 4px; border-radius: 3px; margin-top: 5px; margin-right: 15px;}
-                    
                     .total-section { text-align: left; font-size: 20px; font-weight: bold; margin-top: 15px; border-top: 2px solid #000; padding-top: 10px;}
                 </style></head><body>
                     <div class="receipt-container">
