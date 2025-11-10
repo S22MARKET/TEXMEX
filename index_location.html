@@ -276,13 +276,8 @@
             `).join('');
         }
 
-        // --- (جديد) دوال الخريطة والجسر الاحترافي ---
+        // --- دوال الخريطة والجسر الاحترافي ---
         
-        /**
-         * (جديد) هذه هي الدالة التي سيستدعيها تطبيق الأندرويد
-         * @param {number} lat خط العرض
-         * @param {number} lng خط الطول
-         */
         window.receiveLocationFromApp = (lat, lng) => {
             if (lat && lng && map) {
                 const newLatLng = L.latLng(lat, lng);
@@ -294,59 +289,68 @@
             }
         };
 
-        /**
-         * (جديد) دالة وسيطة ذكية لتحديد الموقع
-         */
         function attemptToLocate() {
-            // (الخيار الاحترافي): محاولة الاتصال بـ "جسر" الأندرويد أولاً
-            // "AndroidBridge" هو الاسم الذي يجب أن يضيفه مبرمج الأندرويد
             if (window.AndroidBridge && typeof window.AndroidBridge.requestLocation === 'function') {
-                // اطلب من التطبيق الأصلي جلب الموقع
                 window.AndroidBridge.requestLocation();
                 showToast("جاري طلب الموقع من التطبيق...", "success");
             } else {
-                // (الخيار الاحتياطي): إذا لم يوجد جسر (يعني أننا في متصفح عادي)
-                // استخدم الطريقة العادية
                 showToast("جاري طلب الموقع من المتصفح...", "success");
                 map.locate({ setView: true, maxZoom: 16 });
             }
         }
         
+        // --- 💡 (تم التعديل) إضافة مصيدة أخطاء احترافية 💡 ---
         function initializeMap() {
-            map = L.map('map').setView(ANNABA_COORDS, 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+            try { 
+                map = L.map('map').setView(ANNABA_COORDS, 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
 
-            marker = L.marker(ANNABA_COORDS, {
-                draggable: true,
-                autoPan: true
-            }).addTo(map)
-              .bindPopup('<b>موقعك هنا</b><br>اسحبني لتحديد موقعك بدقة.').openPopup();
-            
-            updateCoordinates(ANNABA_COORDS[0], ANNABA_COORDS[1]);
+                marker = L.marker(ANNABA_COORDS, {
+                    draggable: true,
+                    autoPan: true
+                }).addTo(map)
+                  .bindPopup('<b>موقعك هنا</b><br>اسحبني لتحديد موقعك بدقة.').openPopup();
+                
+                updateCoordinates(ANNABA_COORDS[0], ANNABA_COORDS[1]);
 
-            marker.on('dragend', function(e) {
-                const latLng = e.target.getLatLng();
-                updateCoordinates(latLng.lat, latLng.lng);
-                map.panTo(latLng);
-            });
+                marker.on('dragend', function(e) {
+                    const latLng = e.target.getLatLng();
+                    updateCoordinates(latLng.lat, latLng.lng);
+                    map.panTo(latLng);
+                });
 
-            // (تم التعديل): ربط الزر بالدالة الذكية الجديدة
-            document.getElementById('locate-me-btn').addEventListener('click', attemptToLocate);
+                document.getElementById('locate-me-btn').addEventListener('click', attemptToLocate);
 
-            map.on('locationfound', (e) => {
-                marker.setLatLng(e.latlng);
-                updateCoordinates(e.latlng.lat, e.latlng.lng);
-                marker.getPopup().setContent('<b>موقعك الحالي!</b>').openOn(map);
-            });
+                map.on('locationfound', (e) => {
+                    marker.setLatLng(e.latlng);
+                    updateCoordinates(e.latlng.lat, e.latlng.lng);
+                    marker.getPopup().setContent('<b>موقعك الحالي!</b>').openOn(map);
+                });
 
-            // (تم التعديل): رسالة خطأ أوضح للمستخدم
-            map.on('locationerror', () => {
-                showToast("فشل تحديد الموقع. إذا كنت داخل التطبيق، تأكد من منح إذن الموقع للتطبيق. إذا كنت في متصفح، حاول تحريك الدبوس يدويًا.", "error");
-            });
+                map.on('locationerror', () => {
+                    showToast("فشل تحديد الموقع. إذا كنت داخل التطبيق، تأكد من منح إذن الموقع للتطبيق. إذا كنت في متصفح، حاول تحريك الدبوس يدويًا.", "error");
+                });
+
+            } catch (e) { 
+                console.error("Map Initialization Error:", e);
+                // عرض الخطأ مباشرة للمستخدم في إطار الخريطة
+                const mapDiv = document.getElementById('map');
+                if (mapDiv) {
+                    mapDiv.innerHTML = `
+                        <div class="p-4 bg-red-100 text-red-700 rounded-lg text-right h-full">
+                            <p class="font-bold">خطأ فادح في تحميل الخريطة:</p>
+                            <p class="font-mono" dir="ltr">${e.message}</p>
+                            <p class="mt-2">إذا كان الخطأ هو 'L is not defined'، فهذا يعني أن ملفات الخريطة (Leaflet) فشلت في التحميل من الإنترنت.</p>
+                            <p class="mt-2">تأكد من اتصالك بالإنترنت وأعد تحميل الصفحة.</p>
+                        </div>
+                    `;
+                }
+            }
         }
-        
+        // --- 💡 نهاية التعديل 💡 ---
+
         function updateCoordinates(lat, lng) {
             elements.customerLat.value = lat;
             elements.customerLng.value = lng;
@@ -378,11 +382,12 @@
             }
             const finalTotalPrice = subTotal + finalDeliveryFee - discountAmount;
             
+            // (تم التعديل): إرسال رابط خرائط جوجل أكثر احترافية
             const orderData = {
                 customerName: elements.customerName.value.trim(),
                 customerContact: elements.customerContact.value.trim(),
                 customerAddress: document.getElementById('customer-address').value.trim(), 
-                customerLocation: `https://www.google.com/maps?q=${elements.customerLat.value},${elements.customerLng.value}`, // (جديد) إرسال رابط خرائط جوجل
+                customerLocation: `https://maps.google.com/maps?q=${elements.customerLat.value},${elements.customerLng.value}`, // (تم التعديل)
                 customerInstructions: document.getElementById('customer-instructions').value.trim(),
                 deliveryFee: finalDeliveryFee,
                 totalPrice: finalTotalPrice,
@@ -393,6 +398,7 @@
                 discountAmount: discountAmount,
                 userId: auth.currentUser ? auth.currentUser.uid : null 
             };
+            
             elements.submitBtn.disabled = true;
             elements.submitBtnText.classList.add('hidden');
             elements.submitBtnLoader.classList.remove('hidden');
@@ -465,12 +471,15 @@
                 elements.loader.classList.add('hidden');
                 elements.mainContentWrapper.classList.remove('hidden');
                 renderSummary();
-                initializeMap();
+                
+                // (تم التعديل): الآن نستدعي الدالة الآمنة
+                initializeMap(); 
+                
                 elements.orderForm.addEventListener('submit', handleOrderSubmit);
                 elements.submitBtn.onclick = () => elements.orderForm.requestSubmit();
             } catch (error) {
                 console.error("Initialization failed:", error);
-                elements.loader.innerHTML = '<p class="text-red-500">فشل تحميل بيانات الصفحة. يرجى تحديث الصفحة.</p>';
+                elements.loader.innerHTML = `<p class="text-red-500">فشل تحميل بيانات الصفحة. يرجى تحديث الصفحة.</p>`;
             }
         }
     </script>
