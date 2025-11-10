@@ -48,7 +48,7 @@
             transition: transform 0.3s ease;
         }
         @media (max-width: 768px) {
-            #header-actions #order-btn, #header-actions #secondary-confirm-header-btn { display: none; }
+            #header-actions #order-btn { display: none; } /* (تم التعديل): حذف secondary-confirm-header-btn */
             #fab-order-btn { display: flex; }
         }
 
@@ -78,7 +78,7 @@
         .menu-card-animate {
             animation: cardFadeInUp 0.5s ease-out forwards;
         }
-        
+
         #user-menu-dropdown.show {
             display: block;
             animation: slideInUp 0.2s ease-out;
@@ -146,7 +146,6 @@
     <div id="main-content-wrapper" class="hidden">
         <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                
                 <aside id="sidebar" class="sidebar md:col-span-1 bg-white p-6 rounded-xl shadow-md h-fit md:sticky top-24 fixed md:relative top-0 right-0 h-full w-72 md:w-auto z-40 transform translate-x-full md:translate-x-0 overflow-y-auto">
                     <div class="flex justify-between items-center md:hidden mb-4 p-4 bg-gray-50 border-b -mx-6 -mt-6">
                         <h3 class="text-xl font-bold">فلترة القائمة</h3>
@@ -252,19 +251,20 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- مخازن البيانات (Cache & State) ---
         let menuItemsCache = [];
         let categoriesCache = [];
-        let deliveryZonesCache = [];
+        // (تم الحذف): deliveryZonesCache نُقل لصفحة الدفع
         let restaurantSettings = {};
         let order = JSON.parse(localStorage.getItem('texmex_order')) || [];
-        // (تم الحذف): لم نعد بحاجة لمتغير الكوبون هنا
         let fullFilteredList = [];
         const itemsPerPage = 6;
         let currentSort = 'default';
-        let currentUserProfile = null;
+        let currentUserProfile = null; // سيتم ملؤه عند تسجيل الدخول
 
+        // --- عناصر الواجهة ---
         const elements = {
-            modalContainer: document.getElementById('modal-container'), // (لا يزال مطلوباً لمودال الخيارات)
+            modalContainer: document.getElementById('modal-container'), // (مطلوب لمودال الخيارات)
             grid: document.getElementById('menu-grid'),
             loader: document.getElementById('store-loader'), 
             mainContentWrapper: document.getElementById('main-content-wrapper'),
@@ -294,15 +294,21 @@
             loadMoreContainer: document.getElementById('load-more-container'),
             loadMoreBtn: document.getElementById('load-more-btn'),
             sortingControls: document.getElementById('sorting-controls'),
+            loginBtn: document.getElementById('login-btn'),
+            userMenu: document.getElementById('user-menu'),
+            userMenuButton: document.getElementById('user-menu-button'),
+            userMenuDropdown: document.getElementById('user-menu-dropdown'),
+            userMenuName: document.getElementById('user-menu-name'),
+            userMenuDisplayName: document.getElementById('user-menu-displayname'),
+            logoutBtn: document.getElementById('logout-btn')
         };
 
+        // --- دوال مساعدة ---
         const formatCurrency = (number) => {
             const num = number || 0;
             return num.toLocaleString('fr-DZ') + ' د.ج';
         };
-        
-        // (تم الحذف): دالة طباعة الوصل (نقلت لصفحة الدفع)
-        
+
         const showToast = (message, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -321,6 +327,7 @@
             };
         };
         
+        // --- دوال إدارة السلة (فقط الإضافة والتخزين) ---
         const updateOrderIcon = () => {
             const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
             elements.orderBadge.textContent = totalItems;
@@ -364,6 +371,7 @@
             }
         };
         
+        // --- دوال النوافذ المنبثقة (فقط الخاصة بالمنتج) ---
         const showProductOptionsModal = (product, buttonElement) => {
             let addonsHtml = '';
             if (product.addons && product.addons.length > 0) {
@@ -374,10 +382,8 @@
             const updateTotal = () => {
                 let addonsTotal = 0;
                 document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => { addonsTotal += parseFloat(checkbox.dataset.price); });
-                const addonsTotalDisplay = document.querySelector('#addons-total-display span');
-                if (addonsTotalDisplay) addonsTotalDisplay.textContent = formatCurrency(addonsTotal);
-                const finalPriceDisplay = document.querySelector('#final-price-display span');
-                 if (finalPriceDisplay) finalPriceDisplay.textContent = formatCurrency(product.price + addonsTotal);
+                document.querySelector('#addons-total-display span').textContent = formatCurrency(addonsTotal);
+                document.querySelector('#final-price-display span').textContent = formatCurrency(product.price + addonsTotal);
             };
             const close = () => elements.modalContainer.innerHTML = '';
             document.querySelectorAll('.addon-checkbox').forEach(cb => cb.addEventListener('change', updateTotal));
@@ -404,8 +410,7 @@
 
         const handleAddToCartClick = (itemId, buttonElement) => {
             if (!restaurantSettings.isOpen) {
-                // (تم التعديل): استبدال showInfoModal بـ alert بسيط لتقليل التعقيد
-                alert(restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي.');
+                showToast(restaurantSettings.closedMessage || 'نعتذر، لا يمكن استقبال الطلبات في الوقت الحالي.', 'error');
                 return;
             }
             const product = menuItemsCache.find(p => p.id === itemId);
@@ -419,15 +424,9 @@
             }
         };
 
-        // (تم الحذف): دالة window.updateOrderQuantity (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة showOrderModal (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة showCheckoutModal (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة handleApplyCoupon (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة showDhikrCountdownModal (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة handleOrderSubmit (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة showInfoModal (نقلت لصفحة الدفع)
-        // (تم الحذف): دالة showSecondaryConfirmModal (نقلت لصفحة الدفع)
+        // (تم الحذف): جميع دوال إنهاء الطلب (showCheckoutModal, handleOrderSubmit, etc.)
 
+        // --- دوال فلترة وعرض الوجبات ---
         const getFilteredItems = () => {
             const activeCatBtn = document.querySelector('.category-filter-btn.bg-orange-100');
             const selectedCatId = activeCatBtn ? activeCatBtn.dataset.id : 'all';
@@ -522,49 +521,40 @@
             if (!restaurantSettings.isOpen) { elements.statusMessage.textContent = closedMessage || `المطعم مغلق حاليًا. نفتح من ${openTime} إلى ${closeTime}.`; }
         };
 
-        // (تم الحذف): دالة setupSecondaryConfirmButton (نقلت لصفحة الدفع)
-
-        // --- منطق المصادقة والتحكم بالهيدر (تم تعديله) ---
-        const loginBtn = document.getElementById('login-btn');
-        const userMenu = document.getElementById('user-menu');
-        const userMenuButton = document.getElementById('user-menu-button');
-        const userMenuDropdown = document.getElementById('user-menu-dropdown');
-        const userMenuName = document.getElementById('user-menu-name');
-        const userMenuDisplayName = document.getElementById('user-menu-displayname');
-        const logoutBtn = document.getElementById('logout-btn');
-
+        // --- منطق المصادقة والتحكم بالهيدر ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                loginBtn.classList.add('hidden');
-                userMenu.classList.remove('hidden');
+                elements.loginBtn.classList.add('hidden');
+                elements.userMenu.classList.remove('hidden');
                 const displayName = user.displayName || "زبوننا";
-                userMenuName.textContent = displayName.split(' ')[0];
-                userMenuDisplayName.textContent = displayName;
+                elements.userMenuName.textContent = displayName.split(' ')[0];
+                elements.userMenuDisplayName.textContent = displayName;
                 initializeStore();
             } else {
-                // (تم التعديل): الآن يتم التحويل إلى صفحة الدخول
                 window.location.href = 'login.html';
             }
         });
 
-        userMenuButton.addEventListener('click', (e) => {
+        elements.userMenuButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            userMenuDropdown.classList.toggle('show');
+            elements.userMenuDropdown.classList.toggle('show');
         });
         document.addEventListener('click', () => {
-            if (userMenuDropdown.classList.contains('show')) {
-                userMenuDropdown.classList.remove('show');
+            if (elements.userMenuDropdown.classList.contains('show')) {
+                elements.userMenuDropdown.classList.remove('show');
             }
         });
-        logoutBtn.addEventListener('click', () => {
+        elements.logoutBtn.addEventListener('click', () => {
             signOut(auth).catch((error) => console.error('Logout Error', error));
+            // onAuthStateChanged سيتكفل بالتحويل إلى login.html تلقائياً
         });
 
+        // --- الدالة الرئيسية لتهيئة المتجر ---
         const initializeStore = async () => {
             try {
-                const [settingsSnap, zonesSnap, categoriesSnap, productsSnap, userDocSnap] = await Promise.all([
+                // (تم التعديل): لم نعد بحاجة لجلب deliveryZonesSnap هنا
+                const [settingsSnap, categoriesSnap, productsSnap, userDocSnap] = await Promise.all([
                     getDoc(doc(db, "settings", "config")),
-                    getDocs(query(collection(db, "delivery_zones"), orderBy("sortOrder", "asc"), orderBy("name", "asc"))), // (تم التعديل): إضافة الترتيب
                     getDocs(query(collection(db, "categories"), orderBy("name.ar"))),
                     getDocs(query(collection(db, "products"), orderBy("createdAt", "desc"))),
                     getDoc(doc(db, "users", auth.currentUser.uid))
@@ -577,8 +567,7 @@
                 restaurantSettings = settingsSnap.exists() ? settingsSnap.data() : {};
                 
                 if (restaurantSettings.logoUrl) {
-                    const headerLogo = document.getElementById('header-logo');
-                    if (headerLogo) headerLogo.src = restaurantSettings.logoUrl;
+                    if (elements.headerLogo) elements.headerLogo.src = restaurantSettings.logoUrl;
                 }
 
                 const social = restaurantSettings.socialLinks || {};
@@ -592,7 +581,7 @@
                 checkRestaurantStatus();
                 setInterval(checkRestaurantStatus, 60000);
 
-                deliveryZonesCache = zonesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // (تم الحذف): deliveryZonesCache
                 categoriesCache = categoriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 let categoriesHtml = '<button class="category-filter-btn w-full text-right p-3 rounded-md font-semibold transition-colors bg-orange-100 text-orange-700" data-id="all">كل الوجبات</button>';
@@ -655,10 +644,6 @@
                         renderMenuItems(false);
                     }
                 });
-
-                // (تم التعديل): الأزرار أصبحت روابط، لا حاجة لـ onclick
-                // elements.orderBtn.onclick = ...;
-                // elements.fabOrderBtn.onclick = ...;
                 
                 elements.searchInput.oninput = debouncedRender;
                 elements.grid.addEventListener('click', (e) => { 
