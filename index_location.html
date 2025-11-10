@@ -299,12 +299,13 @@
             }
         }
         
-        // --- (تم التعديل): مصيدة أخطاء احترافية ---
         function initializeMap() {
             try { 
                 map = L.map('map').setView(ANNABA_COORDS, 14);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                
+                // (تم التعديل): استخدام خرائط Esri الحديثة (بديل OpenStreetMap)
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles © Esri'
                 }).addTo(map);
 
                 marker = L.marker(ANNABA_COORDS, {
@@ -380,12 +381,12 @@
             }
             const finalTotalPrice = subTotal + finalDeliveryFee - discountAmount;
             
+            // (تم التعديل): إرسال رابط خرائط جوجل الاحترافي
             const orderData = {
                 customerName: elements.customerName.value.trim(),
                 customerContact: elements.customerContact.value.trim(),
                 customerAddress: document.getElementById('customer-address').value.trim(), 
-                // (تم التعديل): إرسال رابط خرائط جوجل أكثر احترافية
-                customerLocation: `http://googleusercontent.com/maps.google.com/4${elements.customerLat.value},${elements.customerLng.value}`,
+                customerLocation: `https://maps.google.com/?q=${elements.customerLat.value},${elements.customerLng.value}`, // <-- ✅ الحل الاحترافي
                 customerInstructions: document.getElementById('customer-instructions').value.trim(),
                 deliveryFee: finalDeliveryFee,
                 totalPrice: finalTotalPrice,
@@ -405,6 +406,9 @@
             
             try {
                 const docRef = await addDoc(collection(db, "orders"), orderData);
+                
+                // (تم الحذف): لا نضف نقاط الوفاء تلقائياً
+                
                 order = [];
                 appliedCoupon = null;
                 localStorage.removeItem('texmex_order');
