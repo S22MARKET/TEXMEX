@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEXMEX - سلتي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #f1f5f9; }
+        html { scroll-behavior: smooth; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #f97316; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .small-loader { border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; translateY(0); } }
+        
+        #user-menu-dropdown.show { display: block; animation: slideInUp 0.2s ease-out; }
+        
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
+        .toast.success { background-color: #2f855a; }
+        .toast.error { background-color: #c53030; }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    </style>
+
+</head>
+<body>
+
+    <header class="bg-white shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+             <a href="index.html" class="flex items-center gap-3">
+                <img id="header-logo" src="https://i.ibb.co/6yV2L7p/texmex-logo.png" alt="TEXMEX Logo" class="h-10">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800">
+                    TEX<span class="text-orange-500">MEX</span>
+                </h1>
+            </a>
+            
+            <div id="header-actions" class="flex items-center gap-4 relative">
+                <a href="index.html" id="order-btn" class="relative text-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-store"></i>
+                    <span>العودة للمتجر</span>
+                </a>
+                
+                <a href="login.html" id="login-btn" class="hidden relative text-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>دخول / تسجيل</span>
+                </a>
+            
+                <div id="user-menu" class="hidden">
+                    <button id="user-menu-button" class="flex items-center gap-2 text-lg font-semibold text-gray-700 bg-green-100 hover:bg-green-200 px-5 py-2.5 rounded-full transition-colors">
+                        <i class="fas fa-user-check text-green-700"></i>
+                        <span id="user-menu-name">...</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div id="user-menu-dropdown" class="hidden absolute left-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border z-50 overflow-hidden">
+                        <div class="p-3 border-b">
+                            <p class="text-sm text-gray-500">مرحباً بك،</p>
+                            <p class="font-bold text-gray-800" id="user-menu-displayname">...</p>
+                        </div>
+                        <a href="profile.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-user-circle fa-fw ml-2 text-gray-400"></i> ملفي الشخصي</a>
+                        <a href="order_history.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-archive fa-fw ml-2 text-gray-400"></i> أرشيف طلباتي</a>
+                        <a href="loyalty_card.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-star fa-fw ml-2 text-orange-400"></i> بطاقة الوفاء</a>
+                        <button id="logout-btn" class="w-full text-right px-4 py-3 text-red-600 hover:bg-red-50 border-t transition-colors"><i class="fas fa-sign-out-alt fa-fw ml-2"></i> تسجيل الخروج</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="store-loader" class="text-center py-20">
+        <div class="loader mx-auto"></div>
+        <p class="mt-4 text-gray-600">جاري تحميل السلة...</p>
+    </div>
+
+    <div id="main-content-wrapper" class="hidden max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 text-center mb-8" style="animation: slideInUp 0.5s ease-out;">
+            <i class="fas fa-shopping-basket text-orange-400"></i>
+            طلبيتي (مراجعة السلة)
+        </h1>
+
+        <div id="empty-cart-msg" class="hidden text-center py-20 bg-white rounded-xl shadow-md" style="animation: slideInUp 0.5s ease-out;">
+            <i class="fas fa-box-open text-5xl text-gray-400"></i>
+            <p class="mt-4 text-xl font-semibold text-gray-500">سلّتك فارغة حاليًا.</p>
+            <a href="index.html" class="mt-4 inline-block bg-orange-500 text-white font-bold py-2 px-6 rounded-full hover:bg-orange-600">
+                ابدأ التسوق الآن
+            </a>
+        </div>
+
+        <div id="cart-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md space-y-4" style="animation: slideInUp 0.6s ease-out;">
+                <h2 class="text-2xl font-bold border-b pb-3 mb-4">تفاصيل الطلبية</h2>
+                <div id="cart-items-list" class="space-y-4">
+                    </div>
+            </div>
+
+            <div class="lg:col-span-1 h-fit lg:sticky top-28" style="animation: slideInUp 0.7s ease-out;">
+                <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+                    <h2 class="text-2xl font-bold border-b pb-3">الملخص</h2>
+                    
+                    <div id="coupon-section" class="border-b pb-4">
+                        <label class="font-semibold text-sm text-gray-700">لديك كوبون تخفيض؟</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="text" id="coupon-code" placeholder="أدخل الكود هنا" class="flex-grow p-3 border rounded-lg uppercase focus:outline-none focus:ring-2 focus:ring-orange-500" dir="ltr">
+                            <button type="button" id="apply-coupon-btn" class="bg-gray-700 text-white font-bold py-3 px-5 rounded-lg hover:bg-gray-800">تطبيق</button>
+                        </div>
+                    </div>
+
+                    <div id="total-price-summary" class="p-4 bg-gray-100 rounded-lg text-right font-bold text-lg space-y-2">
+                        </div>
+                    
+                    <a href="index_location.html" id="proceed-to-location-btn" class="w-full flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors">
+                        <span>تحديد الموقع وإنهاء الطلب</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div id="toast-container"></div>
+    
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
+            authDomain: "texmexfoodannaba23.firebaseapp.com",
+            projectId: "texmexfoodannaba23",
+            storageBucket: "texmexfoodannaba23.appspot.com",
+            messagingSenderId: "712480664933",
+            appId: "1:712480664933:web:a5310190bf63115ac9058c",
+            measurementId: "G-38D210X1EG"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- مخازن البيانات (Cache & State) ---
+        let order = [];
+        let restaurantSettings = {};
+        let couponsCache = [];
+        let appliedCoupon = null;
+
+        // --- عناصر الواجهة ---
+        const elements = {
+            loader: document.getElementById('store-loader'),
+            mainContentWrapper: document.getElementById('main-content-wrapper'),
+            cartContent: document.getElementById('cart-content'),
+            emptyCartMsg: document.getElementById('empty-cart-msg'),
+            cartItemsList: document.getElementById('cart-items-list'),
+            summaryDiv: document.getElementById('total-price-summary'),
+            applyCouponBtn: document.getElementById('apply-coupon-btn'),
+            couponCodeInput: document.getElementById('coupon-code'),
+            proceedBtn: document.getElementById('proceed-to-location-btn'),
+            headerLogo: document.getElementById('header-logo'),
+            loginBtn: document.getElementById('login-btn'),
+            userMenu: document.getElementById('user-menu'),
+            userMenuButton: document.getElementById('user-menu-button'),
+            userMenuDropdown: document.getElementById('user-menu-dropdown'),
+            userMenuName: document.getElementById('user-menu-name'),
+            userMenuDisplayName: document.getElementById('user-menu-displayname'),
+            logoutBtn: document.getElementById('logout-btn')
+        };
+
+        // --- دوال مساعدة ---
+        const formatCurrency = (number) => {
+            const num = number || 0;
+            return num.toLocaleString('fr-DZ') + ' د.ج';
+        };
+
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+        
+        // --- دوال إدارة السلة ---
+        
+        // (جديد) يجب جعل هذه الدالة عامة (global) ليستطيع HTML مناداتها
+        window.updateOrderQuantity = (cartId, newQuantity) => {
+            const itemIndex = order.findIndex(i => i.cartId === cartId);
+            if (itemIndex > -1) {
+                if (newQuantity > 0) {
+                    order[itemIndex].quantity = newQuantity;
+                } else {
+                    // الحذف عند الضغط على ناقص والكمية 1
+                    order.splice(itemIndex, 1);
+                }
+                saveOrderToStorage();
+                renderCartItems();
+                renderSummary();
+            }
+        };
+
+        const saveOrderToStorage = () => {
+            localStorage.setItem('texmex_order', JSON.stringify(order));
+            // (جديد) حفظ الكوبون المطبق أيضاً لضمان استرجاعه
+            sessionStorage.setItem('texmex_coupon', JSON.stringify(appliedCoupon));
+        };
+
+        // --- دوال رسم الواجهة ---
+        
+        function renderCartItems() {
+            if (order.length === 0) {
+                elements.cartContent.classList.add('hidden');
+                elements.emptyCartMsg.classList.remove('hidden');
+                return;
+            }
+
+            elements.cartItemsList.innerHTML = '';
+            order.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                const image = item.imageUrl || 'https://via.placeholder.com/150';
+                
+                let addonsHtml = '';
+                if (item.selectedAddons && item.selectedAddons.length > 0) {
+                    addonsHtml = '<ul class="text-xs text-gray-500 mt-1 pr-4 list-disc list-inside">';
+                    item.selectedAddons.forEach(addon => { addonsHtml += `<li>${addon.name} (+${formatCurrency(addon.price)})</li>`; });
+                    addonsHtml += '</ul>';
+                }
+                let instructionsHtml = '';
+                if (item.cookingInstructions) {
+                    instructionsHtml = `<div class="text-xs text-blue-600 bg-blue-50 p-1 rounded mt-1 mr-4"><i class="fas fa-comment-dots ml-1"></i> ${item.cookingInstructions}</div>`;
+                }
+
+                elements.cartItemsList.innerHTML += `
+                    <div class="flex items-start gap-4 py-4 border-b">
+                        <img src="${image}" class="w-20 h-20 rounded-md object-cover bg-gray-100 flex-shrink-0" alt="${item.name.ar}">
+                        <div class="flex-grow">
+                            <h4 class="font-bold">${item.name.ar} <span class="text-sm font-normal text-gray-500">${item.name.fr || ''}</span></h4>
+                            ${addonsHtml}
+                            ${instructionsHtml}
+                            <p class="text-sm text-gray-600 mt-1">${formatCurrency(item.price)} (للقطعة)</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.updateOrderQuantity('${item.cartId}', ${item.quantity - 1})" class="w-8 h-8 bg-gray-200 rounded-md font-bold text-lg">-</button>
+                                <span class="w-10 text-center font-semibold text-lg">${item.quantity}</span>
+                                <button onclick="window.updateOrderQuantity('${item.cartId}', ${item.quantity + 1})" class="w-8 h-8 bg-gray-200 rounded-md font-bold text-lg">+</button>
+                            </div>
+                            <p class="font-bold text-md mt-2">${formatCurrency(itemTotal)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function renderSummary() {
+            const subTotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            
+            let discountAmount = 0;
+            let discountHtml = '';
+
+            if (appliedCoupon) {
+                // (مهم) التحقق إذا كان الكوبون يطبق على منتجات معينة
+                let subTotalForCoupon = subTotal;
+                if (appliedCoupon.appliesTo === 'specific_products') {
+                    subTotalForCoupon = order
+                        .filter(item => appliedCoupon.productIds.includes(item.id))
+                        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+                }
+
+                if(appliedCoupon.discountType === 'percentage') { 
+                    discountAmount = subTotalForCoupon * (appliedCoupon.discountValue / 100); 
+                } else { 
+                    discountAmount = appliedCoupon.discountValue; 
+                }
+                discountAmount = Math.min(subTotalForCoupon, discountAmount); // لا يمكن أن يكون الخصم أكبر من سعر المنتج
+                
+                discountHtml = `<div class="flex justify-between text-green-600 border-t pt-2 mt-2"><span>خصم (${appliedCoupon.code}):</span><span>-${formatCurrency(discountAmount)}</span></div>`;
+            }
+
+            // (جديد) التحقق من عرض التوصيل المجاني
+            let deliveryMessage = '';
+            if (restaurantSettings.isFreeDeliveryActive && subTotal >= restaurantSettings.freeDeliveryThreshold) {
+                deliveryMessage = `<div class="text-sm text-green-600 font-semibold text-center mt-2">🎉 لقد حصلت على توصيل مجاني!</div>`;
+            }
+            
+            const grandTotal = subTotal - discountAmount;
+
+            elements.summaryDiv.innerHTML = `
+                <div class="flex justify-between"><span>مجموع الوجبات:</span><span>${formatCurrency(subTotal)}</span></div>
+                ${discountHtml}
+                <hr class="my-1 border-gray-300">
+                <div class="flex justify-between text-2xl mt-2">
+                    <span>الإجمالي (قبل التوصيل):</span>
+                    <span>${formatCurrency(grandTotal)}</span>
+                </div>
+                ${deliveryMessage}
+            `;
+            
+            // تفعيل/تعطيل زر المتابعة
+            elements.proceedBtn.classList.toggle('opacity-50', order.length === 0);
+            elements.proceedBtn.classList.toggle('pointer-events-none', order.length === 0);
+        }
+
+        async function handleApplyCoupon() {
+            const code = elements.couponCodeInput.value.trim().toUpperCase();
+            if (!code) { showToast("الرجاء إدخال كود الكوبون", "error"); return; }
+            
+            // استخدام الكاش بدلاً من استعلام جديد
+            const coupon = couponsCache.find(c => c.code === code);
+
+            if (!coupon) { showToast("الكوبون غير صالح أو غير موجود.", "error"); return; }
+            
+            const now = Timestamp.now();
+            if (!coupon.isActive) { showToast("هذا الكوبون غير نشط حاليًا.", "error"); return; }
+            if (coupon.expiresAt && coupon.expiresAt < now) { showToast("هذا الكوبون منتهي الصلاحية.", "error"); return; }
+            
+            if (coupon.appliesTo === 'specific_products') {
+                const cartProductIds = new Set(order.map(item => item.id));
+                const couponApplies = coupon.productIds.some(productId => cartProductIds.has(productId));
+                if (!couponApplies) { 
+                    showToast("هذا الكوبون لا ينطبق على أي من المنتجات في سلتك.", "error"); 
+                    return; 
+                }
+            }
+            
+            appliedCoupon = coupon;
+            saveOrderToStorage(); // حفظ الكوبون للجلسة
+            showToast(`تم تطبيق الكوبون بنجاح!`, 'success');
+            
+            elements.couponCodeInput.disabled = true;
+            elements.applyCouponBtn.textContent = 'إزالة';
+            elements.applyCouponBtn.classList.remove('bg-gray-700', 'hover:bg-gray-800');
+            elements.applyCouponBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            elements.applyCouponBtn.onclick = handleRemoveCoupon;
+            
+            renderSummary();
+        }
+
+        function handleRemoveCoupon() {
+            appliedCoupon = null;
+            saveOrderToStorage(); // حفظ (null)
+            showToast('تم إزالة الكوبون.');
+            
+            elements.couponCodeInput.disabled = false;
+            elements.couponCodeInput.value = '';
+            elements.applyCouponBtn.textContent = 'تطبيق';
+            elements.applyCouponBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            elements.applyCouponBtn.classList.add('bg-gray-700', 'hover:bg-gray-800');
+            elements.applyCouponBtn.onclick = handleApplyCoupon;
+            
+            renderSummary();
+        }
+
+        // --- منطق المصادقة والتحكم بالهيدر (منسوخ) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                elements.loginBtn.classList.add('hidden');
+                elements.userMenu.classList.remove('hidden');
+                const displayName = user.displayName || "زبوننا";
+                elements.userMenuName.textContent = displayName.split(' ')[0];
+                elements.userMenuDisplayName.textContent = displayName;
+                initializeCartPage(); // بدء تحميل الصفحة بعد التحقق من المستخدم
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        elements.userMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.userMenuDropdown.classList.toggle('show');
+        });
+        document.addEventListener('click', () => {
+            if (elements.userMenuDropdown.classList.contains('show')) {
+                elements.userMenuDropdown.classList.remove('show');
+            }
+        });
+        elements.logoutBtn.addEventListener('click', () => {
+            signOut(auth).catch((error) => console.error('Logout Error', error));
+        });
+
+        // --- الدالة الرئيسية لتهيئة الصفحة ---
+        async function initializeCartPage() {
+            try {
+                // 1. جلب البيانات الأساسية (الإعدادات والكوبونات)
+                const [settingsSnap, couponsSnap] = await Promise.all([
+                    getDoc(doc(db, "settings", "config")),
+                    getDocs(query(collection(db, "coupons")))
+                ]);
+
+                restaurantSettings = settingsSnap.exists() ? settingsSnap.data() : {};
+                couponsCache = couponsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+                // 2. تحميل الشعار من الإعدادات
+                if (restaurantSettings.logoUrl) {
+                    elements.headerLogo.src = restaurantSettings.logoUrl;
+                }
+
+                // 3. تحميل السلة والكوبون من التخزين
+                order = JSON.parse(localStorage.getItem('texmex_order')) || [];
+                appliedCoupon = JSON.parse(sessionStorage.getItem('texmex_coupon')) || null;
+
+                // 4. إظهار المحتوى
+                elements.loader.classList.add('hidden');
+                elements.mainContentWrapper.classList.remove('hidden');
+
+                if (order.length > 0) {
+                    elements.cartContent.classList.remove('hidden');
+                    renderCartItems();
+                    renderSummary();
+                    
+                    // 5. ربط الأحداث
+                    elements.applyCouponBtn.onclick = handleApplyCoupon;
+
+                    // 6. (مهم) استعادة حالة زر الكوبون إذا كان مطبقاً
+                    if (appliedCoupon) {
+                        elements.couponCodeInput.value = appliedCoupon.code;
+                        elements.couponCodeInput.disabled = true;
+                        elements.applyCouponBtn.textContent = 'إزالة';
+                        elements.applyCouponBtn.classList.remove('bg-gray-700', 'hover:bg-gray-800');
+                        elements.applyCouponBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                        elements.applyCouponBtn.onclick = handleRemoveCoupon;
+                    }
+
+                } else {
+                    elements.emptyCartMsg.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                elements.loader.innerHTML = '<p class="text-red-500">فشل تحميل بيانات السلة. يرجى تحديث الصفحة.</p>';
+            }
+        }
+    </script>
+</body>
+</html>

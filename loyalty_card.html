@@ -102,7 +102,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-sm font-semibold text-gray-700">التقدم نحو المكافأة</span>
-                            <span id="progress-text" class="text-sm font-bold text-orange-600">0 / 10</span>
+                            <span id="progress-text" class="text-sm font-bold text-orange-600">0 / 100</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden border">
                             <div id="progress-bar" class="bg-green-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
@@ -164,21 +164,26 @@
             setTimeout(() => toast.remove(), 3000);
         };
 
-        // --- جلب بيانات بطاقة الوفاء ---
+        // --- (تم التعديل) جلب بيانات بطاقة الوفاء ---
         async function loadLoyaltyData(user) {
             try {
-                // جلب بيانات المستخدم (مثل النقاط)
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDocSnap = await getDoc(userDocRef);
-
+                // --- (جديد) جلب بيانات المستخدم والإعدادات معاً ---
+                const [userDocSnap, settingsSnap] = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid)),
+                    getDoc(doc(db, "settings", "loyalty"))
+                ]);
+                
                 let loyaltyPoints = 0;
                 if (userDocSnap.exists()) {
                     loyaltyPoints = userDocSnap.data().loyaltyPoints || 0;
                 }
 
-                // جلب إعدادات المكافأة التي حددها المدير (من LocalStorage)
-                // نفترض أن المدير قام بضبطها في لوحة التحكم
-                const rewardThreshold = parseInt(localStorage.getItem('rewardThreshold')) || 10;
+                // --- (جديد) جلب هدف المكافأة الحقيقي من الإعدادات ---
+                let rewardThreshold = 100; // قيمة افتراضية
+                if (settingsSnap.exists() && settingsSnap.data().rewardThreshold > 0) {
+                    rewardThreshold = settingsSnap.data().rewardThreshold;
+                }
+                // --- نهاية التعديل (لا مزيد من localStorage) ---
                 
                 // حساب التقدم
                 const pointsModThreshold = loyaltyPoints % rewardThreshold;

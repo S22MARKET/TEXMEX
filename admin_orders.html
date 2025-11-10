@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEXMEX - العملاء المسجلون</title>
+    <title>TEXMEX - الطلبات الواردة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -38,6 +38,15 @@
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background-color: white; transition: all 0.2s; }
         .filter-btn.active { background-color: #f97316; color: white; border-color: #f97316; }
         .ql-editor { min-height: 120px; }
+        /* (خاص بطباعة الوصل) */
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-to-print, #receipt-to-print * { visibility: visible; }
+            #receipt-to-print { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; font-family: 'Tajawal', sans-serif; direction: rtl; color: black; }
+            .receipt-header h1 { font-size: 24pt; color: black; border: none; }
+            .receipt-table th, .receipt-table td { color: black; }
+            .receipt-actions { display: none; }
+        }
     </style>
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 </head>
@@ -56,7 +65,7 @@
                 <div class="p-3 text-center border-b border-gray-700">
                     <h2 class="text-2xl font-bold">TEX<span class="text-orange-400">MEX</span></h2>
                 </div>
-                 <nav class="flex-1 p-2 space-y-2">
+       <nav class="flex-1 p-2 space-y-2">
                     <a href="admin_dashboard.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tachometer-alt fa-fw ml-3"></i> اللوحة الرئيسية</a>
                     <a href="admin_orders.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-clipboard-list fa-fw ml-3"></i> الطلبات الواردة</a>
                     <a href="admin_customer_log.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-users fa-fw ml-3"></i> سجل العملاء (بالطلبات)</a>
@@ -87,29 +96,28 @@
                 
                 <main class="flex-1 p-4 md:p-8 overflow-y-auto">
                     
-                    <div id="customers-panel" class="dashboard-panel">
+                    <div id="orders-panel" class="dashboard-panel">
                         <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-                            <h1 class="text-3xl font-bold text-gray-800">العملاء المسجلون (الحسابات)</h1>
-                            <div class="relative">
-                                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" id="registered-customer-search" placeholder="ابحث بالاسم أو الإيميل أو الهاتف..." class="w-full md:w-80 pr-10 pl-3 py-2 border rounded-lg">
-                            </div>
+                            <h1 class="text-3xl font-bold text-gray-800">الطلبات الواردة</h1>
+                            <div class="relative"><i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="order-search-input" placeholder="ابحث بالاسم أو الهاتف..." class="w-full md:w-64 pr-10 pl-3 py-2 border rounded-lg"></div>
                         </div>
-                        <p class="text-sm text-gray-600 mb-4 bg-green-50 p-3 rounded-lg"><i class="fas fa-info-circle ml-2"></i>هذا السجل يعرض جميع العملاء الذين قاموا بـ <strong class="text-green-700">إنشاء حساب</strong> في التطبيق (من مجموعة 'users').</p>
+                        <div class="flex items-center gap-3 mb-4" id="order-status-filters">
+                            <button class="filter-btn active" data-status="all">الكل</button>
+                            <button class="filter-btn" data-status="new">جديد</button>
+                            <button class="filter-btn" data-status="completed">مكتمل</button>
+                            <button class="filter-btn" data-status="canceled">ملغي</button>
+                        </div>
                         <div class="overflow-x-auto bg-white rounded-xl shadow-md">
-                            <table class="w-full text-right responsive-table">
-                                <thead class="bg-gray-100"><tr>
-                                    <th class="p-3">الاسم</th>
-                                    <th class="p-3">الإيميل</th>
-                                    <th class="p-3">الهاتف</th>
-                                    <th class="p-3">النقاط</th>
-                                    <th class="p-3">تاريخ التسجيل</th>
-                                    <th class="p-3">إجراءات</th>
-                                </tr></thead>
-                                <tbody id="registered-customers-table-body">
-                                    <tr><td colspan="6" class="p-8 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-2">جاري جلب العملاء...</p></td></tr>
-                                </tbody>
-                            </table>
+                        <table class="w-full text-right responsive-table">
+                            <thead class="bg-gray-100"><tr>
+                                <th class="p-3">العميل</th><th class="p-3">الهاتف</th><th class="p-3">الطلبية</th>
+                                <th class="p-3">المبلغ</th><th class="p-3">الحالة</th><th class="p-3">عامل التوصيل</th><th class="p-3">إجراءات</th>
+                            </tr></thead>
+                            <tbody id="orders-table-body">
+                                <tr><td colspan="7" class="p-8 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-2">جاري تحميل الطلبات...</p></td></tr>
+                            </tbody>
+                        </table>
                         </div>
                     </div>
 
@@ -120,6 +128,7 @@
 
     <div id="modal-container"></div>
     <div id="toast-container"></div>
+    <audio id="notification-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-notification-947.mp3" preload="auto"></audio>
 
 <script type="module">
     // --- FIREBASE INITIALIZATION (مشترك) ---
@@ -166,6 +175,10 @@
     let registeredUsersCache = [];
     let quillEditor = null; 
     let selectedFileStore = {}; 
+    
+    // --- (جديد) متغيرات خاصة بهذه الصفحة ---
+    let isInitialOrdersLoad = true;
+    let currentOrderStatusFilter = 'all';
 
     // --- UI & UX HELPERS (مشتركة) ---
     
@@ -201,79 +214,8 @@
         }, 'تأكيد الحذف', true);
     };
 
-    // --- ✨✨ الدالة المصححة والاحترافية لتعديل النقاط (مع السجل) ✨✨ ---
     const showEditLoyaltyModal = (userId, currentPoints) => {
-        const content = `
-            <p class="mb-4">تعديل نقاط الوفاء. النقاط الحالية: <strong>${currentPoints}</strong></p>
-            <label for="loyalty-points-input" class="font-semibold text-gray-700">النقاط الجديدة:</label>
-            <input type="number" id="loyalty-points-input" class="w-full p-3 border rounded-lg text-center text-xl mb-4" value="${currentPoints}">
-            <hr class="my-4">
-            <p class="mb-4 text-lg">لتأكيد التعديل، الرجاء إدخال الرمز التالي:</p>
-            <div class="text-center mb-4"><code class="text-2xl font-bold bg-gray-100 p-2 rounded-lg text-orange-600 select-all">S22MARKET</code></div>
-            <input type="text" id="confirmation-code-input" placeholder="أدخل الرمز هنا للتأكيد" class="w-full p-3 border rounded-lg text-center tracking-widest uppercase">
-            <p id="confirmation-error-msg" class="text-red-600 text-sm mt-2 text-center hidden">الرمز غير صحيح.</p>
-        `;
-        
-        showModal('تعديل نقاط الوفاء', content, async () => {
-            const newPointsInput = document.getElementById('loyalty-points-input');
-            const newPoints = parseInt(newPointsInput.value, 10);
-            const codeInput = document.getElementById('confirmation-code-input');
-            const errorMsg = document.getElementById('confirmation-error-msg');
-
-            if (codeInput.value.trim().toUpperCase() === 'S22MARKET') {
-                // كلمة السر صحيحة
-                if (isNaN(newPoints) || newPoints < 0) {
-                    showToast('الرجاء إدخال رقم صحيح للنقاط.', 'error');
-                    newPointsInput.focus();
-                    errorMsg.classList.add('hidden');
-                    codeInput.classList.remove('border-red-500');
-                    return; 
-                }
-                
-                const confirmBtn = document.getElementById('modal-confirm');
-                setButtonLoading(confirmBtn, true);
-
-                try {
-                    const oldPoints = parseInt(currentPoints); // (جديد) حفظ القيمة القديمة
-                    
-                    await updateDoc(doc(db, "users", userId), { loyaltyPoints: newPoints });
-                    
-                    // --- === (جديد) إضافة سجل احترافي للتغيير === ---
-                    if (oldPoints !== newPoints) {
-                        const changeLogRef = collection(db, 'users', userId, 'loyaltyChanges');
-                        await addDoc(changeLogRef, {
-                            type: 'admin_manual_edit',
-                            pointsBefore: oldPoints,
-                            pointsAfter: newPoints,
-                            adminId: auth.currentUser.uid, // لمعرفة أي مدير قام بالتعديل
-                            timestamp: serverTimestamp()
-                        });
-                    }
-                    // --- === نهاية الإضافة === ---
-                    
-                    showToast('تم تحديث النقاط بنجاح!', 'success');
-                    
-                    // تحديث الكاش والعرض في الجدول
-                    const userInCache = registeredUsersCache.find(u => u.id === userId);
-                    if(userInCache) userInCache.loyaltyPoints = newPoints;
-                    const pointsSpan = document.getElementById(`points-user-${userId}`);
-                    if(pointsSpan) pointsSpan.textContent = newPoints;
-                    
-                    closeModal();
-                } catch (error) {
-                    showToast('فشل تحديث النقاط.', 'error');
-                } finally {
-                    setButtonLoading(confirmBtn, false);
-                }
-                
-            } else {
-                // كلمة السر خاطئة
-                errorMsg.classList.remove('hidden');
-                codeInput.classList.add('border-red-500');
-                codeInput.focus();
-                return; 
-            }
-        });
+        // ... (الدالة موجودة في الكود المشترك، لا حاجة لتكرارها هنا إلا إذا احتجتها)
     };
 
     const showToast = (message, type = 'success') => {
@@ -295,7 +237,7 @@
             btn.innerHTML = text;
         }
     };
-
+    
     // --- دوال طباعة وتحميل الوصل (مطلوبة هنا) ---
     const generateReceiptContent = (orderData, orderId) => {
         const orderDate = orderData.createdAt?.toDate ? orderData.createdAt.toDate().toLocaleString('ar-DZ') : new Date().toLocaleString('ar-DZ');
@@ -326,7 +268,7 @@
         printWindow.focus();
     };
     const downloadOrderReceiptPDF = (orderData, orderId) => {
-        // نستخدم html2pdf.js كحل بديل أسهل
+        // استخدام html2pdf.js كحل أسهل للغة العربية
         const receiptHtml = generateReceiptContent(orderData, orderId);
         const element = document.createElement('div');
         element.innerHTML = receiptHtml;
@@ -344,6 +286,10 @@
         showToast('جاري تحضير ملف PDF...', 'success');
     };
     
+    async function compressImage(file, maxWidth = 1024) { /* ... (دالة الضغط) ... */ }
+    async function uploadImageToImgBB(file) { /* ... (دالة الرفع) ... */ }
+
+
     // --- DASHBOARD INITIALIZATION & NAVIGATION (مشترك) ---
     
     function setActiveTab() {
@@ -372,177 +318,151 @@
         
         // =============== بداية الكود الخاص بالصفحة ===============
         
-        // جلب الطلبات أولاً لاستخدامها في مودال "عرض الطلبات"
-        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), snapshot => {
-            ordersCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-        });
-
-        // تحميل العملاء المسجلين
-        loadRegisteredCustomers();
+        // (جديد) نحتاج جلب عمال التوصيل أولاً لملء القائمة المنسدلة
+        loadDeliveryPersonnel();
+        
+        // (جديد) ثم نقوم بتحميل الطلبات
+        loadOrders();
         
         // =============== نهاية الكود الخاص بالصفحة ===============
     }
 
-
-    // --- ===== (جديد) قسم "العملاء المسجلون (الحسابات)" ===== ---
-    async function loadRegisteredCustomers() {
-        const searchInput = document.getElementById('registered-customer-search');
-        if(searchInput) {
-            searchInput.addEventListener('input', () => renderRegisteredCustomers());
-        }
-
-        try {
-            const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("registrationDate", "desc")));
-            registeredUsersCache = usersSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
-            renderRegisteredCustomers();
-        } catch (error) {
-            console.error("Error loading registered customers:", error);
-            document.getElementById('registered-customers-table-body').innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-600">حدث خطأ أثناء جلب العملاء. تأكد من قواعد الحماية.</td></tr>`;
-        }
+    // --- (جديد) دالة جلب عمال التوصيل (مطلوبة لهذه الصفحة) ---
+    function loadDeliveryPersonnel() {
+        // جلب عمال التوصيل مرة واحدة وتخزينهم في الكاش
+        onSnapshot(query(collection(db, "delivery_personnel"), orderBy("name")), snapshot => {
+            deliveryPersonnelCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            // بعد جلب عمال التوصيل، نعيد رسم جدول الطلبات لضمان تحديث القوائم
+            renderOrdersTable();
+        });
     }
 
-    function renderRegisteredCustomers() {
-        const tBody = document.getElementById('registered-customers-table-body');
-        const searchInput = document.getElementById('registered-customer-search');
+    // --- ORDERS SECTION (خاص بهذه الصفحة) ---
+    function loadOrders() {
+        const searchInput = document.getElementById('order-search-input');
+        searchInput.addEventListener('input', () => renderOrdersTable());
+
+        document.querySelectorAll('#order-status-filters .filter-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                document.querySelector('#order-status-filters .filter-btn.active').classList.remove('active');
+                e.currentTarget.classList.add('active');
+                currentOrderStatusFilter = e.currentTarget.dataset.status;
+                renderOrdersTable();
+            };
+        });
+
+        // الاستماع للطلبات
+        onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), snapshot => {
+            if (!isInitialOrdersLoad && snapshot.docChanges().some(c => c.type === "added")) {
+                document.getElementById('notification-sound').play();
+                showToast('طلب جديد ورد!', 'success');
+            }
+            isInitialOrdersLoad = false;
+            ordersCache = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            renderOrdersTable(); // عرض الجدول
+        });
+    }
+
+    function renderOrdersTable() {
+        const tableBody = document.getElementById('orders-table-body');
+        if (!tableBody) return; // تأكد أن العنصر موجود
+
+        const searchInput = document.getElementById('order-search-input');
         const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
-        const filteredUsers = registeredUsersCache.filter(user => 
-            (user.displayName || '').toLowerCase().includes(searchTerm) ||
-            (user.email || '').toLowerCase().includes(searchTerm) ||
-            (user.phone || '').includes(searchTerm)
-        );
-
-        tBody.innerHTML = filteredUsers.length === 0 ? `<tr><td colspan="6" class="p-8 text-center">لا يوجد عملاء مسجلون يطابقون بحثك.</td></tr>` : '';
-
-        filteredUsers.forEach(user => {
-            const regDate = user.registrationDate?.toDate ? user.registrationDate.toDate().toLocaleDateString('ar-EG') : 'غير معروف';
-            const row = document.createElement('tr');
-            row.className = 'border-b';
-            row.innerHTML = `
-                <td data-label="الاسم" class="p-3 font-semibold">${user.displayName || 'لا يوجد اسم'}</td>
-                <td data-label="الإيميل" class="p-3 text-gray-600">${user.email || 'لا يوجد'}</td>
-                <td data-label="الهاتف" class="p-3 font-mono" dir="ltr">${user.phone || 'لا يوجد'}</td>
-                <td data-label="النقاط" class="p-3 font-bold text-orange-600 flex justify-between items-center">
-                    <span id="points-user-${user.id}">${user.loyaltyPoints || 0}</span>
-                    <button class="edit-user-loyalty-btn text-blue-500 hover:text-blue-700" data-id="${user.id}" data-points="${user.loyaltyPoints || 0}" title="تعديل النقاط">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-                <td data-label="تاريخ التسجيل" class="p-3 font-mono">${regDate}</td>
-                <td data-label="إجراءات" class="p-3 space-x-2 space-x-reverse text-lg">
-                    <button class="view-user-orders-btn text-blue-500 hover:text-blue-700" data-id="${user.uid}" title="عرض طلبات هذا العضو">
-                        <i class="fas fa-list-alt"></i>
-                    </button>
-                    <button class="delete-user-btn text-red-500 hover:text-red-700" data-id="${user.id}" title="حذف هذا العضو (لا يمكن التراجع)">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            `;
-            tBody.appendChild(row);
-        });
-        
-        attachRegisteredCustomerListeners();
-    }
-    
-    function attachRegisteredCustomerListeners() {
-        document.querySelectorAll('.view-user-orders-btn').forEach(btn => {
-            btn.onclick = (e) => showCustomerOrdersModal(e.currentTarget.dataset.id);
-        });
-        
-        document.querySelectorAll('.edit-user-loyalty-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                const id = e.currentTarget.dataset.id;
-                // جلب أحدث قيمة للنقاط من الكاش لضمان عدم وجود تضارب
-                const user = registeredUsersCache.find(u => u.id === id);
-                const currentPoints = user ? user.loyaltyPoints : 0;
-                showEditLoyaltyModal(id, currentPoints || 0);
-            };
+        const filteredOrders = ordersCache.filter(order => {
+            const matchesSearch = (order.customerName || '').toLowerCase().includes(searchTerm) || (order.customerContact || '').includes(searchTerm);
+            const matchesFilter = currentOrderStatusFilter === 'all' || order.status === currentOrderStatusFilter;
+            return matchesSearch && matchesFilter;
         });
 
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                const docId = e.currentTarget.dataset.id;
-                // استخدام دالة تأكيد الحذف
-                showDeletionConfirmModal(async () => {
-                    try {
-                        await deleteDoc(doc(db, "users", docId));
-                        showToast('تم حذف العضو بنجاح.', 'success');
-                        // إعادة تحميل القائمة من الكاش (أسرع)
-                        registeredUsersCache = registeredUsersCache.filter(u => u.id !== docId);
-                        renderRegisteredCustomers(); 
-                    } catch (error) {
-                        console.error("Error deleting user: ", error);
-                        showToast('فشل حذف العضو.', 'error');
-                    }
-                });
-            };
-        });
-    }
-    
-    async function showCustomerOrdersModal(userId) {
-        if (!userId) {
-            showToast('معرّف العضو غير موجود.', 'error');
-            return;
-        }
-        
-        const user = registeredUsersCache.find(u => u.uid === userId);
-        const title = `سجل طلبات: ${user ? user.displayName : 'عميل غير معروف'}`;
-        const modalContent = `<div class="text-center p-8"><div class="spinner-dark mx-auto"></div><p>جاري جلب الطلبات...</p></div>`;
+        tableBody.innerHTML = filteredOrders.length === 0 ? `<tr><td colspan="7" class="p-8 text-center">لا توجد طلبات تطابق بحثك.</td></tr>` : '';
 
-        showModal(title, modalContent, null, '', false); 
+        filteredOrders.forEach(order => {
+            const statusColors = { new: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', canceled: 'bg-red-100 text-red-800' };
+            const itemsHtml = (order.items || []).map(item => {
+                let itemText = `<div><span class="font-semibold">${item.quantity} x ${item.name}</span></div>`;
+                if (item.selectedAddons && item.selectedAddons.length > 0) {
+                    const addonsText = item.selectedAddons.map(addon => `<div class="text-xs text-gray-600 mr-4">+ ${addon.name} (${formatCurrency(addon.price)})</div>`).join('');
+                    itemText += addonsText;
+                }
+                return itemText;
+            }).join('');
 
-        try {
-            // استخدام الكاش المحدث للطلبات بدلاً من جلب جديد
-            const userOrders = ordersCache.filter(order => order.userId === userId);
+            let couponHtml = '';
+            if(order.couponCode) { couponHtml = `<div class="text-xs text-green-600 font-bold mt-1">كوبون (${order.couponCode}) : -${formatCurrency(order.discountAmount)}</div>`; }
 
-            let contentHtml = '';
-            if (userOrders.length === 0) {
-                contentHtml = `<div class="text-center p-8"><i class="fas fa-box-open text-4xl text-gray-400"></i><p class="mt-4 text-gray-600">هذا العميل لم يقم بأي طلبات بعد.</p></div>`;
-            } else {
-                const ordersHtml = userOrders.map(order => {
-                    const orderId = order.id;
-                    const orderDate = order.createdAt.toDate().toLocaleDateString('ar-DZ');
-                    return `
-                        <tr class="border-b">
-                            <td class="p-2 font-mono">${orderDate}</td>
-                            <td class="p-2 font-mono">${formatCurrency(order.totalPrice)}</td>
-                            <td class="p-2"><span class="px-2 py-1 text-sm font-semibold rounded-full ${order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}">${order.status}</span></td>
-                            <td class="p-2 flex items-center gap-3">
-                               <button class="print-order-btn text-gray-500 hover:text-black" data-id="${orderId}" title="طباعة الوصل"><i class="fas fa-print"></i></button>
-                               <button class="pdf-order-btn text-red-500 hover:text-red-700" data-id="${orderId}" title="تحميل PDF"><i class="fas fa-file-pdf"></i></button>
-                            </td>
-                        </tr>`;
-                }).join('');
-                
-                contentHtml = `
-                    <div class="max-h-96 overflow-y-auto">
-                        <table class="w-full text-sm text-right">
-                            <thead class="bg-gray-100 sticky top-0"><tr>
-                                <th class="p-2">التاريخ</th><th class="p-2">الإجمالي</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th>
-                            </tr></thead>
-                            <tbody>${ordersHtml}</tbody>
-                        </table>
-                    </div>`;
+            // (مهم) استخدام الكاش المحدث لعمال التوصيل
+            const deliveryPersonnelOptions = deliveryPersonnelCache
+                .filter(p => p.status === 'active')
+                .map(p => `<option value="${p.id}" ${order.deliveryPersonId === p.id ? 'selected' : ''}>${p.name}</option>`)
+                .join('');
+
+            let formattedDate = '';
+            if (order.createdAt && typeof order.createdAt.toDate === 'function') {
+                const date = order.createdAt.toDate();
+                formattedDate = date.toLocaleDateString('ar-EG', { day: '2-digit', month: 'short' }) + ' - ' + date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
             }
-            
-            document.getElementById('modal-body').innerHTML = contentHtml;
 
-            // إعادة ربط الأحداث لأزرار الطباعة والـ PDF داخل المودال
-            document.querySelectorAll('#modal-body .print-order-btn').forEach(btn => btn.onclick = e => {
-                const orderId = e.currentTarget.dataset.id;
-                const order = ordersCache.find(o => o.id === orderId);
-                if (order) printOrderReceiptHTML(order, orderId);
-            });
-            document.querySelectorAll('#modal-body .pdf-order-btn').forEach(btn => btn.onclick = e => {
-                const orderId = e.currentTarget.dataset.id;
-                const order = ordersCache.find(o => o.id === orderId);
-                if (order) downloadOrderReceiptPDF(order, orderId);
-            });
+            const row = tableBody.insertRow();
+            row.className = `border-b ${order.status === 'new' ? 'bg-blue-50' : 'bg-white'}`;
+            row.innerHTML = `
+                <td data-label="العميل" class="p-3"><div class="font-semibold">${order.customerName}</div><div class="text-xs text-gray-500 font-mono">${formattedDate}</div></td>
+                <td data-label="الهاتف" class="p-3 font-mono" dir="ltr">${order.customerContact}</td>
+                <td data-label="الطلبية" class="p-3 text-sm">${itemsHtml}${couponHtml}</td>
+                <td data-label="المبلغ" class="p-3 font-mono font-bold">${formatCurrency(order.totalPrice)}</td>
+                <td data-label="الحالة" class="p-3"><select class="order-status-select p-2 rounded-lg ${statusColors[order.status] || ''}" data-id="${order.id}"><option value="new" ${order.status === 'new' ? 'selected' : ''}>جديد</option><option value="completed" ${order.status === 'completed' ? 'selected' : ''}>مكتمل</option><option value="canceled" ${order.status === 'canceled' ? 'selected' : ''}>ملغي</option></select></td>
+                <td data-label="عامل التوصيل" class="p-3"><select class="delivery-person-select p-2 rounded-lg bg-gray-50 border" data-id="${order.id}"><option value="">-- اختر --</option> ${deliveryPersonnelOptions}</select></td>
+                <td data-label="إجراءات" class="p-3 flex items-center gap-4">
+                    <button class="print-order-btn text-gray-600 hover:text-black" data-id="${order.id}" title="طباعة الوصل"><i class="fas fa-print fa-lg"></i></button>
+                    <button class="pdf-order-btn text-red-500 hover:text-red-700" data-id="${order.id}" title="تحميل PDF"><i class="fas fa-file-pdf fa-lg"></i></button>
+                    <button class="copy-order-btn text-blue-500 hover:text-blue-700" data-id="${order.id}" title="نسخ"><i class="fas fa-copy fa-lg"></i></button>
+                    <button class="delete-order-btn text-red-500 hover:text-red-700" data-id="${order.id}" title="حذف"><i class="fas fa-trash fa-lg"></i></button>
+                </td>`;
+        });
+        attachOrderActionListeners();
+    }
 
-        } catch (error) {
-            console.error("Error fetching user orders:", error);
-            document.getElementById('modal-body').innerHTML = `<p class="text-red-600 text-center">حدث خطأ أثناء جلب الطلبات.</p>`;
-        }
+    function attachOrderActionListeners() {
+        document.querySelectorAll('.order-status-select').forEach(sel => sel.onchange = e => updateDoc(doc(db, "orders", e.target.dataset.id), { status: e.target.value }));
+        
+        document.querySelectorAll('.delivery-person-select').forEach(sel => sel.onchange = e => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const personId = selectedOption.value;
+            const personName = personId ? selectedOption.text : null;
+            updateDoc(doc(db, "orders", e.target.dataset.id), { deliveryPersonId: personId, deliveryPersonName: personName });
+        });
+
+        document.querySelectorAll('.delete-order-btn').forEach(btn => btn.onclick = e => {
+            const docId = e.currentTarget.dataset.id;
+            showDeletionConfirmModal(() => { deleteDoc(doc(db, "orders", docId)).then(() => showToast('تم حذف الطلب.', 'success')); });
+        });
+
+        document.querySelectorAll('.copy-order-btn').forEach(btn => btn.onclick = e => {
+            const order = ordersCache.find(o => o.id === e.currentTarget.dataset.id);
+            if (!order) return;
+             const itemsText = (order.items || []).map(item => {
+                let mainText = `   - ${item.quantity} x ${item.name}`;
+                if(item.selectedAddons && item.selectedAddons.length > 0) { const addonsText = item.selectedAddons.map(a => ` (+ ${a.name})`).join(''); mainText += addonsText; }
+                return mainText;
+            }).join('\n');
+            const couponText = order.couponCode ? `\n\n🎉 تم استخدام كوبون: ${order.couponCode}\n💰 التخفيض: ${formatCurrency(order.discountAmount)}` : '';
+            const deliveryPersonText = order.deliveryPersonName ? `\n🚚 بواسطة: ${order.deliveryPersonName}` : '';
+            const message = `طلب جديد من TEXMEX\n--------------------\n👤 الاسم: ${order.customerName}\n📞 الهاتف: ${order.customerContact}\n📍 العنوان: ${order.customerLocation}\n📋 الطلبية:\n${itemsText}${couponText}\n💰 السعر الإجمالي: ${formatCurrency(order.totalPrice)}${deliveryPersonText}\n--------------------`;
+            navigator.clipboard.writeText(message).then(() => showToast('تم نسخ معلومات الطلب بنجاح!'));
+        });
+
+        document.querySelectorAll('.print-order-btn').forEach(btn => btn.onclick = e => {
+            const orderId = e.currentTarget.dataset.id;
+            const order = ordersCache.find(o => o.id === orderId);
+            if (order) printOrderReceiptHTML(order, orderId);
+        });
+
+        document.querySelectorAll('.pdf-order-btn').forEach(btn => btn.onclick = e => {
+            const orderId = e.currentTarget.dataset.id;
+            const order = ordersCache.find(o => o.id === orderId);
+            if (order) downloadOrderReceiptPDF(order, orderId);
+        });
     }
 
 </script>

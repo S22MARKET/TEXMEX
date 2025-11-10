@@ -97,12 +97,13 @@
                                     <tr>
                                         <th class="p-3">الاسم</th>
                                         <th class="p-3">الهاتف</th>
+                                        <th class="p-3">(جديد) الرمز السري</th>
                                         <th class="p-3">الحالة</th>
                                         <th class="p-3">إجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="personnel-table-body">
-                                    <tr><td colspan="4" class="p-8 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-2">جاري تحميل عمال التوصيل...</p></td></tr>
+                                    <tr><td colspan="5" class="p-8 text-center"><div class="spinner-dark mx-auto"></div><p class="mt-2">جاري تحميل عمال التوصيل...</p></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -252,14 +253,13 @@
         
         // =============== بداية الكود الخاص بالصفحة ===============
         
-        // (جديد) تحميل عمال التوصيل
         loadDeliveryPersonnel();
         
         // =============== نهاية الكود الخاص بالصفحة ===============
     }
 
 
-    // --- DELIVERY PERSONNEL SECTION (خاص بهذه الصفحة) ---
+    // --- (تم التعديل) DELIVERY PERSONNEL SECTION ---
     function loadDeliveryPersonnel() {
         document.getElementById('add-personnel-btn').onclick = () => showPersonnelModal();
         
@@ -269,7 +269,7 @@
             tBody.innerHTML = '';
 
             if (deliveryPersonnelCache.length === 0) {
-                tBody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">لم تقم بإضافة أي عمال توصيل بعد.</td></tr>`;
+                tBody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">لم تقم بإضافة أي عمال توصيل بعد.</td></tr>`;
                 return;
             }
 
@@ -279,6 +279,7 @@
                     <tr class="border-b">
                         <td data-label="الاسم" class="p-3 font-semibold">${person.name}</td>
                         <td data-label="الهاتف" class="p-3 font-mono" dir="ltr">${person.phone}</td>
+                        <td data-label="الرمز السري" class="p-3 font-mono font-bold text-orange-600">${person.pin_code || 'N/A'}</td>
                         <td data-label="الحالة" class="p-3"><span class="px-2 py-1 text-sm font-semibold rounded-full ${statusClass}">${person.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
                         <td data-label="إجراءات" class="p-3">
                             <button class="edit-personnel-btn text-indigo-500 mr-4" data-id="${person.id}"><i class="fas fa-edit"></i></button>
@@ -297,16 +298,18 @@
         });
     }
 
+    // --- (تم التعديل) showPersonnelModal ---
     function showPersonnelModal(person = null) {
         const content = `
             <div class="space-y-4">
-                <input type="text" id="person-name" placeholder="اسم العامل" class="w-full p-2 border rounded" value="${person ? person.name : ''}" required>
-                <input type="tel" id="person-phone" placeholder="رقم الهاتف" class="w-full p-2 border rounded" value="${person ? person.phone : ''}" required dir="ltr">
+                <input type="text" id="person-name" placeholder="اسم العامل" class="w-full p-2 border rounded" value="${person?.name || ''}" required>
+                <input type="tel" id="person-phone" placeholder="رقم الهاتف (سيستخدمه للدخول)" class="w-full p-2 border rounded" value="${person?.phone || ''}" required dir="ltr">
+                <input type="number" id="person-pin" placeholder="الرمز السري (مثال: 1234)" class="w-full p-2 border rounded" value="${person?.pin_code || ''}" required dir="ltr">
                 <div>
                     <label class="font-semibold text-sm">الحالة</label>
                     <select id="person-status" class="w-full p-2 mt-1 border rounded bg-white">
-                        <option value="active" ${person && person.status === 'active' ? 'selected' : ''}>نشط</option>
-                        <option value="inactive" ${person && person.status === 'inactive' ? 'selected' : ''}>غير نشط</option>
+                        <option value="active" ${person?.status === 'active' ? 'selected' : ''}>نشط</option>
+                        <option value="inactive" ${person?.status === 'inactive' ? 'selected' : ''}>غير نشط</option>
                     </select>
                 </div>
             </div>`;
@@ -315,11 +318,12 @@
             const data = { 
                 name: document.getElementById('person-name').value.trim(), 
                 phone: document.getElementById('person-phone').value.trim(), 
+                pin_code: document.getElementById('person-pin').value.trim(),
                 status: document.getElementById('person-status').value, 
             };
             
-            if (!data.name || !data.phone) { 
-                showToast('الرجاء إدخال الاسم والهاتف.', 'error'); 
+            if (!data.name || !data.phone || !data.pin_code) { 
+                showToast('الرجاء إدخال الاسم والهاتف والرمز السري.', 'error'); 
                 return; 
             }
             
