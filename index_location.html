@@ -303,7 +303,7 @@
             try { 
                 map = L.map('map').setView(ANNABA_COORDS, 14);
                 
-                // (تم التعديل): استخدام خرائط Esri الحديثة (بديل OpenStreetMap)
+                // (الحل 3): استخدام خرائط Esri الحديثة (بديل OpenStreetMap)
                 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles © Esri'
                 }).addTo(map);
@@ -381,7 +381,7 @@
             }
             const finalTotalPrice = subTotal + finalDeliveryFee - discountAmount;
             
-            // (تم التعديل): إرسال رابط خرائط جوجل الاحترافي
+            // (الحل 4): إرسال رابط خرائط جوجل الاحترافي
             const orderData = {
                 customerName: elements.customerName.value.trim(),
                 customerContact: elements.customerContact.value.trim(),
@@ -407,7 +407,7 @@
             try {
                 const docRef = await addDoc(collection(db, "orders"), orderData);
                 
-                // (تم الحذف): لا نضف نقاط الوفاء تلقائياً
+                // (الحل 5): لا نضف نقاط الوفاء تلقائياً
                 
                 order = [];
                 appliedCoupon = null;

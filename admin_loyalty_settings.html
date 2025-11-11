@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #f0f2f5; }
         .hidden { display: none; }
@@ -32,12 +31,7 @@
         .spinner-dark { width: 24px; height: 24px; border: 4px solid rgba(0,0,0, 0.1); border-top-color: #333; border-radius: 50%; animation: spin 1s linear infinite; }
         .small-spinner { width: 16px; height: 16px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .responsive-table thead { display: none; } .responsive-table tr { display: block; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; } .responsive-table td { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; } .responsive-table td:last-child { border-bottom: none; } .responsive-table td::before { content: attr(data-label); font-weight: 600; margin-left: 0.5rem; } }
-        .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background-color: white; transition: all 0.2s; }
-        .filter-btn.active { background-color: #f97316; color: white; border-color: #f97316; }
-        .ql-editor { min-height: 120px; }
     </style>
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 </head>
 <body>
 
@@ -51,7 +45,7 @@
         <div class="relative min-h-screen md:flex">
 
             <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 right-0 transform translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-30">
-                <nav class="flex-1 p-2 space-y-2">
+                 <nav class="flex-1 p-2 space-y-2">
                     <a href="admin_dashboard.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tachometer-alt fa-fw ml-3"></i> اللوحة الرئيسية</a>
                     <a href="admin_orders.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-clipboard-list fa-fw ml-3"></i> الطلبات الواردة</a>
                     <a href="admin_customer_log.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-users fa-fw ml-3"></i> سجل العملاء (بالطلبات)</a>
@@ -82,18 +76,17 @@
                 
                 <main class="flex-1 p-4 md:p-8 overflow-y-auto">
                     
-                    <div id="loyalty-settings-panel" class="dashboard-panel grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-6">إدارة نظام الوفاء (النقاط والمكافآت)</h1>
+
+                    <div id="loyalty-settings-panel" class="dashboard-panel grid grid-cols-1 lg:grid-cols-3 gap-8">
                         
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-800 mb-6">إعدادات بطاقة الوفاء</h1>
-                        
+                        <div class="lg:col-span-1 space-y-8">
                             <div id="loyalty-loader" class="text-center p-10 bg-white rounded-xl shadow-md">
                                 <div class="spinner-dark mx-auto"></div>
                                 <p class="mt-4 text-gray-600">جاري تحميل الإعدادات...</p>
                             </div>
                             
                             <form id="loyalty-form" class="hidden space-y-8">
-                                
                                 <div class="bg-white p-6 rounded-xl shadow-md">
                                     <h3 class="text-xl font-bold mb-4 border-b pb-2">تفعيل النظام</h3>
                                     <div class="flex items-center justify-between">
@@ -108,32 +101,17 @@
 
                                 <div class="bg-white p-6 rounded-xl shadow-md">
                                     <h3 class="text-xl font-bold mb-4 border-b pb-2">قواعد كسب النقاط</h3>
-                                    
                                     <div class="space-y-4">
                                         <div>
                                             <label class="font-semibold">النقاط مقابل الإنفاق</label>
-                                            <p class="text-sm text-gray-500 mb-2">هذه القاعدة ستُطبق عند الموافقة على منح نقاط طلب مكتمل.</p>
+                                            <p class="text-sm text-gray-500 mb-2">تُطبق عند الموافقة على منح نقاط طلب مكتمل.</p>
                                             <div class="flex items-center gap-2 mt-1">
                                                 <span class="text-gray-600">العميل يربح</span>
-                                                <input type="number" id="loyalty_spending_points" step="0.1" class="w-24 p-2 border rounded text-center font-bold" value="1">
+                                                <input type="number" id="loyalty_spending_points" class="w-24 p-2 border rounded text-center font-bold" value="10">
                                                 <span class="text-gray-600">نقطة مقابل كل</span>
                                                 <input type="number" id="loyalty_spending_value" class="w-32 p-2 border rounded text-center font-bold" value="100">
-                                                <span class="text-gray-600">د.ج ينفقها.</span>
+                                                <span class="text-gray-600">د.ج.</span>
                                             </div>
-                                        </div>
-                                        
-                                        <hr>
-                                        
-                                        <div>
-                                            <label for="loyalty_share_points" class="font-semibold">نقاط مقابل مشاركة التطبيق</label>
-                                            <input type="number" id="loyalty_share_points" step="0.1" class="w-full p-2 border rounded mt-1" value="0">
-                                            <p class="text-sm text-gray-500 mt-1">أدخل 0 لإلغاء هذه الميزة (تتطلب برمجة إضافية في التطبيق).</p>
-                                        </div>
-                                        
-                                        <div>
-                                            <label for="loyalty_comment_points" class="font-semibold">نقاط مقابل إضافة تعليق/تقييم</label>
-                                            <input type="number" id="loyalty_comment_points" step="0.1" class="w-full p-2 border rounded mt-1" value="0">
-                                            <p class="text-sm text-gray-500 mt-1">أدخل 0 لإلغاء هذه الميزة (تتطلب برمجة إضافية في التطبيق).</p>
                                         </div>
                                     </div>
                                 </div>
@@ -142,9 +120,9 @@
                                     <h3 class="text-xl font-bold mb-4 border-b pb-2">قيمة استبدال النقاط</h3>
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-gray-600">كل</span>
+                                        <input type="number" id="loyalty_point_value_base" class="w-24 p-2 border rounded text-center font-bold" value="10">
+                                        <span class="text-gray-600">نقاط تساوي</span>
                                         <span class="text-lg font-bold text-orange-600">1</span>
-                                        <span class="text-gray-600">نقطة تساوي</span>
-                                        <input type="number" id="loyalty_point_value" step="0.1" class="w-32 p-2 border rounded text-center font-bold" value="1">
                                         <span class="text-gray-600">د.ج (كرصيد تخفيض).</span>
                                     </div>
                                 </div>
@@ -152,9 +130,10 @@
                                 <div class="bg-white p-6 rounded-xl shadow-md">
                                     <h3 class="text-xl font-bold mb-4 border-b pb-2">هدف المكافأة (للعميل)</h3>
                                     <label for="loyalty_reward_threshold" class="font-semibold">الهدف (عدد النقاط)</label>
-                                    <input type="number" id="loyalty_reward_threshold" class="w-full p-2 border rounded mt-1" value="100">
-                                    <p class="text-sm text-gray-500 mt-1">هذا هو الهدف الذي سيظهر في شريط التقدم في بطاقة وفاء العميل (مثال: 100 نقطة).</p>
+                                    <input type="number" id="loyalty_reward_threshold" class="w-full p-2 border rounded mt-1" value="1000">
+                                    <p class="text-sm text-gray-500 mt-1">الهدف الذي سيظهر في شريط التقدم في بطاقة وفاء العميل.</p>
                                 </div>
+
                                 <div class="mt-8 text-right">
                                     <button id="save-loyalty-settings-btn" type="submit" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700">
                                         حفظ الإعدادات
@@ -163,17 +142,115 @@
                             </form>
                         </div>
                         
-                        <div id="loyalty-approval-panel">
-                            <h1 class="text-3xl font-bold text-gray-800 mb-6">
+                        <div class="lg:col-span-1 space-y-8">
+                            
+                            <div id="loyalty-rewards-panel">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                                    <i class="fas fa-store text-blue-500"></i>
+                                    إدارة المكافآت (متجر الهدايا)
+                                </h2>
+                                <p class="text-gray-600 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                    <i class="fas fa-info-circle ml-2 text-blue-500"></i>
+                                    أضف المكافآت التي يمكن للعملاء استبدالها بنقاطهم. ستصلك طلبات الاستبدال للموافقة عليها يدوياً.
+                                </p>
+    
+                                <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+                                    <h3 class="text-xl font-bold mb-4 border-b pb-2">إضافة مكافأة جديدة</h3>
+                                    <form id="new-reward-form" class="space-y-4">
+                                        <div>
+                                            <label for="reward_title" class="font-semibold">عنوان المكافأة (مثال: وجبة برغر مجانية)</label>
+                                            <input type="text" id="reward_title" placeholder="شحن رصيد 100 دج" class="w-full p-2 border rounded mt-1" required>
+                                        </div>
+                                        <div>
+                                            <label for="reward_points" class="font-semibold">السعر (بالنقاط)</label>
+                                            <input type="number" id="reward_points" class="w-full p-2 border rounded mt-1" value="1000" required>
+                                        </div>
+                                        <div>
+                                            <label for="reward_type" class="font-semibold">نوع الطلب</label>
+                                            <select id="reward_type" class="w-full p-2 border rounded mt-1 bg-white">
+                                                <option value="input_required">يتطلب إدخال بيانات (مثل رقم هاتف)</option>
+                                                <option value="approval_only">موافقة فقط (مثل وجبة مجانية)</option>
+                                            </select>
+                                        </div>
+                                        <div class="text-right">
+                                            <button id="save-reward-btn" type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                                                <i class="fas fa-plus"></i>
+                                                <span>إضافة مكافأة</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+    
+                                <div class="bg-white p-4 rounded-xl shadow-md">
+                                    <h3 class="text-xl font-bold mb-4">المكافآت الحالية</h3>
+                                    <div id="rewards-loader" class="text-center p-6">
+                                        <div class="spinner-dark mx-auto"></div>
+                                        <p class="mt-3 text-gray-500">جاري جلب المكافآت...</p>
+                                    </div>
+                                    <div id="rewards-list" class="space-y-3 max-h-[400px] overflow-y-auto">
+                                        </div>
+                                    <div id="no-rewards-msg" class="hidden text-center p-6 text-gray-500">
+                                        لا توجد مكافآت حالياً.
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="loyalty-tasks-panel" class="mt-12">
+                                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                                    <i class="fas fa-tasks text-purple-500"></i>
+                                    إدارة مهام ربح النقاط
+                                </h2>
+                                
+                                <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+                                    <h3 class="text-xl font-bold mb-4 border-b pb-2">إضافة مهمة جديدة</h3>
+                                    <form id="new-task-form" class="space-y-4">
+                                        <div>
+                                            <label for="task_title" class="font-semibold">عنوان المهمة</label>
+                                            <input type="text" id="task_title" placeholder="مثال: تابعنا على إنستغرام" class="w-full p-2 border rounded mt-1" required>
+                                        </div>
+                                        <div>
+                                            <label for="task_link" class="font-semibold">الرابط (URL)</label>
+                                            <input type="url" id="task_link" placeholder="https://instagram.com/texmex" class="w-full p-2 border rounded mt-1" dir="ltr" required>
+                                        </div>
+                                        <div>
+                                            <label for="task_points" class="font-semibold">النقاط الممنوحة</label>
+                                            <input type="number" id="task_points" class="w-full p-2 border rounded mt-1" value="50" required>
+                                        </div>
+                                        <div class="text-right">
+                                            <button id="save-task-btn" type="submit" class="bg-purple-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-purple-700 flex items-center gap-2">
+                                                <i class="fas fa-plus"></i>
+                                                <span>إضافة المهمة</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+    
+                                <div class="bg-white p-4 rounded-xl shadow-md">
+                                    <h3 class="text-xl font-bold mb-4">المهام الحالية</h3>
+                                    <div id="tasks-loader" class="text-center p-6">
+                                        <div class="spinner-dark mx-auto"></div>
+                                        <p class="mt-3 text-gray-500">جاري جلب المهام...</p>
+                                    </div>
+                                    <div id="tasks-list" class="space-y-3 max-h-[400px] overflow-y-auto">
+                                        </div>
+                                    <div id="no-tasks-msg" class="hidden text-center p-6 text-gray-500">
+                                        لا توجد مهام حالياً.
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        
+
+                        <div id="loyalty-approval-panel" class="lg:col-span-1">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6">
                                 <i class="fas fa-check-double text-green-500"></i>
                                 الموافقة على نقاط الطلبات
-                            </h1>
-                            <p class="text-gray-600 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                <i class="fas fa-info-circle ml-2 text-blue-500"></i>
-                                هنا تظهر الطلبات التي تم تحديد حالتها كـ <strong class="text-blue-700">"مكتمل" (completed)</strong> في صفحة الطلبات، ولم يتم منح نقاطها بعد.
+                            </h2>
+                            <p class="text-gray-600 mb-4 bg-green-50 p-3 rounded-lg border border-green-200">
+                                <i class="fas fa-info-circle ml-2 text-green-500"></i>
+                                هنا تظهر الطلبات التي تم تحديد حالتها كـ <strong class="text-green-700">"مكتمل"</strong> ولم يتم منح نقاطها بعد.
                             </p>
                             
-                            <div class="bg-white p-4 rounded-xl shadow-md">
+                            <div class="bg-white p-4 rounded-xl shadow-md sticky top-24">
                                 <div class="flex justify-between items-center mb-4">
                                     <h3 class="text-xl font-bold">طلبات بانتظار منح النقاط</h3>
                                     <button id="refresh-pending-orders" class="text-gray-500 hover:text-blue-500"><i class="fas fa-sync-alt"></i></button>
@@ -185,16 +262,16 @@
                                 </div>
                                 
                                 <div id="pending-orders-list" class="space-y-3 max-h-[600px] overflow-y-auto">
-                                    </div>
+                                </div>
                                 
                                 <div id="no-pending-orders" class="hidden text-center p-10 border-t">
                                     <i class="fas fa-check-circle fa-3x text-green-400"></i>
                                     <p class="mt-4 text-lg font-semibold text-gray-600">لا توجد طلبات مكتملة بانتظار منح النقاط حالياً.</p>
-                                    <p class="text-gray-500">كل شيء محدث!</p>
                                 </div>
                             </div>
                         </div>
-                        </div>
+
+                    </div>
 
                 </main>
                 </div>
@@ -205,7 +282,6 @@
     <div id="toast-container"></div>
 
 <script type="module">
-    // --- FIREBASE INITIALIZATION (مشترك) ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, serverTimestamp, orderBy, getDoc, setDoc, getDocs, where, Timestamp, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -224,7 +300,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // --- AUTHENTICATION GATE (مشترك) ---
     const authLoader = document.getElementById('auth-loader');
     const dashboardPage = document.getElementById('dashboard-page');
 
@@ -238,24 +313,8 @@
         }
     });
 
-    // --- GLOBAL CACHES & STATE (مشترك) ---
-    // ( ... No changes to this section ... )
-    let categoriesCache = [];
-    let deliveryPersonnelCache = [];
-    let menuItemsCache = [];
-    let offersCache = [];
-    let couponsCache = [];
-    let ordersCache = [];
-    let deliveryZonesCache = [];
-    let registeredUsersCache = [];
-    let quillEditor = null; 
-    let selectedFileStore = {}; 
-    let loyaltySettingsCache = {}; // (جديد) كاش لإعدادات الوفاء
+    let loyaltySettingsCache = {};
 
-
-    // --- UI & UX HELPERS (مشتركة) ---
-    // ( ... No changes to helper functions showModal, closeModal, etc ... )
-    
     const formatCurrency = (number) => {
         const num = Math.round(number) || 0;
         return `${num} د.ج`;
@@ -266,30 +325,16 @@
         const confirmButtonHtml = onConfirm ? `<button id="modal-confirm" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-700 flex items-center gap-2">${confirmText}</button>` : '';
         const cancelButtonHtml = showCancel ? `<button id="modal-cancel" class="bg-gray-200 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300">إلغاء</button>` : '';
         modalContainer.innerHTML = `<div class="modal-backdrop" id="modal-backdrop"><div class="modal-content"><div class="flex justify-between items-center mb-4 border-b pb-3"><h3 class="text-xl font-bold">${title}</h3><button id="modal-close-btn" class="text-2xl">&times;</button></div><div id="modal-body">${content}</div><div class="flex justify-end gap-4 mt-6 border-t pt-4">${cancelButtonHtml}${confirmButtonHtml}</div></div></div>`;
-        const close = () => { quillEditor = null; modalContainer.innerHTML = ''; }
+        const close = () => { modalContainer.innerHTML = ''; }
         if (showCancel) document.getElementById('modal-cancel').onclick = close;
         document.getElementById('modal-close-btn').onclick = close;
         document.getElementById('modal-backdrop').onclick = e => { if (e.target.id === 'modal-backdrop') close(); };
         if (onConfirm) document.getElementById('modal-confirm').onclick = onConfirm;
     };
 
-    const closeModal = () => {
-         quillEditor = null;
-        document.getElementById('modal-container').innerHTML = '';
-    }
-
     const showDeletionConfirmModal = (onConfirmCallback) => {
-        const content = `<p class="mb-4 text-lg">لتأكيد عملية الحذف، الرجاء إدخال الرمز التالي:</p><div class="text-center mb-4"><code class="text-2xl font-bold bg-gray-100 p-2 rounded-lg text-orange-600 select-all">S22MARKET</code></div><input type="text" id="deletion-code-input" placeholder="أدخل الرمز هنا للتأكيد" class="w-full p-3 border rounded-lg text-center tracking-widest uppercase focus:ring-2 focus:ring-orange-400 focus:border-orange-400"><p id="deletion-error-msg" class="text-red-600 text-sm mt-2 text-center hidden">الرمز الذي أدخلته غير صحيح.</p>`;
-        showModal('تأكيد عملية الحذف', content, () => {
-            const codeInput = document.getElementById('deletion-code-input');
-            const errorMsg = document.getElementById('deletion-error-msg');
-            if (codeInput.value.trim().toUpperCase() === 'S22MARKET') { onConfirmCallback(); closeModal(); } 
-            else { errorMsg.classList.remove('hidden'); codeInput.classList.add('border-red-500'); }
-        }, 'تأكيد الحذف', true);
-    };
-
-    const showEditLoyaltyModal = (userId, currentPoints) => {
-        // ... (الدالة موجودة في الكود المشترك)
+        const content = `<p class="mb-4 text-lg">هل أنت متأكد أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.</p>`;
+        showModal('تأكيد عملية الحذف', content, onConfirmCallback, 'نعم، قم بالحذف', true);
     };
 
     const showToast = (message, type = 'success') => {
@@ -311,8 +356,6 @@
             btn.innerHTML = text;
         }
     };
-    
-    // --- DASHBOARD INITIALIZATION & NAVIGATION (مشترك) ---
     
     function setActiveTab() {
         const currentPage = window.location.pathname.split('/').pop();
@@ -340,21 +383,30 @@
         
         // =============== بداية الكود الخاص بالصفحة ===============
         
-        // تحميل إعدادات الوفاء
         loadLoyaltySettings();
-        
-        // (جديد) تحميل الطلبات المنتظرة للموافقة
         loadPendingApprovalOrders();
-
         document.getElementById('refresh-pending-orders').onclick = loadPendingApprovalOrders;
         
+        // --- (جديد) تحميل المهام والمكافآت وربط النماذج ---
+        loadTasks();
+        document.getElementById('new-task-form').addEventListener('submit', saveNewTask);
+        document.getElementById('tasks-list').addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-task-btn');
+            if (deleteBtn) deleteTask(deleteBtn.dataset.id);
+        });
+        
+        loadRewards();
+        document.getElementById('new-reward-form').addEventListener('submit', saveNewReward);
+        document.getElementById('rewards-list').addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-reward-btn');
+            if (deleteBtn) deleteReward(deleteBtn.dataset.id);
+        });
         // =============== نهاية الكود الخاص بالصفحة ===============
     }
 
 
     // --- LOYALTY SETTINGS SECTION (خاص بهذه الصفحة) ---
 
-    // (تم التعديل) دالة جلب/تعبئة الإعدادات
     async function loadLoyaltySettings() {
         const loader = document.getElementById('loyalty-loader');
         const form = document.getElementById('loyalty-form');
@@ -365,22 +417,19 @@
             
             if (docSnap.exists()) {
                 const settings = docSnap.data();
-                loyaltySettingsCache = settings; // (جديد) تخزين الإعدادات في الكاش
+                loyaltySettingsCache = settings; 
                 
                 document.getElementById('loyalty-active-toggle').checked = settings.isActive || false;
-                document.getElementById('loyalty_spending_points').value = settings.spendingPoints || 1;
+                document.getElementById('loyalty_spending_points').value = settings.spendingPoints || 10;
                 document.getElementById('loyalty_spending_value').value = settings.spendingValue || 100;
-                document.getElementById('loyalty_share_points').value = settings.sharePoints || 0;
-                document.getElementById('loyalty_comment_points').value = settings.commentPoints || 0;
-                document.getElementById('loyalty_point_value').value = settings.pointValue || 1;
-                // (جديد) تعبئة حقل هدف المكافأة
-                document.getElementById('loyalty_reward_threshold').value = settings.rewardThreshold || 100;
+                document.getElementById('loyalty_point_value_base').value = settings.pointValueBase || 10; // (جديد)
+                document.getElementById('loyalty_reward_threshold').value = settings.rewardThreshold || 1000;
             } else {
                 // قيم افتراضية
-                document.getElementById('loyalty_spending_points').value = 1;
+                document.getElementById('loyalty_spending_points').value = 10;
                 document.getElementById('loyalty_spending_value').value = 100;
-                document.getElementById('loyalty_point_value').value = 1;
-                document.getElementById('loyalty_reward_threshold').value = 100;
+                document.getElementById('loyalty_point_value_base').value = 10;
+                document.getElementById('loyalty_reward_threshold').value = 1000;
             }
             
             loader.classList.add('hidden');
@@ -388,13 +437,26 @@
             
             form.addEventListener('submit', saveLoyaltySettings);
 
+            const loyaltyToggle = document.getElementById('loyalty-active-toggle');
+            loyaltyToggle.addEventListener('change', async () => {
+                const newValue = loyaltyToggle.checked;
+                try {
+                    const docRef = doc(db, "settings", "loyalty");
+                    await setDoc(docRef, { isActive: newValue }, { merge: true });
+                    loyaltySettingsCache.isActive = newValue;
+                    showToast(newValue ? 'تم تفعيل نظام الوفاء' : 'تم إلغاء تفعيل نظام الوفاء', 'success');
+                } catch (error) {
+                    showToast('فشل حفظ التغيير: ' + error.message, 'error');
+                    loyaltyToggle.checked = !newValue;
+                }
+            });
+
         } catch (error) {
             console.error("Error loading loyalty settings: ", error);
             loader.innerHTML = `<p class="text-red-500">فشل تحميل الإعدادات: ${error.message}</p>`;
         }
     }
 
-    // (تم التعديل) دالة حفظ الإعدادات
     async function saveLoyaltySettings(e) {
         e.preventDefault();
         const saveBtn = document.getElementById('save-loyalty-settings-btn');
@@ -402,23 +464,20 @@
         
         try {
             const settingsData = {
-                isActive: document.getElementById('loyalty-active-toggle').checked,
                 spendingPoints: parseFloat(document.getElementById('loyalty_spending_points').value) || 0,
                 spendingValue: parseFloat(document.getElementById('loyalty_spending_value').value) || 0,
-                sharePoints: parseFloat(document.getElementById('loyalty_share_points').value) || 0,
-                commentPoints: parseFloat(document.getElementById('loyalty_comment_points').value) || 0,
-                pointValue: parseFloat(document.getElementById('loyalty_point_value').value) || 0,
-                // (جديد) حفظ هدف المكافأة
+                pointValueBase: parseFloat(document.getElementById('loyalty_point_value_base').value) || 1, // (جديد)
                 rewardThreshold: parseInt(document.getElementById('loyalty_reward_threshold').value) || 100,
             };
             
-            if (settingsData.spendingPoints < 0 || settingsData.spendingValue < 0 || settingsData.sharePoints < 0 || settingsData.commentPoints < 0 || settingsData.pointValue < 0 || settingsData.rewardThreshold < 1) {
-                 showToast('لا يمكن إدخال قيم سلبية، ويجب أن يكون الهدف 1 على الأقل.', 'error');
+            if (settingsData.spendingPoints < 0 || settingsData.spendingValue < 0 || settingsData.pointValueBase <= 0 || settingsData.rewardThreshold < 1) {
+                 showToast('لا يمكن إدخال قيم سلبية، وقيمة النقطة/الهدف يجب أن تكون أكبر من صفر.', 'error');
                  setButtonLoading(saveBtn, false, 'حفظ الإعدادات');
                  return;
             }
             
-            loyaltySettingsCache = settingsData; // (جديد) تحديث الكاش
+            loyaltySettingsCache = { ...loyaltySettingsCache, ...settingsData };
+            
             const docRef = doc(db, "settings", "loyalty");
             await setDoc(docRef, settingsData, { merge: true });
             
@@ -432,7 +491,7 @@
         }
     }
 
-    // --- (جديد) قسم الموافقة على نقاط الطلبات ---
+    // --- قسم الموافقة على نقاط الطلبات ---
 
     async function loadPendingApprovalOrders() {
         const loader = document.getElementById('pending-orders-loader');
@@ -444,8 +503,6 @@
         noOrdersMsg.classList.add('hidden');
 
         try {
-            // جلب الطلبات المكتملة (completed)
-            // والتي لا تحتوي على الحقل (pointsAwarded: true)
             const q = query(
                 collection(db, "orders"), 
                 where("status", "==", "completed"),
@@ -459,8 +516,6 @@
             } else {
                 snapshot.docs.forEach(doc => {
                     const order = { id: doc.id, ...doc.data() };
-                    
-                    // نتجاهل الطلبات التي ليس لها userId (طلبات الزوار)
                     if (!order.userId) return;
 
                     const orderCard = document.createElement('div');
@@ -485,7 +540,6 @@
                     listContainer.appendChild(orderCard);
                 });
                 
-                // إذا كانت كل الطلبات المكتملة هي لزوار، أظهر رسالة "لا يوجد"
                 if (listContainer.children.length === 0) {
                      noOrdersMsg.classList.remove('hidden');
                 }
@@ -493,57 +547,52 @@
 
         } catch (error) {
             console.error("Error loading pending orders:", error);
-            listContainer.innerHTML = `<p class="text-red-500">فشل جلب الطلبات. تأكد من قواعد الأمان (Firestore Rules).</p>`;
+            listContainer.innerHTML = `<p class="text-red-500 p-4"><b>فشل جلب الطلبات.</b><br>تأكد من إنشاء الفهرس (Index) المطلوب في Firestore.</p>`;
         } finally {
             loader.classList.add('hidden');
         }
     }
 
-    // (جديد) ربط الحدث
     document.getElementById('pending-orders-list').addEventListener('click', async (e) => {
         const btn = e.target.closest('.award-points-btn');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = `<span class="small-spinner"></span>`;
-            
             const { orderId, userId, totalPrice } = btn.dataset;
-            
             await awardPointsForOrder(orderId, userId, parseFloat(totalPrice), btn);
         }
     });
 
-    // (جديد) دالة منح النقاط
     async function awardPointsForOrder(orderId, userId, orderTotal, btnElement) {
-        // 1. التأكد من وجود قواعد الكسب في الكاش
-        if (!loyaltySettingsCache.spendingValue || !loyaltySettingsCache.spendingPoints) {
+        if (!loyaltySettingsCache.spendingValue || typeof loyaltySettingsCache.spendingPoints === 'undefined') {
             showToast('خطأ: قواعد كسب النقاط غير محددة. يرجى حفظ الإعدادات أولاً.', 'error');
             btnElement.disabled = false;
             btnElement.innerHTML = `<span><i class="fas fa-exclamation-triangle"></i> خطأ</span>`;
             return;
         }
 
-        // 2. حساب النقاط المكتسبة
         const { spendingValue, spendingPoints } = loyaltySettingsCache;
         if (spendingValue <= 0) {
             showToast('خطأ: قيمة الإنفاق يجب أن تكون أكبر من صفر.', 'error');
+            btnElement.disabled = false;
+            btnElement.innerHTML = `<span><i class="fas fa-exclamation-triangle"></i> خطأ</span>`;
             return;
         }
         
         const pointsToAward = Math.floor(orderTotal / spendingValue) * spendingPoints;
         
         if (pointsToAward <= 0) {
-            // إذا كان المبلغ لا يكفي لكسب أي نقاط
             showToast('المبلغ لا يكفي لكسب نقاط. تم تعليم الطلب.', 'success');
         }
 
         try {
-            // 3. تحديث نقاط العميل
             const userDocRef = doc(db, "users", userId);
-            await updateDoc(userDocRef, {
-                loyaltyPoints: increment(pointsToAward) // استخدام increment لضمان الدقة
-            });
+            if (pointsToAward > 0) {
+                await updateDoc(userDocRef, {
+                    loyaltyPoints: increment(pointsToAward) 
+                });
+            }
 
-            // 4. (احترافي) تسجيل هذه العملية في سجل العميل
             const changeLogRef = collection(db, 'users', userId, 'loyaltyChanges');
             await addDoc(changeLogRef, {
                 type: 'order_reward',
@@ -552,18 +601,26 @@
                 orderTotal: orderTotal,
                 timestamp: serverTimestamp()
             });
+            
+            if (pointsToAward > 0) {
+                const notificationRef = collection(db, 'users', userId, 'notifications');
+                await addDoc(notificationRef, {
+                    title: "🎉 تمت إضافة نقاط جديدة!",
+                    body: `زبوننا الكريم، تمت إضافة ${pointsToAward} نقطة إلى رصيدك بنجاح مقابل طلبك المكتمل.`,
+                    timestamp: serverTimestamp(),
+                    isRead: false,
+                    type: "points_added"
+                });
+            }
 
-            // 5. تحديث الطلب لمنعه من الظهور مجدداً
             const orderDocRef = doc(db, "orders", orderId);
             await updateDoc(orderDocRef, {
                 pointsAwarded: true
             });
 
-            // 6. إزالة العنصر من الواجهة
             document.getElementById(`order-card-${orderId}`).remove();
-            showToast(`تم إضافة ${pointsToAward} نقطة لـ ${orderId.substring(0, 6)}`, 'success');
+            showToast(pointsToAward > 0 ? `تم إضافة ${pointsToAward} نقطة لـ ${orderId.substring(0, 6)}` : `تم تعليم طلب ${orderId.substring(0, 6)} (0 نقطة)`, 'success');
 
-            // التحقق إذا كانت القائمة فارغة الآن
             if (document.getElementById('pending-orders-list').children.length === 0) {
                 document.getElementById('no-pending-orders').classList.remove('hidden');
             }
@@ -575,7 +632,171 @@
             btnElement.innerHTML = `<span><i class="fas fa-exclamation-triangle"></i> خطأ</span>`;
         }
     }
+    
+    // --- (جديد) قسم إدارة المهام ---
+    const tasksCollectionRef = collection(db, "settings", "loyalty", "tasks");
 
+    async function loadTasks() {
+        const loader = document.getElementById('tasks-loader');
+        const listContainer = document.getElementById('tasks-list');
+        const noTasksMsg = document.getElementById('no-tasks-msg');
+        loader.classList.remove('hidden');
+        listContainer.innerHTML = '';
+        noTasksMsg.classList.add('hidden');
+        try {
+            const snapshot = await getDocs(query(tasksCollectionRef, orderBy("title")));
+            if (snapshot.empty) {
+                noTasksMsg.classList.remove('hidden');
+            } else {
+                snapshot.forEach(doc => {
+                    const task = { id: doc.id, ...doc.data() };
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'border rounded-lg p-3 flex justify-between items-center shadow-sm';
+                    taskCard.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="font-bold">${task.title}</p>
+                            <p class="text-sm text-green-600 font-semibold">+${task.points} نقطة</p>
+                        </div>
+                        <button class="delete-task-btn text-red-500 hover:text-red-700 p-2" data-id="${task.id}" title="حذف المهمة">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    listContainer.appendChild(taskCard);
+                });
+            }
+        } catch (error) {
+            console.error("Error loading tasks:", error);
+            listContainer.innerHTML = `<p class="text-red-500">فشل تحميل المهام.</p>`;
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    async function saveNewTask(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById('save-task-btn');
+        const titleInput = document.getElementById('task_title');
+        const linkInput = document.getElementById('task_link');
+        const pointsInput = document.getElementById('task_points');
+        const taskData = {
+            title: titleInput.value,
+            link: linkInput.value,
+            points: parseInt(pointsInput.value, 10)
+        };
+        if (!taskData.title || !taskData.link || !taskData.points || taskData.points <= 0) {
+            showToast('الرجاء ملء جميع الحقول بشكل صحيح (النقاط يجب أن تكون أكبر من 0).', 'error');
+            return;
+        }
+        setButtonLoading(saveBtn, true, 'إضافة المهمة');
+        try {
+            await addDoc(tasksCollectionRef, taskData);
+            showToast('تمت إضافة المهمة بنجاح!', 'success');
+            e.target.reset(); 
+            loadTasks(); 
+        } catch (error) {
+            showToast('فشل حفظ المهمة: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(saveBtn, false, 'إضافة المهمة');
+        }
+    }
+
+    async function deleteTask(taskId) {
+        if (!taskId) return;
+        showDeletionConfirmModal(async () => {
+            try {
+                await deleteDoc(doc(db, "settings", "loyalty", "tasks", taskId));
+                showToast('تم حذف المهمة بنجاح.', 'success');
+                loadTasks();
+            } catch (error) {
+                showToast('فشل حذف المهمة: ' + error.message, 'error');
+            }
+        });
+    }
+
+    // --- (جديد) قسم إدارة المكافآت ---
+    const rewardsCollectionRef = collection(db, "settings", "loyalty", "rewards");
+
+    async function loadRewards() {
+        const loader = document.getElementById('rewards-loader');
+        const listContainer = document.getElementById('rewards-list');
+        const noRewardsMsg = document.getElementById('no-rewards-msg');
+        loader.classList.remove('hidden');
+        listContainer.innerHTML = '';
+        noRewardsMsg.classList.add('hidden');
+        try {
+            const snapshot = await getDocs(query(rewardsCollectionRef, orderBy("points")));
+            if (snapshot.empty) {
+                noRewardsMsg.classList.remove('hidden');
+            } else {
+                snapshot.forEach(doc => {
+                    const reward = { id: doc.id, ...doc.data() };
+                    const typeText = reward.type === 'input_required' ? 'يتطلب إدخال بيانات' : 'موافقة فقط';
+                    const rewardCard = document.createElement('div');
+                    rewardCard.className = 'border rounded-lg p-3 flex justify-between items-center shadow-sm';
+                    rewardCard.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="font-bold">${reward.title}</p>
+                            <p class="text-sm text-orange-600 font-semibold">${reward.points} نقطة</p>
+                            <p class="text-xs text-gray-500">${typeText}</p>
+                        </div>
+                        <button class="delete-reward-btn text-red-500 hover:text-red-700 p-2" data-id="${reward.id}" title="حذف المكافأة">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    listContainer.appendChild(rewardCard);
+                });
+            }
+        } catch (error) {
+            console.error("Error loading rewards:", error);
+            listContainer.innerHTML = `<p class="text-red-500">فشل تحميل المكافآت.</p>`;
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    async function saveNewReward(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById('save-reward-btn');
+        const titleInput = document.getElementById('reward_title');
+        const pointsInput = document.getElementById('reward_points');
+        const typeInput = document.getElementById('reward_type');
+
+        const rewardData = {
+            title: titleInput.value,
+            points: parseInt(pointsInput.value, 10),
+            type: typeInput.value
+        };
+
+        if (!rewardData.title || !rewardData.points || rewardData.points <= 0) {
+            showToast('الرجاء ملء جميع الحقول بشكل صحيح (النقاط يجب أن تكون أكبر من 0).', 'error');
+            return;
+        }
+
+        setButtonLoading(saveBtn, true, 'إضافة مكافأة');
+        try {
+            await addDoc(rewardsCollectionRef, rewardData);
+            showToast('تمت إضافة المكافأة بنجاح!', 'success');
+            e.target.reset(); 
+            loadRewards(); 
+        } catch (error) {
+            showToast('فشل حفظ المكافأة: ' + error.message, 'error');
+        } finally {
+            setButtonLoading(saveBtn, false, 'إضافة مكافأة');
+        }
+    }
+
+    async function deleteReward(rewardId) {
+        if (!rewardId) return;
+        showDeletionConfirmModal(async () => {
+            try {
+                await deleteDoc(doc(db, "settings", "loyalty", "rewards", rewardId));
+                showToast('تم حذف المكافأة بنجاح.', 'success');
+                loadRewards();
+            } catch (error) {
+                showToast('فشل حذف المكافأة: ' + error.message, 'error');
+            }
+        });
+    }
 
 </script>
 

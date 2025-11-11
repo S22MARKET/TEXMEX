@@ -23,6 +23,24 @@
         .toast.success { background-color: #2f855a; }
         .toast.error { background-color: #c53030; }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s; padding: 1rem; }
+        .modal-content { background-color: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; max-height: 95vh; display: flex; flex-direction: column; animation: slideInUp 0.4s; position: relative; }
+        
+        @keyframes pulse-gem {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        .gem-icon {
+            animation: pulse-gem 2.5s infinite ease-in-out;
+        }
+        
+        /* (جديد) ستايل زر رفع الإثبات */
+        .proof-btn.is-pending {
+            background-color: #6b7280; /* gray-500 */
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -58,7 +76,7 @@
                         </div>
                         <a href="profile.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-user-circle fa-fw ml-2 text-gray-400"></i> ملفي الشخصي</a>
                         <a href="order_history.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-archive fa-fw ml-2 text-gray-400"></i> أرشيف طلباتي</a>
-                        <a href="loyalty_card.html" class="block px-4 py-3 text-gray-700 bg-gray-100 font-bold transition-colors"><i class="fas fa-star fa-fw ml-2 text-orange-400"></i> بطاقة الوفاء</a>
+                        <a href="loyalty_card.html" class="block px-4 py-3 text-gray-700 bg-gray-100 font-bold transition-colors"><i class="fas fa-gem fa-fw ml-2 text-orange-400"></i> بطاقة الوفاء</a>
                         <button id="logout-btn" class="w-full text-right px-4 py-3 text-red-600 hover:bg-red-50 border-t transition-colors"><i class="fas fa-sign-out-alt fa-fw ml-2"></i> تسجيل الخروج</button>
                     </div>
                     </div>
@@ -76,56 +94,82 @@
 
         <div id="loyalty-content" class="hidden space-y-8" style="animation: slideInUp 0.5s ease-out;">
             <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 text-center">
-                <i class="fas fa-star text-orange-400"></i> بطاقة الوفاء الخاصة بك
+                <i class="fas fa-gem text-purple-500"></i> بطاقة الوفاء الخاصة بك
             </h1>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div class="bg-gray-800 text-white p-6 flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-300">عضو وفي في</p>
-                        <h2 class="text-2xl font-bold">TEXMEX Annaba</h2>
-                    </div>
-                    <i class="fas fa-award fa-3x text-orange-400"></i>
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-xl overflow-hidden text-white relative p-8">
+                <div class="absolute top-4 left-4 gem-icon">
+                    <i class="fas fa-gem fa-4x text-purple-400 opacity-30"></i>
                 </div>
-                <div class="p-8 space-y-6">
-                    <div>
-                        <p class="text-lg text-gray-600">أهلاً بك، <strong id="card-user-name" class="text-gray-900">...</strong></p>
-                        <p class="text-sm text-gray-500">أنت على بعد خطوات من هديتك القادمة!</p>
-                    </div>
-                    
-                    <div class="text-center">
-                        <p class="text-lg font-semibold text-gray-700">مجموع نقاطك الحالية:</p>
-                        <p id="card-points" class="text-7xl font-extrabold text-orange-500 my-2">0</p>
-                        <p class="text-gray-500">نقطة</p>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <p class="text-sm text-gray-300">عضو وفي في</p>
+                            <h2 class="text-2xl font-bold">TEXMEX Annaba</h2>
+                        </div>
+                        <i class="fas fa-shield-alt fa-3x text-orange-400"></i>
                     </div>
 
-                    <div>
+                    <div class="text-center my-10">
+                        <p class="text-lg font-semibold text-gray-200">مجموع نقاطك الحالية:</p>
+                        <p id="card-points" class="text-8xl font-extrabold text-white my-2" style="text-shadow: 0 0 15px rgba(251, 146, 60, 0.5);">0</p>
+                        <p class="text-orange-400 font-bold text-xl">جوهرة (نقطة)</p>
+                    </div>
+
+                    <div class="mt-8">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-semibold text-gray-700">التقدم نحو المكافأة</span>
-                            <span id="progress-text" class="text-sm font-bold text-orange-600">0 / 100</span>
+                            <span class="text-sm font-semibold text-gray-200">التقدم نحو المكافأة القادمة</span>
+                            <span id="progress-text" class="text-sm font-bold text-orange-300">0 / 1000</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden border">
-                            <div id="progress-bar" class="bg-green-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                        <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden border-2 border-gray-600">
+                            <div id="progress-bar" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                         </div>
                     </div>
-
-                </div>
-                 <div class="bg-gray-50 p-5 border-t text-center">
-                    <p class="text-gray-600"><i class="fas fa-info-circle ml-1"></i> سيقوم المدير بتحديد عدد النقاط المطلوبة لكل مكافأة. استمر في الطلب لجمع المزيد!</p>
                 </div>
             </div>
 
-        </div>
+            <div id="tasks-container" class="bg-white rounded-2xl shadow-xl p-6 mt-8">
+                <h3 class="text-xl font-bold mb-4 border-b pb-2">
+                    <i class="fas fa-tasks text-purple-500"></i> 
+                    مهام لربح نقاط إضافية
+                </h3>
+                <div id="tasks-loader" class="text-center">
+                    <div class="loader mx-auto"></div>
+                    <p class="mt-2 text-gray-500">جاري تحميل المهام...</p>
+                </div>
+                <div id="tasks-list" class="space-y-4">
+                    </div>
+                <div id="no-tasks-msg" class="hidden text-center text-gray-500 p-4">
+                    لا توجد مهام متاحة حالياً.
+                </div>
+            </div>
 
+            <div id="loyalty-history-container" class="bg-white rounded-2xl shadow-xl p-6 mt-8">
+                <h3 class="text-xl font-bold mb-4 border-b pb-2">📜 سجل النقاط</h3>
+                <div id="history-loader" class="text-center">
+                    <div class="loader mx-auto"></div>
+                    <p class="mt-2 text-gray-500">جاري تحميل السجل...</p>
+                </div>
+                <div id="loyalty-history-list" class="space-y-4 max-h-96 overflow-y-auto">
+                </div>
+                <div id="no-history-msg" class="hidden text-center text-gray-500 p-4">
+                    لا يوجد سجل لعرضه حتى الآن.
+                </div>
+            </div>
+        </div>
     </main>
     
+    <input type="file" id="proof-upload-input" class="hidden" accept="image/png, image/jpeg">
+    
+    <div id="modal-container"></div>
     <div id="toast-container"></div>
 
     <script type="module">
-        // --- إعدادات Firebase ---
+        // --- (تم التعديل) إضافة addDoc و where ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, updateDoc, serverTimestamp, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
@@ -141,36 +185,57 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- عناصر واجهة المستخدم ---
+        // --- عناصر الواجهة ---
         const loginBtn = document.getElementById('login-btn');
         const userMenu = document.getElementById('user-menu');
         const userMenuButton = document.getElementById('user-menu-button');
         const userMenuDropdown = document.getElementById('user-menu-dropdown');
-        const userMenuName = document.getElementById('user-menu-name');
         const userMenuDisplayName = document.getElementById('user-menu-displayname');
         const logoutBtn = document.getElementById('logout-btn');
-
         const authLoader = document.getElementById('auth-loader');
         const loyaltyContent = document.getElementById('loyalty-content');
+        
+        let currentUser = null; // (جديد) لحفظ بيانات المستخدم
+        let currentTaskData = {}; // (جديد) لحفظ بيانات المهمة عند الرفع
 
         // --- دالة التنبيهات (Toast) ---
-        const showToast = (message, type = 'success') => {
+        const showToast = (message, type = 'success', duration = 3000) => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
             toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
             container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            setTimeout(() => toast.remove(), duration);
+        };
+        
+        // --- دالة إظهار إشعار النقاط ---
+        const showNotificationModal = (title, body, notificationId, userId) => {
+            const modalContainer = document.getElementById('modal-container');
+            if (!modalContainer) return; 
+            
+            const modalHTML = `<div class="modal-backdrop" id="modal-backdrop-notification"><div class="modal-content text-center !max-w-md"><div class="p-6"><i class="fas fa-gem text-5xl text-purple-400 mb-4"></i><h2 class="text-2xl font-bold mb-2">${title}</h2><p class="text-gray-600 leading-relaxed">${body}</p></div><div class="p-4 bg-gray-50 border-t flex"><button id="modal-confirm-notification" class="w-full bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg hover:bg-orange-600 transition-colors">حسنًا، فهمت!</button></div></div></div>`;
+            modalContainer.innerHTML = modalHTML;
+            
+            document.getElementById('modal-confirm-notification').onclick = async () => {
+                modalContainer.innerHTML = '';
+                if (notificationId && userId) {
+                    try {
+                        const notifDocRef = doc(db, 'users', userId, 'notifications', notificationId);
+                        await updateDoc(notifDocRef, { isRead: true });
+                    } catch (e) {
+                        console.error("Failed to mark notification as read: ", e);
+                    }
+                }
+            };
         };
 
-        // --- (تم التعديل) جلب بيانات بطاقة الوفاء ---
+        // --- جلب بيانات بطاقة الوفاء ---
         async function loadLoyaltyData(user) {
             try {
-                // --- (جديد) جلب بيانات المستخدم والإعدادات معاً ---
-                const [userDocSnap, settingsSnap] = await Promise.all([
+                const [userDocSnap, loyaltySettingsSnap] = await Promise.all([
                     getDoc(doc(db, 'users', user.uid)),
-                    getDoc(doc(db, "settings", "loyalty"))
+                    getDoc(doc(db, "settings", "loyalty")),
                 ]);
                 
                 let loyaltyPoints = 0;
@@ -178,24 +243,18 @@
                     loyaltyPoints = userDocSnap.data().loyaltyPoints || 0;
                 }
 
-                // --- (جديد) جلب هدف المكافأة الحقيقي من الإعدادات ---
-                let rewardThreshold = 100; // قيمة افتراضية
-                if (settingsSnap.exists() && settingsSnap.data().rewardThreshold > 0) {
-                    rewardThreshold = settingsSnap.data().rewardThreshold;
+                let rewardThreshold = 1000; 
+                if (loyaltySettingsSnap.exists() && loyaltySettingsSnap.data().rewardThreshold > 0) {
+                    rewardThreshold = loyaltySettingsSnap.data().rewardThreshold;
                 }
-                // --- نهاية التعديل (لا مزيد من localStorage) ---
                 
-                // حساب التقدم
                 const pointsModThreshold = loyaltyPoints % rewardThreshold;
                 const progressPercent = (pointsModThreshold / rewardThreshold) * 100;
 
-                // تحديث الواجهة
-                document.getElementById('card-user-name').textContent = user.displayName || "زبوننا العزيز";
                 document.getElementById('card-points').textContent = loyaltyPoints;
                 document.getElementById('progress-text').textContent = `${pointsModThreshold} / ${rewardThreshold}`;
                 document.getElementById('progress-bar').style.width = `${progressPercent}%`;
 
-                // إظهار المحتوى وإخفاء التحميل
                 authLoader.classList.add('hidden');
                 loyaltyContent.classList.remove('hidden');
 
@@ -204,23 +263,283 @@
                 authLoader.innerHTML = '<p class="text-red-500 text-center">حدث خطأ أثناء جلب بيانات بطاقتك.</p>';
             }
         }
+        
+        // --- دالة جلب سجل النقاط ---
+        async function loadLoyaltyHistory(user) {
+            const listContainer = document.getElementById('loyalty-history-list');
+            const loader = document.getElementById('history-loader');
+            const noHistoryMsg = document.getElementById('no-history-msg');
+            
+            listContainer.innerHTML = ''; 
+            loader.classList.remove('hidden');
+            noHistoryMsg.classList.add('hidden');
+
+            try {
+                const historyQuery = query(
+                    collection(db, 'users', user.uid, 'loyaltyChanges'),
+                    orderBy('timestamp', 'desc')
+                );
+                
+                const snapshot = await getDocs(historyQuery);
+                
+                if (snapshot.empty) {
+                    noHistoryMsg.classList.remove('hidden');
+                } else {
+                    snapshot.forEach(doc => {
+                        const change = doc.data();
+                        listContainer.appendChild(createHistoryItem(change));
+                    });
+                }
+
+            } catch (error) {
+                console.error("Error loading loyalty history:", error);
+                noHistoryMsg.textContent = 'فشل تحميل السجل. (يرجى التأكد من تحديث قواعد الأمان)';
+                noHistoryMsg.classList.add('hidden');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+        
+        // --- دالة عرض عنصر السجل ---
+        function createHistoryItem(change) {
+            const item = document.createElement('div');
+            item.className = 'border-b pb-3';
+            const date = change.timestamp?.toDate ? change.timestamp.toDate().toLocaleDateString('ar-EG', { day: '2-digit', month: 'long', year: 'numeric' }) : '---';
+            let title, points, icon, colorClass;
+
+            if (change.type === 'order_reward') {
+                title = `🎁 مكافأة طلب (رقم: ${change.orderId ? change.orderId.substring(0, 6) : 'N/A'}...)`;
+                points = change.pointsAdded; icon = 'fa-gift'; colorClass = 'text-green-600';
+            } else if (change.type === 'admin_manual_edit') {
+                const pointsChange = change.pointsAfter - change.pointsBefore;
+                title = change.reason || (pointsChange > 0 ? 'نقاط مضافة من الإدارة' : 'نقاط مخصومة من الإدارة');
+                points = pointsChange; icon = (pointsChange > 0) ? 'fa-user-shield' : 'fa-edit'; colorClass = (pointsChange > 0) ? 'text-blue-600' : 'text-red-600';
+            } else if (change.type === 'reversal') {
+                title = `🔄 ${change.reason}`; points = change.pointsChange; icon = 'fa-undo-alt'; colorClass = 'text-gray-500';
+            } else if (change.type === 'task_reward') {
+                // (جديد) عرض مكافأة المهمة
+                title = `✅ مكافأة مهمة: ${change.reason}`; points = change.pointsAdded; icon = 'fa-tasks'; colorClass = 'text-purple-600';
+            } else {
+                title = `تغيير غير معروف (${change.type})`; points = change.pointsAdded || 0; icon = 'fa-question-circle'; colorClass = 'text-gray-500';
+            }
+
+            item.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i class="fas ${icon} fa-fw ${colorClass}"></i>
+                        <div><p class="font-semibold">${title}</p><p class="text-sm text-gray-500">${date}</p></div>
+                    </div>
+                    <span class="font-bold text-lg ${points > 0 ? 'text-green-600' : 'text-red-600'}">${points > 0 ? '+' : ''}${points}</span>
+                </div>`;
+            return item;
+        }
+
+        // --- (جديد) دالة رفع الصور لـ ImgBB ---
+        async function uploadImageToImgBB(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('key', "ac296feb5a275923598bdbfd4f9aed8c"); // المفتاح الذي زودتني به
+            const response = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error(`ImgBB upload failed with status ${response.status}`);
+            const result = await response.json();
+            if (result.success) return result.data.url;
+            else throw new Error(`ImgBB Error: ${result.error.message}`);
+        }
+
+        // --- (معدل) دوال جلب وعرض المهام ---
+        async function loadTasks(user) {
+            const listContainer = document.getElementById('tasks-list');
+            const loader = document.getElementById('tasks-loader');
+            const noTasksMsg = document.getElementById('no-tasks-msg');
+            
+            listContainer.innerHTML = '';
+            loader.classList.remove('hidden');
+            noTasksMsg.classList.add('hidden');
+
+            try {
+                // (جديد) جلب المهام والطلبات المعلقة معاً
+                const tasksRef = collection(db, "settings", "loyalty", "tasks");
+                const approvalsRef = collection(db, "loyalty_approvals");
+                
+                const [tasksSnapshot, approvalsSnapshot] = await Promise.all([
+                    getDocs(query(tasksRef, orderBy("title"))),
+                    getDocs(query(approvalsRef, where("userId", "==", user.uid), where("type", "==", "task")))
+                ]);
+
+                // (جديد) إنشاء قائمة بالمهام التي قيد المراجعة أو تمت الموافقة عليها
+                const submittedTasks = {};
+                approvalsSnapshot.forEach(doc => {
+                    const approval = doc.data();
+                    submittedTasks[approval.taskTitle] = approval.status; // "pending" or "approved"
+                });
+
+                if (tasksSnapshot.empty) {
+                    noTasksMsg.classList.remove('hidden');
+                } else {
+                    tasksSnapshot.forEach(doc => {
+                        const task = doc.data();
+                        const status = submittedTasks[task.title]; // (جديد) التحقق من الحالة
+                        listContainer.appendChild(createTaskCard(task, status));
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading tasks:", error);
+                noTasksMsg.textContent = 'فشل تحميل المهام المتاحة.';
+                noTasksMsg.classList.add('hidden');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        // (معدل) دالة إنشاء كرت المهمة (مع نظام الإثبات الجديد)
+        function createTaskCard(task, status) {
+            const card = document.createElement('div');
+            card.className = 'border rounded-lg p-4 flex flex-col md:flex-row justify-between items-center gap-4';
+            
+            let proofButtonHtml = '';
+            if (status === 'pending') {
+                proofButtonHtml = `
+                <button class="flex-1 text-center bg-gray-500 text-white font-bold py-2 px-4 rounded-lg proof-btn is-pending" disabled>
+                    <i class="fas fa-clock ml-2"></i>
+                    قيد المراجعة
+                </button>`;
+            } else if (status === 'approved') {
+                proofButtonHtml = `
+                <button class="flex-1 text-center bg-green-600 text-white font-bold py-2 px-4 rounded-lg" disabled>
+                    <i class="fas fa-check-circle ml-2"></i>
+                    تمت الموافقة
+                </button>`;
+            } else {
+                 proofButtonHtml = `
+                <button class="proof-btn flex-1 text-center bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600"
+                        data-title="${task.title}" data-points="${task.points}">
+                    <i class="fas fa-camera ml-2"></i>
+                    إثبات (صورة)
+                </button>`;
+            }
+
+            card.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <i class="fab ${getIconForTask(task.link)} fa-2x text-purple-500"></i>
+                    <div>
+                        <p class="font-bold text-lg">${task.title}</p>
+                        <p class="font-bold text-green-600 text-lg">+${task.points} جوهرة</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <a href="${task.link}" target="_blank" class="flex-1 text-center bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">
+                        <i class="fas fa-external-link-alt ml-2"></i>
+                        ابدأ
+                    </a>
+                    ${proofButtonHtml}
+                </div>
+            `;
+            return card;
+        }
+        
+        function getIconForTask(link) {
+            if (link.includes('instagram.com')) return 'fa-instagram';
+            if (link.includes('facebook.com') || link.includes('fb.me')) return 'fa-facebook';
+            if (link.includes('tiktok.com')) return 'fa-tiktok';
+            if (link.includes('twitter.com') || link.includes('x.com')) return 'fa-twitter';
+            return 'fa-link'; 
+        }
+
+        // --- (جديد) مستمعات أحداث رفع الإثبات ---
+        document.getElementById('tasks-list').addEventListener('click', (e) => {
+            const proofBtn = e.target.closest('.proof-btn:not(:disabled)');
+            if (proofBtn) {
+                // حفظ بيانات المهمة مؤقتاً
+                currentTaskData = {
+                    title: proofBtn.dataset.title,
+                    points: parseInt(proofBtn.dataset.points, 10),
+                    button: proofBtn // حفظ الزر لتعطيله
+                };
+                // فتح نافذة اختيار الملف
+                document.getElementById('proof-upload-input').click();
+            }
+        });
+
+        document.getElementById('proof-upload-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const { title, points, button } = currentTaskData;
+            if (!title) return; // لا توجد مهمة محددة
+
+            button.disabled = true;
+            button.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i> جاري الرفع...`;
+            showToast('جاري رفع صورة الإثبات...', 'success', 60000); // 60 ثانية
+
+            try {
+                const imageUrl = await uploadImageToImgBB(file);
+                
+                // (جديد) إنشاء طلب موافقة في Firestore
+                await addDoc(collection(db, "loyalty_approvals"), {
+                    userId: currentUser.uid,
+                    userName: currentUser.displayName,
+                    type: "task", // نوع الطلب (مهمة)
+                    taskTitle: title,
+                    points: points,
+                    proofImageUrl: imageUrl,
+                    status: "pending", // الحالة: قيد المراجعة
+                    submittedAt: serverTimestamp()
+                });
+
+                showToast('تم إرسال إثباتك! ستتم مراجعته من قبل المدير.', 'success');
+                // تحديث الزر ليعكس الحالة الجديدة
+                button.innerHTML = `<i class="fas fa-clock ml-2"></i> قيد المراجعة`;
+                button.classList.add('is-pending');
+            
+            } catch (error) {
+                console.error("Upload or save error:", error);
+                showToast('فشل إرسال الإثبات. الرجاء المحاولة مجدداً.', 'error');
+                button.disabled = false;
+                button.innerHTML = `<i class="fas fa-camera ml-2"></i> إثبات (صورة)`;
+            } finally {
+                // مسح الملف من المدخل لإعادة الاستخدام
+                e.target.value = null;
+                currentTaskData = {};
+            }
+        });
+
 
         // --- منطق المصادقة والتحكم بالصفحة ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // المستخدم قام بتسجيل الدخول
+                currentUser = user; // (جديد) حفظ المستخدم
                 loginBtn.classList.add('hidden');
                 userMenu.classList.remove('hidden');
                 
                 const displayName = user.displayName || "زبوننا";
-                userMenuName.textContent = displayName.split(' ')[0];
+                document.getElementById('user-menu-name').textContent = displayName.split(' ')[0];
                 userMenuDisplayName.textContent = displayName;
 
-                // جلب بيانات البطاقة
                 loadLoyaltyData(user);
+                loadLoyaltyHistory(user); 
+                loadTasks(user); // (معدل) تمرير المستخدم
+                
+                const notificationsQuery = query(
+                    collection(db, 'users', user.uid, 'notifications'),
+                    where('isRead', '==', false),
+                    orderBy('timestamp', 'desc')
+                );
+                
+                onSnapshot(notificationsQuery, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const notification = change.doc.data();
+                            const notificationId = change.doc.id;
+                            showNotificationModal(notification.title, notification.body, notificationId, user.uid);
+                            loadLoyaltyData(user);
+                            loadLoyaltyHistory(user);
+                        }
+                    });
+                }, (error) => {
+                    console.error("Error listening to notifications: ", error);
+                });
 
             } else {
-                // المستخدم زائر، قم بإعادته لصفحة التسجيل
                 window.location.href = 'login.html';
             }
         });
@@ -230,16 +549,13 @@
             e.stopPropagation();
             userMenuDropdown.classList.toggle('show');
         });
-
         document.addEventListener('click', () => {
             if (userMenuDropdown.classList.contains('show')) {
                 userMenuDropdown.classList.remove('show');
             }
         });
-
         logoutBtn.addEventListener('click', () => {
             signOut(auth).catch((error) => console.error('Logout Error', error));
-            // onAuthStateChanged سيتكفل بإعادة التوجيه تلقائياً
         });
     </script>
 </body>

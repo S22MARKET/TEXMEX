@@ -35,6 +35,9 @@
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background-color: white; transition: all 0.2s; }
         .filter-btn.active { background-color: #f97316; color: white; border-color: #f97316; }
         .ql-editor { min-height: 120px; }
+        /* (جديد) تنسيق عمود الرسم البياني */
+        .chart-bar { transition: height 0.3s ease-out; }
+        .chart-label-vertical { writing-mode: vertical-rl; transform: rotate(180deg); }
     </style>
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 </head>
@@ -144,7 +147,7 @@
     let couponsCache = [];
     let ordersCache = [];
     let deliveryZonesCache = [];
-    let registeredUsersCache = [];
+    let registeredUsersCache = []; // (جديد) سنحتاجه هنا
     let quillEditor = null; 
     let selectedFileStore = {}; 
 
@@ -173,7 +176,7 @@
     }
 
     const showDeletionConfirmModal = (onConfirmCallback) => {
-        const content = `<p class="mb-4 text-lg">لتأكيد عملية الحذف، الرجاء إدخال الرمز التالي:</p><div class="text-center mb-4"><code class="text-2xl font-bold bg-gray-100 p-2 rounded-lg text-orange-600 select-all">كلمة السر </code></div><input type="text" id="deletion-code-input" placeholder="أدخل الرمز هنا للتأكيد" class="w-full p-3 border rounded-lg text-center tracking-widest uppercase focus:ring-2 focus:ring-orange-400 focus:border-orange-400"><p id="deletion-error-msg" class="text-red-600 text-sm mt-2 text-center hidden">الرمز الذي أدخلته غير صحيح.</p>`;
+        const content = `<p class="mb-4 text-lg">لتأكيد عملية الحذف، الرجاء إدخال الرمز التالي:</p><div class="text-center mb-4"><code class="text-2xl font-bold bg-gray-100 p-2 rounded-lg text-orange-600 select-all">S22MARKET</code></div><input type="text" id="deletion-code-input" placeholder="أدخل الرمز هنا للتأكيد" class="w-full p-3 border rounded-lg text-center tracking-widest uppercase focus:ring-2 focus:ring-orange-400 focus:border-orange-400"><p id="deletion-error-msg" class="text-red-600 text-sm mt-2 text-center hidden">الرمز الذي أدخلته غير صحيح.</p>`;
         showModal('تأكيد عملية الحذف', content, () => {
             const codeInput = document.getElementById('deletion-code-input');
             const errorMsg = document.getElementById('deletion-error-msg');
@@ -238,26 +241,49 @@
         
         // =============== بداية الكود الخاص بالصفحة ===============
         
-        // (جديد) تحميل الإحصائيات
         loadStats();
         
         // =============== نهاية الكود الخاص بالصفحة ===============
     }
 
 
-    // --- STATS SECTION (خاص بهذه الصفحة) ---
+    // --- (تم التعديل) STATS SECTION ---
     async function loadStats() {
         const statsContent = document.getElementById('stats-content');
         
         try {
-            // 1. جلب جميع الطلبات المكتملة
-            const ordersSnapshot = await getDocs(query(collection(db, "orders"), where("status", "==", "completed")));
-            const allCompletedOrders = ordersSnapshot.docs.map(d => d.data());
+            // (تم التعديل): جلب الطلبات والمستخدمين في نفس الوقت
+            const [ordersSnapshot, usersSnapshot] = await Promise.all([
+                getDocs(query(collection(db, "orders"), where("status", "==", "completed"))),
+                getDocs(query(collection(db, "users"))) // <-- (جديد) جلب المستخدمين
+            ]);
+
+            // --- ✨✨ (جديد) 1. تحليل بيانات المسجلين ✨✨ ---
+            const allUsers = usersSnapshot.docs.map(d => d.data());
+            const totalUsers = allUsers.length;
             
+            const registrationsByDay = [0, 0, 0, 0, 0, 0, 0]; // 0: Sunday, 1: Monday...
+            const dayLabels = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+            const registrationsByMonth = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0: Jan, 1: Feb...
+            const monthLabels = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+            allUsers.forEach(user => {
+                if (user.registrationDate && typeof user.registrationDate.toDate === 'function') {
+                    const regDate = user.registrationDate.toDate();
+                    registrationsByDay[regDate.getDay()]++;
+                    registrationsByMonth[regDate.getMonth()]++;
+                }
+            });
+            const maxDayReg = Math.max(...registrationsByDay);
+            const maxMonthReg = Math.max(...registrationsByMonth);
+            // --- ✨✨ نهاية الإضافة 1 ---
+
+
+            // --- 2. تحليل بيانات الطلبات (كما كان) ---
+            const allCompletedOrders = ordersSnapshot.docs.map(d => d.data());
             const totalRevenue = allCompletedOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
             const totalOrders = allCompletedOrders.length;
-
-            // 2. حساب إحصائيات آخر 7 أيام (للرسم البياني)
+            
             const salesByDay = {};
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
@@ -268,8 +294,6 @@
             
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            
-            // --- ✨✨ الإضافة 1: حساب دخل آخر 30 يوم ✨✨ ---
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             let monthlyRevenue = 0;
@@ -277,14 +301,10 @@
             allCompletedOrders.forEach(order => {
                 if (order.createdAt && typeof order.createdAt.toDate === 'function') {
                     const orderDate = order.createdAt.toDate();
-                    
-                    // حساب آخر 7 أيام
                     if (orderDate >= sevenDaysAgo) {
                         const key = orderDate.toISOString().split('T')[0];
                         if (salesByDay[key]) { salesByDay[key].revenue += order.totalPrice; }
                     }
-                    
-                    // حساب آخر 30 يوم
                     if (orderDate >= thirtyDaysAgo) {
                         monthlyRevenue += (order.totalPrice || 0);
                     }
@@ -294,37 +314,21 @@
             const chartData = Object.values(salesByDay);
             const maxRevenue = Math.max(...chartData.map(d => d.revenue));
 
-            // 3. حساب أفضل 5 وجبات
+            // ... (باقي الإحصائيات: أفضل الوجبات، الكوبونات، العملاء) ...
             const itemCounts = {};
-            allCompletedOrders.forEach(order => { 
-                (order.items || []).forEach(item => { 
-                    itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity; 
-                }); 
-            });
+            allCompletedOrders.forEach(order => { (order.items || []).forEach(item => { itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity; }); });
             const topItems = Object.entries(itemCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
 
-            // 4. حساب أفضل الكوبونات
             const couponCounts = {};
-            allCompletedOrders.forEach(order => { 
-                if (order.couponCode) { 
-                    couponCounts[order.couponCode] = (couponCounts[order.couponCode] || 0) + 1; 
-                } 
-            });
+            allCompletedOrders.forEach(order => { if (order.couponCode) { couponCounts[order.couponCode] = (couponCounts[order.couponCode] || 0) + 1; } });
             const topCoupons = Object.entries(couponCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
 
-            // --- ✨✨ الإضافة 2: حساب أفضل 5 عملاء ✨✨ ---
             const customerSpending = {};
             allCompletedOrders.forEach(order => {
                 const contact = order.customerContact || 'unknown';
                 if (contact === 'unknown') return;
-                
                 if (!customerSpending[contact]) {
-                    customerSpending[contact] = {
-                        name: order.customerName,
-                        contact: contact,
-                        totalSpent: 0,
-                        orderCount: 0
-                    };
+                    customerSpending[contact] = { name: order.customerName, contact: contact, totalSpent: 0, orderCount: 0 };
                 }
                 customerSpending[contact].totalSpent += (order.totalPrice || 0);
                 customerSpending[contact].orderCount++;
@@ -332,9 +336,9 @@
             const topCustomers = Object.values(customerSpending).sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 5);
             
 
-            // 5. رسم كل شيء
+            // --- 3. رسم كل شيء (تم التعديل) ---
             statsContent.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                         <i class="fas fa-coins fa-3x text-yellow-500"></i>
                         <div><p class="text-gray-500">إجمالي الإيرادات</p><p class="text-2xl font-bold">${formatCurrency(totalRevenue)}</p></div>
@@ -345,11 +349,15 @@
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                         <i class="fas fa-receipt fa-3x text-purple-500"></i>
-                        <div><p class="text-gray-500">إجمالي الطلبات المكتملة</p><p class="text-2xl font-bold">${totalOrders}</p></div>
+                        <div><p class="text-gray-500">إجمالي الطلبات</p><p class="text-2xl font-bold">${totalOrders}</p></div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                         <i class="fas fa-chart-pie fa-3x text-teal-500"></i>
                         <div><p class="text-gray-500">متوسط قيمة الطلب</p><p class="text-2xl font-bold">${formatCurrency(totalOrders > 0 ? totalRevenue / totalOrders : 0)}</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                        <i class="fas fa-users fa-3x text-cyan-500"></i>
+                        <div><p class="text-gray-500">إجمالي المسجلين</p><p class="text-2xl font-bold">${totalUsers}</p></div>
                     </div>
                 </div>
 
@@ -360,7 +368,7 @@
                             ${chartData.map(day => `
                                 <div class="flex-1 flex flex-col items-center justify-end">
                                     <div class="text-xs font-bold">${day.revenue > 0 ? formatCurrency(day.revenue) : ''}</div>
-                                    <div class="w-3/4 bg-orange-200 rounded-t-lg" style="height: ${maxRevenue > 0 ? (day.revenue / maxRevenue) * 90 : 0}%;"></div>
+                                    <div class="w-3/4 bg-orange-200 rounded-t-lg chart-bar" style="height: ${maxRevenue > 0 ? (day.revenue / maxRevenue) * 90 : 0}%;"></div>
                                     <div class="text-sm text-gray-500 mt-1">${day.label}</div>
                                 </div>`).join('')}
                         </div>
@@ -376,6 +384,31 @@
                                 </li>`).join('') : '<p class="text-gray-500">لا توجد بيانات كافية.</p>'}
                         </ul>
                     </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4">التسجيل حسب أيام الأسبوع</h3>
+                        <div class="flex justify-between items-end h-56 gap-2 border-b border-gray-200 pb-2">
+                            ${dayLabels.map((label, index) => `
+                                <div class="flex-1 flex flex-col items-center justify-end">
+                                    <div class="text-xs font-bold">${registrationsByDay[index] > 0 ? registrationsByDay[index] : ''}</div>
+                                    <div class="w-3/4 bg-cyan-200 rounded-t-lg chart-bar" style="height: ${maxDayReg > 0 ? (registrationsByDay[index] / maxDayReg) * 90 : 0}%;"></div>
+                                    <div class="text-sm text-gray-500 mt-1">${label}</div>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-md lg:col-span-2">
+                        <h3 class="text-xl font-bold mb-4">التسجيل حسب الأشهر (آخر سنة)</h3>
+                        <div class="flex justify-between items-end h-56 gap-1 border-b border-gray-200 pb-2">
+                            ${monthLabels.map((label, index) => `
+                                <div class="flex-1 flex flex-col items-center justify-end">
+                                    <div class="text-xs font-bold">${registrationsByMonth[index] > 0 ? registrationsByMonth[index] : ''}</div>
+                                    <div class="w-3/4 bg-blue-200 rounded-t-lg chart-bar" style="height: ${maxMonthReg > 0 ? (registrationsByMonth[index] / maxMonthReg) * 90 : 0}%;"></div>
+                                    <div class="text-xs text-gray-500 mt-1 chart-label-vertical">${label}</div>
+                                </div>`).join('')}
+                        </div>
+                    </div>
+
 
                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
                         <h3 class="text-xl font-bold mb-4">أفضل 5 عملاء (حسب الإنفاق)</h3>
