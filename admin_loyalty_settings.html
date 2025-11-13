@@ -45,9 +45,17 @@
         <div class="relative min-h-screen md:flex">
 
             <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 right-0 transform translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-30">
-                 <nav class="flex-1 p-2 space-y-2">
+                <div class="p-3 text-center border-b border-gray-700">
+                    <h2 class="text-2xl font-bold">TEX<span class="text-orange-400">MEX</span></h2>
+                </div>
+                <nav class="flex-1 p-2 space-y-2">
+                    <a href="admin_referrals_pending.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700">
+                        <i class="fas fa-check-double fa-fw ml-3"></i> مكافآت الدعوات
+                    </a>
+                    
                     <a href="admin_dashboard.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tachometer-alt fa-fw ml-3"></i> اللوحة الرئيسية</a>
                     <a href="admin_orders.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-clipboard-list fa-fw ml-3"></i> الطلبات الواردة</a>
+                    <a href="admin_loyalty_approvals.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-check-to-slot fa-fw ml-3"></i> موافقات النقاط</a>
                     <a href="admin_customer_log.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-users fa-fw ml-3"></i> سجل العملاء (بالطلبات)</a>
                     <a href="admin_customers.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-id-card fa-fw ml-3"></i> العملاء المسجلون</a>
                     <a href="admin_menu_items.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-utensils fa-fw ml-3"></i> قائمة الطعام</a>
@@ -103,7 +111,7 @@
                                     <h3 class="text-xl font-bold mb-4 border-b pb-2">قواعد كسب النقاط</h3>
                                     <div class="space-y-4">
                                         <div>
-                                            <label class="font-semibold">النقاط مقابل الإنفاق</label>
+                                            <label class="font-semibold">النقاط مقابل الإنفاق (من الطلبات)</label>
                                             <p class="text-sm text-gray-500 mb-2">تُطبق عند الموافقة على منح نقاط طلب مكتمل.</p>
                                             <div class="flex items-center gap-2 mt-1">
                                                 <span class="text-gray-600">العميل يربح</span>
@@ -113,7 +121,18 @@
                                                 <span class="text-gray-600">د.ج.</span>
                                             </div>
                                         </div>
-                                    </div>
+                                        
+                                        <div class="pt-4 border-t">
+                                            <label for="referralBonusPoints" class="block font-semibold text-blue-800 mb-2">
+                                                <i class="fas fa-gift fa-fw ml-1"></i>مكافأة دعوة الأصدقاء
+                                            </label>
+                                            <p class="text-sm text-gray-500 mb-3">النقاط التي يحصل عليها "الداعي" عند اعتماد تسجيل صديقه.</p>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" id="referralBonusPoints" placeholder="مثال: 50" class="w-24 p-2 border rounded-lg text-center font-bold">
+                                                <span class="text-gray-600">نقطة (لكل دعوة ناجحة)</span>
+                                            </div>
+                                        </div>
+                                        </div>
                                 </div>
                                 
                                 <div class="bg-white p-6 rounded-xl shadow-md">
@@ -387,7 +406,6 @@
         loadPendingApprovalOrders();
         document.getElementById('refresh-pending-orders').onclick = loadPendingApprovalOrders;
         
-        // --- (جديد) تحميل المهام والمكافآت وربط النماذج ---
         loadTasks();
         document.getElementById('new-task-form').addEventListener('submit', saveNewTask);
         document.getElementById('tasks-list').addEventListener('click', (e) => {
@@ -405,7 +423,7 @@
     }
 
 
-    // --- LOYALTY SETTINGS SECTION (خاص بهذه الصفحة) ---
+    // --- LOYALTY SETTINGS SECTION (*** تم التعديل ***) ---
 
     async function loadLoyaltySettings() {
         const loader = document.getElementById('loyalty-loader');
@@ -422,14 +440,20 @@
                 document.getElementById('loyalty-active-toggle').checked = settings.isActive || false;
                 document.getElementById('loyalty_spending_points').value = settings.spendingPoints || 10;
                 document.getElementById('loyalty_spending_value').value = settings.spendingValue || 100;
-                document.getElementById('loyalty_point_value_base').value = settings.pointValueBase || 10; // (جديد)
+                document.getElementById('loyalty_point_value_base').value = settings.pointValueBase || 10;
                 document.getElementById('loyalty_reward_threshold').value = settings.rewardThreshold || 1000;
+                // (**** بداية الإضافة ****)
+                document.getElementById('referralBonusPoints').value = settings.referralBonusPoints || 50;
+                // (**** نهاية الإضافة ****)
             } else {
                 // قيم افتراضية
                 document.getElementById('loyalty_spending_points').value = 10;
                 document.getElementById('loyalty_spending_value').value = 100;
                 document.getElementById('loyalty_point_value_base').value = 10;
                 document.getElementById('loyalty_reward_threshold').value = 1000;
+                // (**** بداية الإضافة ****)
+                document.getElementById('referralBonusPoints').value = 50;
+                // (**** نهاية الإضافة ****)
             }
             
             loader.classList.add('hidden');
@@ -466,15 +490,20 @@
             const settingsData = {
                 spendingPoints: parseFloat(document.getElementById('loyalty_spending_points').value) || 0,
                 spendingValue: parseFloat(document.getElementById('loyalty_spending_value').value) || 0,
-                pointValueBase: parseFloat(document.getElementById('loyalty_point_value_base').value) || 1, // (جديد)
+                pointValueBase: parseFloat(document.getElementById('loyalty_point_value_base').value) || 1,
                 rewardThreshold: parseInt(document.getElementById('loyalty_reward_threshold').value) || 100,
+                // (**** بداية الإضافة ****)
+                referralBonusPoints: parseInt(document.getElementById('referralBonusPoints').value, 10) || 0
+                // (**** نهاية الإضافة ****)
             };
             
-            if (settingsData.spendingPoints < 0 || settingsData.spendingValue < 0 || settingsData.pointValueBase <= 0 || settingsData.rewardThreshold < 1) {
+            // (**** بداية التعديل: إضافة التحقق الجديد ****)
+            if (settingsData.spendingPoints < 0 || settingsData.spendingValue < 0 || settingsData.pointValueBase <= 0 || settingsData.rewardThreshold < 1 || settingsData.referralBonusPoints < 0) {
                  showToast('لا يمكن إدخال قيم سلبية، وقيمة النقطة/الهدف يجب أن تكون أكبر من صفر.', 'error');
                  setButtonLoading(saveBtn, false, 'حفظ الإعدادات');
                  return;
             }
+            // (**** نهاية التعديل ****)
             
             loyaltySettingsCache = { ...loyaltySettingsCache, ...settingsData };
             
@@ -516,7 +545,7 @@
             } else {
                 snapshot.docs.forEach(doc => {
                     const order = { id: doc.id, ...doc.data() };
-                    if (!order.userId) return;
+                    if (!order.userId) return; // تجاهل الطلبات بدون معرّف مستخدم
 
                     const orderCard = document.createElement('div');
                     orderCard.id = `order-card-${order.id}`;
@@ -593,6 +622,7 @@
                 });
             }
 
+            // تسجيل العملية في سجل العميل
             const changeLogRef = collection(db, 'users', userId, 'loyaltyChanges');
             await addDoc(changeLogRef, {
                 type: 'order_reward',
@@ -602,6 +632,7 @@
                 timestamp: serverTimestamp()
             });
             
+            // إرسال إشعار للعميل
             if (pointsToAward > 0) {
                 const notificationRef = collection(db, 'users', userId, 'notifications');
                 await addDoc(notificationRef, {
@@ -613,11 +644,13 @@
                 });
             }
 
+            // تعليم الطلب كـ "تم منح نقاطه"
             const orderDocRef = doc(db, "orders", orderId);
             await updateDoc(orderDocRef, {
                 pointsAwarded: true
             });
 
+            // إزالة العنصر من الواجهة
             document.getElementById(`order-card-${orderId}`).remove();
             showToast(pointsToAward > 0 ? `تم إضافة ${pointsToAward} نقطة لـ ${orderId.substring(0, 6)}` : `تم تعليم طلب ${orderId.substring(0, 6)} (0 نقطة)`, 'success');
 
@@ -633,7 +666,7 @@
         }
     }
     
-    // --- (جديد) قسم إدارة المهام ---
+    // --- قسم إدارة المهام ---
     const tasksCollectionRef = collection(db, "settings", "loyalty", "tasks");
 
     async function loadTasks() {
@@ -713,7 +746,7 @@
         });
     }
 
-    // --- (جديد) قسم إدارة المكافآت ---
+    // --- قسم إدارة المكافآت ---
     const rewardsCollectionRef = collection(db, "settings", "loyalty", "rewards");
 
     async function loadRewards() {

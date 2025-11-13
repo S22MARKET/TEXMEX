@@ -82,7 +82,7 @@
     </div>
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; // <-- 1. تم إضافة signOut
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
@@ -97,15 +97,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // --- قائمة الإيميلات المصرح بها ---
         const allowedEmails = [
             's22market@gmail.com',
             'nourmt01@gmail.com',
             'yacinee474474@gmail.com',
             'rbelkhiri05@gmail.com'
-        ].map(e => e.toLowerCase()); // تحويلها للأحرف الصغيرة للمقارنة
+        ].map(e => e.toLowerCase()); 
 
-        // --- DOM Elements ---
         const loginContainer = document.getElementById('login-container');
         const loginForm = document.getElementById('login-form');
         const loginBtn = document.getElementById('login-btn');
@@ -120,7 +118,6 @@
         const phraseEl = document.getElementById('phrase');
         const timerEl = document.getElementById('timer');
 
-        // --- 4. التحقق من أخطاء الرابط عند تحميل الصفحة ---
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             if (params.get('error') === 'unauthorized') {
@@ -128,7 +125,6 @@
             }
         });
 
-        // --- Toggle Password Visibility ---
         togglePasswordBtn.addEventListener('click', () => {
             const isPassword = passwordInput.type === 'password';
             passwordInput.type = isPassword ? 'text' : 'password';
@@ -136,7 +132,6 @@
             eyeClosed.classList.toggle('hidden', !isPassword);
         });
         
-        // --- Login Form Submission ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -152,12 +147,9 @@
                 const user = userCredential.user;
                 const userEmail = user.email.toLowerCase();
 
-                // --- 2. التحقق إذا كان الإيميل مصرح له ---
                 if (allowedEmails.includes(userEmail)) {
-                    // مصرح له: ابدأ تسلسل النجاح
                     startSuccessSequence(user.email);
                 } else {
-                    // غير مصرح له: سجل خروجه وأظهر خطأ
                     await signOut(auth);
                     handleLoginError({ code: 'auth/unauthorized-user' });
                 }
@@ -167,7 +159,6 @@
             }
         });
 
-        // --- Functions ---
         function handleLoginError(error) {
             let userFriendlyError = "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.";
             switch (error.code) {
@@ -182,7 +173,6 @@
                 case 'auth/network-request-failed':
                     userFriendlyError = "فشل الاتصال بالشبكة. الرجاء التحقق من اتصالك بالإنترنت.";
                     break;
-                // --- 3. إضافة حالة الخطأ الجديدة ---
                 case 'auth/unauthorized-user':
                     userFriendlyError = "ليس لديك الصلاحية للوصول إلى لوحة التحكم هذه.";
                     break;
@@ -195,29 +185,28 @@
         }
 
         function startSuccessSequence(email) {
-            loginContainer.classList.add('hidden'); // Hide login form
-            successModal.classList.remove('hidden'); // Show modal
+            loginContainer.classList.add('hidden'); 
+            successModal.classList.remove('hidden'); 
 
-            // 1. Determine and show welcome message
             let msg = '';
-            const genericMsg = "مرحبا بك في لوحة التحكم. جزاك الله خيرا ورزقك حلالا من رزقه. توكل على الله واتق الله  وبارك الله لك في سعيك لهذا اليوم ورزقك من فضله.";
+            const genericMsg = "مرحبا بك في لوحة التحكم. جزاك الله خيرا ورزقك حلالا من رزقه. توكل على الله واتق الله وبارك الله لك في سعيك لهذا اليوم ورزقك من فضله.";
 
             if (email.toLowerCase() === 'yacinee474474@gmail.com') {
                 msg = "السلام عليكم ورحمة الله تعالى وبركاته يا ياسين. بالتوفيق إن شاء الله وأتق الله. بارك الله لك في رزقك اليوم. " + genericMsg;
             } else if (email.toLowerCase() === 'nourmt01@gmail.com') {
-                msg = "السلام عليكم ورحمة الله تعالى وبركاته. ومرحبا بك يا زعمن.   يا باكاتي ان شاء الله  بالتوفيق إن شاء الله ورزقك الله من رزقه. " + genericMsg;
+                msg = "السلام عليكم ورحمة الله تعالى وبركاته. ومرحبا بك يا زعمن. يا باكاتي ان شاء الله بالتوفيق إن شاء الله ورزقك الله من رزقه. " + genericMsg;
             } else {
-                // رسالة عامة لباقي المدراء المصرح لهم
                 msg = "السلام عليكم ورحمة الله تعالى وبركاته أيها المدير. " + genericMsg + " وبالتوفيق إن شاء الله في هذا اليوم.";
             }
             welcomeMessage.textContent = msg;
 
-            // 2. Start countdown sequence after a short delay
+            // --- (هذا هو التطوير) ---
+            // تقليل مدة عرض الترحيب إلى 1.5 ثانية
             setTimeout(() => {
                 welcomeMessage.classList.add('hidden');
                 countdownSection.classList.remove('hidden');
                 runPhrases();
-            }, 4000); // Show welcome message for 4 seconds
+            }, 1500); // (تم التعديل من 4000)
         }
 
         function runPhrases() {
@@ -226,11 +215,14 @@
 
             function showNextPhrase() {
                 if (phraseIndex >= phrases.length) {
-                    window.location.href = 'admin_dashboard.html'; // الانتقال للداشبورد
+                    // (جديد) استخدم اسم الملف الصحيح
+                    window.location.href = 'admin_dashboard.html'; 
                     return;
                 }
 
-                let countdown = 5;
+                // --- (هذا هو التطوير) ---
+                // تقليل مدة العد التنازلي إلى 1 ثانية
+                let countdown = 1; // (تم التعديل من 5)
                 phraseEl.textContent = phrases[phraseIndex];
                 timerEl.textContent = countdown;
                 
@@ -242,7 +234,7 @@
                         phraseIndex++;
                         showNextPhrase();
                     }
-                }, 1000);
+                }, 1000); // (يبقى 1000 ميلي ثانية)
             }
             showNextPhrase();
         }

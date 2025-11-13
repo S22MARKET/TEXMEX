@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEXMEX - الموافقة على المهام</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #f0f2f5; }
+        .hidden { display: none; }
+        .dashboard-tab.active-tab { background-color: #ea580c; color: white; }
+        .dashboard-panel { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+        .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
+        .toast.success { background-color: #2f855a; }
+        .toast.error { background-color: #c53030; }
+        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        .spinner { width: 24px; height: 24px; border: 4px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner-dark { width: 24px; height: 24px; border: 4px solid rgba(0,0,0, 0.1); border-top-color: #333; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-loader" class="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-4">TEX<span class="text-orange-500">MEX</span></h1>
+        <div class="spinner-dark"></div>
+        <p class="mt-4 text-gray-600">جاري التحقق من الهوية...</p>
+    </div>
+
+    <div id="dashboard-page" class="hidden">
+        <div class="relative min-h-screen md:flex">
+
+            <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 right-0 transform translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-30">
+                <div class="p-3 text-center border-b border-gray-700">
+                    <h2 class="text-2xl font-bold">TEX<span class="text-orange-400">MEX</span></h2>
+                </div>
+            <nav class="flex-1 p-2 space-y-2">
+                    <a href="admin_dashboard.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tachometer-alt fa-fw ml-3"></i> اللوحة الرئيسية</a>
+                    <a href="admin_orders.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-clipboard-list fa-fw ml-3"></i> الطلبات الواردة</a>
+                    <a href="admin_loyalty_approvals.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-check-to-slot fa-fw ml-3"></i> موافقات النقاط</a>
+                    <a href="admin_customer_log.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-users fa-fw ml-3"></i> سجل العملاء (بالطلبات)</a>
+                    <a href="admin_customers.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-id-card fa-fw ml-3"></i> العملاء المسجلون</a>
+                    <a href="admin_menu_items.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-utensils fa-fw ml-3"></i> قائمة الطعام</a>
+                    <a href="admin_offers.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-star fa-fw ml-3"></i> العروض والباقات</a>
+                    <a href="admin_coupons.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tags fa-fw ml-3"></i> الكوبونات</a>
+                    <a href="admin_categories.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-sitemap fa-fw ml-3"></i> الأقسام</a>
+                    <a href="admin_delivery_personnel.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-biking fa-fw ml-3"></i> عمال التوصيل</a>
+                    <a href="admin_stats.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-chart-line fa-fw ml-3"></i> الإحصائيات</a>
+                    <a href="admin_loyalty_settings.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-gift fa-fw ml-3"></i> إعدادات الوفاء</a>
+                    <a href="admin_delivery.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-motorcycle fa-fw ml-3"></i> إعدادات التوصيل</a>
+                    <a href="admin_settings.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-cogs fa-fw ml-3"></i> إعدادات المطعم</a>
+                </nav>
+                <div class="p-4 border-t border-gray-700">
+                    <button id="logout-btn" class="w-full flex items-center justify-center px-4 py-3 rounded-md bg-red-600 hover:bg-red-700">
+                        <i class="fas fa-sign-out-alt fa-fw ml-3"></i> تسجيل الخروج
+                    </button>
+                </div>
+            </aside>
+            <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden hidden"></div>
+            
+            <div class="flex-1 flex flex-col">
+                <header class="bg-white shadow-md p-4 flex justify-between items-center">
+                    <h1 class="text-xl font-bold">TEX<span class="text-orange-500">MEX</span> Dashboard</h1>
+                    <button id="mobile-menu-btn" class="text-gray-800 p-2 rounded-lg md:hidden"><i class="fas fa-bars fa-lg"></i></button>
+                </header>
+                
+                <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+                    
+                    <div id="approvals-panel" class="dashboard-panel">
+                        <div class="flex justify-between items-center mb-6">
+                            <h1 class="text-3xl font-bold text-gray-800">موافقات المهام (الإثباتات)</h1>
+                            <button id="refresh-approvals" class="text-gray-500 hover:text-blue-500 text-2xl"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4 bg-yellow-50 p-3 rounded-lg"><i class="fas fa-info-circle ml-2"></i>هنا تظهر الطلبات المرسلة من العملاء لإثبات إكمالهم للمهام. قم بمراجعة الصورة والموافقة لمنحهم النقاط.</p>
+                        
+                        <div id="approvals-loader" class="text-center py-10">
+                            <div class="spinner-dark mx-auto"></div>
+                            <p class="mt-4 text-gray-600">جاري تحميل طلبات الموافقة...</p>
+                        </div>
+                        
+                        <div id="no-approvals-msg" class="hidden text-center py-20 bg-white rounded-xl shadow-md">
+                            <i class="fas fa-check-circle fa-4x text-green-400"></i>
+                            <p class="mt-4 text-xl font-semibold text-gray-500">لا توجد طلبات موافقة بانتظار المراجعة.</p>
+                        </div>
+
+                        <div id="approvals-list" class="space-y-4">
+                            </div>
+                    </div>
+
+                </main>
+                </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, serverTimestamp, orderBy, getDocs, where, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    
+    const firebaseConfig = {
+        apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
+        authDomain: "texmexfoodannaba23.firebaseapp.com",
+        projectId: "texmexfoodannaba23",
+        storageBucket: "texmexfoodannaba23.appspot.com",
+        messagingSenderId: "712480664933",
+        appId: "1:712480664933:web:a5310190bf63115ac9058c",
+        measurementId: "G-38D210X1EG"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const authLoader = document.getElementById('auth-loader');
+    const dashboardPage = document.getElementById('dashboard-page');
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            authLoader.classList.add('hidden');
+            dashboardPage.classList.remove('hidden');
+            initializeDashboard(); 
+        } else {
+            window.location.href = 'logindashborded.html'; 
+        }
+    });
+
+    const showToast = (message, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+        toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    };
+
+    const setButtonLoading = (btn, isLoading, text) => {
+        if (isLoading) {
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div>`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = text;
+        }
+    };
+    
+    function setActiveTab() {
+        const currentPage = window.location.pathname.split('/').pop();
+        if (!currentPage) return;
+        const tabs = document.querySelectorAll('.dashboard-tab');
+        tabs.forEach(tab => {
+            const tabHref = tab.getAttribute('href').split('/').pop();
+            if (tabHref === currentPage) {
+                tab.classList.add('active-tab');
+            } else {
+                tab.classList.remove('active-tab');
+            }
+        });
+    }
+
+    function initializeDashboard() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        mobileMenuBtn.onclick = () => { sidebar.classList.remove('translate-x-full'); overlay.classList.remove('hidden'); };
+        overlay.onclick = () => { sidebar.classList.add('translate-x-full'); overlay.classList.add('hidden'); };
+        logoutBtn.onclick = () => { signOut(auth).catch((error) => console.error("Logout Error:", error)); };
+        setActiveTab();
+        
+        loadPendingApprovals();
+        document.getElementById('refresh-approvals').onclick = loadPendingApprovals;
+        
+        // ربط مستمع الأحداث العام
+        document.getElementById('approvals-list').addEventListener('click', (e) => {
+            const approveBtn = e.target.closest('.approve-btn');
+            const rejectBtn = e.target.closest('.reject-btn');
+            if (approveBtn) handleApproval(approveBtn, true);
+            if (rejectBtn) handleApproval(rejectBtn, false);
+        });
+    }
+
+    // --- دوال الصفحة ---
+    async function loadPendingApprovals() {
+        const loader = document.getElementById('approvals-loader');
+        const listContainer = document.getElementById('approvals-list');
+        const noMsg = document.getElementById('no-approvals-msg');
+
+        loader.classList.remove('hidden');
+        listContainer.innerHTML = '';
+        noMsg.classList.add('hidden');
+
+        try {
+            const q = query(
+                collection(db, "loyalty_approvals"),
+                where("status", "==", "pending"),
+                orderBy("submittedAt", "desc")
+            );
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                noMsg.classList.remove('hidden');
+            } else {
+                snapshot.forEach(doc => {
+                    const approval = { id: doc.id, ...doc.data() };
+                    listContainer.appendChild(createApprovalCard(approval));
+                });
+            }
+        } catch (error) {
+            console.error("Error loading approvals:", error);
+            listContainer.innerHTML = `<p class="text-red-500 p-4"><b>فشل جلب الطلبات.</b><br>تأكد من إنشاء الفهرس (Index) المطلوب في Firestore.</p>`;
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    function createApprovalCard(approval) {
+        const card = document.createElement('div');
+        card.id = `approval-card-${approval.id}`;
+        card.className = 'bg-white rounded-xl shadow-md p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-center';
+        
+        const date = approval.submittedAt?.toDate ? approval.submittedAt.toDate().toLocaleString('ar-EG') : '...';
+
+        card.innerHTML = `
+            <div class="md:col-span-1">
+                <p class="font-bold text-lg">${approval.userName}</p>
+                <p class="text-sm text-gray-500">${date}</p>
+            </div>
+            <div class="md:col-span-1">
+                <p class="font-semibold">${approval.taskTitle}</p>
+                <p class="font-bold text-green-600">+${approval.points} نقطة</p>
+                <a href="${approval.proofImageUrl}" target="_blank" class="text-blue-500 hover:underline font-semibold">
+                    <i class="fas fa-image ml-1"></i> عرض الإثبات (الصورة)
+                </a>
+            </div>
+            <div class="md:col-span-1 flex items-center justify-end gap-3">
+                <button class="reject-btn bg-red-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-red-700" 
+                        data-id="${approval.id}" data-user-id="${approval.userId}" data-title="${approval.taskTitle}">
+                    <i class="fas fa-times"></i> رفض
+                </button>
+                <button class="approve-btn bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700" 
+                        data-id="${approval.id}" data-user-id="${approval.userId}" 
+                        data-points="${approval.points}" data-title="${approval.taskTitle}">
+                    <i class="fas fa-check"></i> موافقة
+                </button>
+            </div>
+        `;
+        return card;
+    }
+
+    async function handleApproval(btn, isApproved) {
+        const card = btn.closest('.bg-white');
+        const { id, userId, points, title } = btn.dataset;
+        
+        // تعطيل كلا الزرين
+        card.querySelectorAll('button').forEach(b => b.disabled = true);
+        
+        if (isApproved) {
+            btn.innerHTML = `<div class="spinner"></div>`;
+        } else {
+            btn.innerHTML = `<div class="spinner"></div>`;
+        }
+
+        try {
+            const approvalDocRef = doc(db, "loyalty_approvals", id);
+            const userDocRef = doc(db, "users", userId);
+            
+            if (isApproved) {
+                const pointsToAward = parseInt(points, 10);
+                
+                // 1. أضف النقاط للعميل
+                await updateDoc(userDocRef, {
+                    loyaltyPoints: increment(pointsToAward)
+                });
+
+                // 2. أضف سجل في "تاريخ النقاط" للعميل
+                const changeLogRef = collection(db, 'users', userId, 'loyaltyChanges');
+                await addDoc(changeLogRef, {
+                    type: 'task_reward',
+                    pointsAdded: pointsToAward,
+                    reason: title,
+                    adminId: auth.currentUser.uid,
+                    timestamp: serverTimestamp()
+                });
+
+                // 3. أرسل إشعاراً للعميل
+                const notificationRef = collection(db, 'users', userId, 'notifications');
+                await addDoc(notificationRef, {
+                    title: "✅ تمت الموافقة على مهمتك!",
+                    body: `أحسنت! تمت إضافة ${pointsToAward} نقطة إلى رصيدك لإكمالك مهمة: "${title}".`,
+                    timestamp: serverTimestamp(),
+                    isRead: false,
+                    type: "task_approved"
+                });
+
+                // 4. حدّث حالة الطلب إلى "موافق عليه"
+                await updateDoc(approvalDocRef, { status: "approved", processedAt: serverTimestamp() });
+                
+                showToast('تمت الموافقة ومنح النقاط!', 'success');
+            } else {
+                // (رفض)
+                // 1. أرسل إشعاراً للعميل
+                const notificationRef = collection(db, 'users', userId, 'notifications');
+                await addDoc(notificationRef, {
+                    title: "❌ تم رفض إثبات المهمة",
+                    body: `نعتذر، تم رفض الإثبات الذي أرسلته لمهمة: "${title}". يرجى المحاولة مجدداً بصورة أوضح.`,
+                    timestamp: serverTimestamp(),
+                    isRead: false,
+                    type: "task_rejected"
+                });
+                
+                // 2. حدّث حالة الطلب إلى "مرفوض"
+                await updateDoc(approvalDocRef, { status: "rejected", processedAt: serverTimestamp() });
+                
+                showToast('تم رفض الطلب بنجاح.', 'success');
+            }
+
+            // إزالة الكرت من الواجهة
+            card.remove();
+            if (document.getElementById('approvals-list').children.length === 0) {
+                document.getElementById('no-approvals-msg').classList.remove('hidden');
+            }
+
+        } catch (error) {
+            console.error("Error handling approval:", error);
+            showToast('حدث خطأ فادح: ' + error.message, 'error');
+            card.querySelectorAll('button').forEach(b => b.disabled = false);
+            btn.innerHTML = isApproved ? '<i class="fas fa-check"></i> موافقة' : '<i class="fas fa-times"></i> رفض';
+        }
+    }
+
+</script>
+
+</body>
+</html>

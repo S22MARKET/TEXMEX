@@ -23,50 +23,13 @@
         .toast { background-color: #2d3748; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 10px; display: flex; align-items: center; gap: 10px; animation: slideInUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
         .toast.success { background-color: #2f855a; }
         .toast.error { background-color: #c53030; }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes fadeOut { from { opacity: 1; } to: { opacity: 0; } }
     </style>
 </head>
 <body>
 
     <header class="bg-white shadow-sm sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-             <a href="index.html" class="flex items-center gap-3">
-                <img id="header-logo" src="https://i.ibb.co/6yV2L7p/texmex-logo.png" alt="TEXMEX Logo" class="h-10">
-                <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800">
-                    TEX<span class="text-orange-500">MEX</span>
-                </h1>
-            </a>
-            
-            <div id="header-actions" class="flex items-center gap-4 relative">
-                <a href="index.html" id="order-btn" class="relative text-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-lg">
-                    <i class="fas fa-store"></i>
-                    <span>المتجر</span>
-                </a>
-                <a href="login.html" id="login-btn" class="hidden relative text-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>دخول / تسجيل</span>
-                </a>
-                <div id="user-menu" class="hidden">
-                    <button id="user-menu-button" class="flex items-center gap-2 text-lg font-semibold text-gray-700 bg-green-100 hover:bg-green-200 px-5 py-2.5 rounded-full transition-colors">
-                        <i class="fas fa-user-check text-green-700"></i>
-                        <span id="user-menu-name">...</span>
-                        <i class="fas fa-chevron-down text-xs"></i>
-                    </button>
-                    <div id="user-menu-dropdown" class="hidden absolute left-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border z-50 overflow-hidden">
-                        <div class="p-3 border-b">
-                            <p class="text-sm text-gray-500">مرحباً بك،</p>
-                            <p class="font-bold text-gray-800" id="user-menu-displayname">...</p>
-                        </div>
-                        <a href="profile.html" class="block px-4 py-3 text-gray-700 bg-gray-100 font-bold transition-colors"><i class="fas fa-user-circle fa-fw ml-2 text-gray-400"></i> ملفي الشخصي</a>
-                        <a href="order_history.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-archive fa-fw ml-2 text-gray-400"></i> أرشيف طلباتي</a>
-                        <a href="loyalty_card.html" class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition-colors"><i class="fas fa-star fa-fw ml-2 text-orange-400"></i> بطاقة الوفاء</a>
-                        <button id="logout-btn" class="w-full text-right px-4 py-3 text-red-600 hover:bg-red-50 border-t transition-colors"><i class="fas fa-sign-out-alt fa-fw ml-2"></i> تسجيل الخروج</button>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </header>
+        </header>
 
     <main class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         
@@ -95,8 +58,11 @@
                     </div>
 
                     <div>
-                        <label for="profile-phone" class="block text-sm font-semibold text-gray-700 mb-1">رقم الهاتف</label>
+                        <label for="profile-phone" class="block text-sm font-semibold text-gray-700 mb-1">رقم الهاتف الأساسي (لا يمكن تغييره لاحقاً)</label>
                         <input type="tel" id="profile-phone" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" dir="ltr" required>
+                        <p id="phone-message" class="text-xs text-gray-400 mt-1">
+                            <i class="fas fa-info-circle"></i> هذا الرقم هو الضمان لحسابك ولن يتكرر.
+                        </p>
                     </div>
 
                     <div class="border-t pt-6">
@@ -108,7 +74,31 @@
 
                 </form>
             </div>
-        </div>
+
+            <div id="referral-section" class="mt-8 bg-white rounded-2xl shadow-xl p-8 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">
+                    <i class="fas fa-gift text-orange-400"></i> نظام الدعوات
+                </h2>
+                <p class="text-center text-gray-600 mb-4">
+                    شارك هذا الكود مع أصدقائك. عندما يقوم صديقك بإنشاء حساب جديد باستخدام هذا الكود، ستحصل أنت على نقاط مكافأة!
+                </p>
+                
+                <div id="referral-code-loader" class="text-center py-5">
+                    <div class="loader mx-auto !w-10 !h-10 !border-4"></div>
+                    <p class="mt-3 text-gray-500">جاري إنشاء كود الدعوة الخاص بك...</p>
+                </div>
+
+                <div id="referral-code-display" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 text-center">كود الدعوة الخاص بك:</label>
+                    <div class="relative max-w-sm mx-auto">
+                        <input type="text" id="referral-code-input" class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center text-3xl font-mono font-bold text-orange-600 tracking-widest" value="..." readonly>
+                        <button id="copy-referral-btn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-200 text-gray-700 p-2 rounded-lg hover:bg-gray-300" title="نسخ الكود">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
     </main>
     
     <div id="toast-container"></div>
@@ -117,17 +107,12 @@
         // --- إعدادات Firebase ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // --- تم التعديل: إضافة collection, addDoc, serverTimestamp ---
-        import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- (*** تم التعديل: إضافة writeBatch, deleteDoc ***) ---
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, addDoc, serverTimestamp, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const firebaseConfig = {
-            apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
-            authDomain: "texmexfoodannaba23.firebaseapp.com",
-            projectId: "texmexfoodannaba23",
-            storageBucket: "texmexfoodannaba23.appspot.com",
-            messagingSenderId: "712480664933",
-            appId: "1:712480664933:web:a5310190bf63115ac9058c",
-            measurementId: "G-38D210X1EG"
+            // ... (كما هو) ...
         };
 
         const app = initializeApp(firebaseConfig);
@@ -135,6 +120,7 @@
         const db = getFirestore(app);
 
         // --- عناصر واجهة المستخدم ---
+        // ... (عناصر الهيدر كما هي) ...
         const loginBtn = document.getElementById('login-btn');
         const userMenu = document.getElementById('user-menu');
         const userMenuButton = document.getElementById('user-menu-button');
@@ -149,27 +135,29 @@
         const profileName = document.getElementById('profile-name');
         const profileEmail = document.getElementById('profile-email');
         const profilePhone = document.getElementById('profile-phone');
+        const phoneMessage = document.getElementById('phone-message');
         const saveBtn = document.getElementById('save-profile-btn');
         const saveBtnText = document.getElementById('save-btn-text');
         const saveBtnLoader = document.getElementById('save-btn-loader');
 
+        // (**** بداية الإضافة: عناصر كود الدعوة ****)
+        const referralSection = document.getElementById('referral-section');
+        const referralCodeLoader = document.getElementById('referral-code-loader');
+        const referralCodeDisplay = document.getElementById('referral-code-display');
+        const referralCodeInput = document.getElementById('referral-code-input');
+        const copyReferralBtn = document.getElementById('copy-referral-btn');
+        // (**** نهاية الإضافة ****)
+
         // --- تمت الإضافة: متغيرات لحفظ القيم القديمة للمقارنة ---
         let oldName = '';
         let oldPhone = '';
+        let hasPhoneBeenSet = false; // (جديد) لمنع تغيير الرقم بعد الحفظ
         // ----------------------------------------------------
 
         // --- دالة التنبيهات (Toast) ---
-        const showToast = (message, type = 'success') => {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
-            toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        };
+        const showToast = (message, type = 'success') => { /* ... (كما هي) ... */ };
 
-        // --- جلب بيانات الملف الشخصي ---
+        // --- جلب بيانات الملف الشخصي (*** تم التعديل ***) ---
         async function loadProfileData(user) {
             try {
                 const userDocRef = doc(db, 'users', user.uid);
@@ -177,20 +165,40 @@
 
                 if (userDocSnap.exists()) {
                     const data = userDocSnap.data();
-                    // --- تم التعديل: حفظ القيم القديمة ---
+                    
                     oldName = data.displayName || user.displayName || '';
                     oldPhone = data.phone || '';
                     profileName.value = oldName;
                     profileEmail.value = data.email || user.email || '';
                     profilePhone.value = oldPhone;
-                    // ------------------------------------
+
+                    // (*** بداية الإضافة: منطق حقل الهاتف وكود الدعوة ***)
+                    if (oldPhone) {
+                        hasPhoneBeenSet = true;
+                        profilePhone.disabled = true;
+                        profilePhone.classList.add('bg-gray-100', 'cursor-not-allowed');
+                        phoneMessage.innerHTML = '<i class="fas fa-lock text-green-600"></i> تم تأكيد هذا الرقم. لا يمكن تغييره.';
+                        phoneMessage.className = 'text-xs text-green-700 mt-1';
+                    } else {
+                        hasPhoneBeenSet = false;
+                        phoneMessage.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i> سيتم ربط هذا الرقم بحسابك نهائياً. تأكد من صحته.';
+                        phoneMessage.className = 'text-xs text-red-600 mt-1';
+                    }
+
+                    // إظهار قسم الدعوات
+                    referralSection.classList.remove('hidden');
+                    if (data.referralCode) {
+                        referralCodeInput.value = data.referralCode;
+                        referralCodeLoader.classList.add('hidden');
+                        referralCodeDisplay.classList.remove('hidden');
+                    } else {
+                        // الدالة السحابية ربما لم تعمل بعد، ننتظر
+                        console.log("Waiting for referral code generation...");
+                    }
+                    // (*** نهاية الإضافة ***)
+
                 } else {
-                    // في حال كان المستخدم موجوداً في Auth ولكن ليس في Firestore (نادر)
-                    oldName = user.displayName || '';
-                    oldPhone = user.phoneNumber || '';
-                    profileName.value = oldName;
-                    profileEmail.value = user.email || '';
-                    profilePhone.value = oldPhone;
+                    // ... (حالة نادرة) ...
                 }
 
                 authLoader.classList.add('hidden');
@@ -201,8 +209,17 @@
                 authLoader.innerHTML = '<p class="text-red-500 text-center">حدث خطأ أثناء جلب بياناتك.</p>';
             }
         }
+        
+        // (**** بداية الإضافة: زر نسخ الكود ****)
+        copyReferralBtn.addEventListener('click', () => {
+            referralCodeInput.select();
+            document.execCommand('copy');
+            showToast('تم نسخ الكود بنجاح!', 'success');
+        });
+        // (**** نهاية الإضافة ****)
 
-        // --- معالج حفظ التعديلات ---
+
+        // --- معالج حفظ التعديلات (*** تم التعديل بالكامل ***) ---
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newName = profileName.value.trim();
@@ -213,43 +230,84 @@
                 return;
             }
 
+            // تحقق بسيط من صيغة الرقم (يمكن تحسينه)
+            if (!/^\d{9,15}$/.test(newPhone)) {
+                showToast('الرجاء إدخال رقم هاتف صحيح (9-15 أرقام).', 'error');
+                return;
+            }
+
             saveBtn.disabled = true;
             saveBtnText.classList.add('hidden');
             saveBtnLoader.classList.remove('hidden');
 
+            const user = auth.currentUser;
+            const userDocRef = doc(db, 'users', user.uid);
+            
+            // نستخدم "دفعة" لضمان تنفيذ كل شيء أو فشل كل شيء
+            const batch = writeBatch(db);
+
             try {
-                const user = auth.currentUser;
-                // 1. تحديث بيانات Auth (للاسم المعروض)
-                await updateProfile(user, { displayName: newName });
+                // --- الخطوة 1: التحقق من الهاتف (إذا كان جديداً أو متغيراً) ---
+                const phoneChanged = (newPhone !== oldPhone) && !hasPhoneBeenSet;
+                
+                if (phoneChanged) {
+                    const phoneDocRef = doc(db, "phoneNumbers", newPhone);
+                    const phoneDocSnap = await getDoc(phoneDocRef);
+                    
+                    if (phoneDocSnap.exists()) {
+                        // الرقم محجوز من قبل شخص آخر
+                        throw new Error('رقم الهاتف هذا مستخدم بالفعل من قبل حساب آخر.');
+                    }
+                    
+                    // حجز الرقم الجديد
+                    batch.set(phoneDocRef, { uid: user.uid });
+                    
+                    // إذا كان هناك رقم قديم (نادر، لكن للاحتياط)
+                    if (oldPhone) {
+                        batch.delete(doc(db, "phoneNumbers", oldPhone));
+                    }
+                }
 
-                // 2. تحديث بيانات Firestore (للاسم والهاتف)
-                const userDocRef = doc(db, 'users', user.uid);
-                await setDoc(userDocRef, {
+                // --- الخطوة 2: تجهيز تحديث بيانات العميل ---
+                const dataToUpdate = {
                     displayName: newName,
-                    phone: newPhone
-                }, { merge: true }); // merge: true تضمن عدم مسح البيانات الأخرى مثل النقاط
+                    phone: newPhone // سيتم حفظ الرقم الجديد
+                };
+                batch.set(userDocRef, dataToUpdate, { merge: true });
 
-                // --- تمت الإضافة: نظام تسجيل التغييرات (Audit Log) ---
-                const changes = {};
+                // --- الخطوة 3: تحديث بيانات Auth (للاسم المعروض) ---
                 if (newName !== oldName) {
-                    changes.displayName = { old: oldName, new: newName };
+                    await updateProfile(user, { displayName: newName });
                 }
-                if (newPhone !== oldPhone) {
-                    changes.phone = { old: oldPhone, new: newPhone };
-                }
+                
+                // --- الخطوة 4: تنفيذ الدفعة (الحفظ الفعلي) ---
+                await batch.commit();
 
-                // إذا كان هناك أي تغيير، قم بتسجيله
+                // --- الخطوة 5: تسجيل التغييرات (Audit Log) ---
+                const changes = {};
+                if (newName !== oldName) changes.displayName = { old: oldName, new: newName };
+                if (phoneChanged) changes.phone = { old: oldPhone, new: newPhone };
+
                 if (Object.keys(changes).length > 0) {
                     const changesCollectionRef = collection(db, 'users', user.uid, 'profileChanges');
                     await addDoc(changesCollectionRef, {
                         changes,
                         timestamp: serverTimestamp()
                     });
+                    
                     // تحديث القيم القديمة بالجديدة
                     oldName = newName;
                     oldPhone = newPhone;
+                    
+                    // (جديد) قفل حقل الهاتف بعد الحفظ
+                    if (phoneChanged) {
+                        hasPhoneBeenSet = true;
+                        profilePhone.disabled = true;
+                        profilePhone.classList.add('bg-gray-100', 'cursor-not-allowed');
+                        phoneMessage.innerHTML = '<i class="fas fa-lock text-green-600"></i> تم تأكيد هذا الرقم. لا يمكن تغييره.';
+                        phoneMessage.className = 'text-xs text-green-700 mt-1';
+                    }
                 }
-                // --- نهاية إضافة نظام التسجيل ---
 
                 showToast('تم حفظ التعديلات بنجاح!', 'success');
                 // تحديث اسم القائمة في الهيدر
@@ -258,7 +316,12 @@
 
             } catch (error) {
                 console.error("Error updating profile: ", error);
-                showToast('حدث خطأ أثناء حفظ التعديلات.', 'error');
+                // عرض رسالة الخطأ المخصصة إذا كان الرقم مستخدماً
+                if (error.message.includes('رقم الهاتف')) {
+                    showToast(error.message, 'error');
+                } else {
+                    showToast('حدث خطأ أثناء حفظ التعديلات. (قد يكون الرقم مستخدماً)', 'error');
+                }
             } finally {
                 saveBtn.disabled = false;
                 saveBtnText.classList.remove('hidden');
@@ -267,40 +330,12 @@
         });
 
         // --- منطق المصادقة والتحكم بالصفحة ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // المستخدم قام بتسجيل الدخول
-                loginBtn.classList.add('hidden');
-                userMenu.classList.remove('hidden');
-                
-                const displayName = user.displayName || "زبوننا";
-                userMenuName.textContent = displayName.split(' ')[0];
-                userMenuDisplayName.textContent = displayName;
-
-                // جلب بيانات الملف الشخصي
-                loadProfileData(user);
-
-            } else {
-                // المستخدم زائر، قم بإعادته لصفحة التسجيل
-                window.location.href = 'login.html';
-            }
-        });
+        onAuthStateChanged(auth, (user) => { /* ... (كما هو) ... */ });
 
         // --- معالجات القائمة وتسجيل الخروج ---
-        userMenuButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            userMenuDropdown.classList.toggle('show');
-        });
-
-        document.addEventListener('click', () => {
-            if (userMenuDropdown.classList.contains('show')) {
-                userMenuDropdown.classList.remove('show');
-            }
-        });
-
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).catch((error) => console.error('Logout Error', error));
-        });
+        userMenuButton.addEventListener('click', (e) => { /* ... (كما هو) ... */ });
+        document.addEventListener('click', () => { /* ... (كما هو) ... */ });
+        logoutBtn.addEventListener('click', () => { /* ... (كما هو) ... */ });
     </script>
 </body>
 </html>

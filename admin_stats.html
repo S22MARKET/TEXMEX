@@ -35,7 +35,6 @@
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #ddd; background-color: white; transition: all 0.2s; }
         .filter-btn.active { background-color: #f97316; color: white; border-color: #f97316; }
         .ql-editor { min-height: 120px; }
-        /* (جديد) تنسيق عمود الرسم البياني */
         .chart-bar { transition: height 0.3s ease-out; }
         .chart-label-vertical { writing-mode: vertical-rl; transform: rotate(180deg); }
     </style>
@@ -56,9 +55,10 @@
                 <div class="p-3 text-center border-b border-gray-700">
                     <h2 class="text-2xl font-bold">TEX<span class="text-orange-400">MEX</span></h2>
                 </div>
-                <nav class="flex-1 p-2 space-y-2">
+                          <nav class="flex-1 p-2 space-y-2">
                     <a href="admin_dashboard.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-tachometer-alt fa-fw ml-3"></i> اللوحة الرئيسية</a>
                     <a href="admin_orders.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-clipboard-list fa-fw ml-3"></i> الطلبات الواردة</a>
+                    <a href="admin_loyalty_approvals.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-check-to-slot fa-fw ml-3"></i> موافقات النقاط</a>
                     <a href="admin_customer_log.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-users fa-fw ml-3"></i> سجل العملاء (بالطلبات)</a>
                     <a href="admin_customers.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-id-card fa-fw ml-3"></i> العملاء المسجلون</a>
                     <a href="admin_menu_items.html" class="dashboard-tab flex items-center px-4 py-3 rounded-md hover:bg-orange-700"><i class="fas fa-utensils fa-fw ml-3"></i> قائمة الطعام</a>
@@ -147,7 +147,7 @@
     let couponsCache = [];
     let ordersCache = [];
     let deliveryZonesCache = [];
-    let registeredUsersCache = []; // (جديد) سنحتاجه هنا
+    let registeredUsersCache = []; 
     let quillEditor = null; 
     let selectedFileStore = {}; 
 
@@ -247,24 +247,32 @@
     }
 
 
-    // --- (تم التعديل) STATS SECTION ---
+    // --- (***مطور***) STATS SECTION ---
     async function loadStats() {
         const statsContent = document.getElementById('stats-content');
         
         try {
-            // (تم التعديل): جلب الطلبات والمستخدمين في نفس الوقت
-            const [ordersSnapshot, usersSnapshot] = await Promise.all([
+            // (تم التعديل): جلب الطلبات، المستخدمين، وقائمة الطعام (للأقسام)
+            const [ordersSnapshot, usersSnapshot, menuItemsSnapshot] = await Promise.all([
                 getDocs(query(collection(db, "orders"), where("status", "==", "completed"))),
-                getDocs(query(collection(db, "users"))) // <-- (جديد) جلب المستخدمين
+                getDocs(query(collection(db, "users"))),
+                getDocs(collection(db, "menu_items")) // <-- (جديد) جلب الوجبات لربط الأقسام
             ]);
 
-            // --- ✨✨ (جديد) 1. تحليل بيانات المسجلين ✨✨ ---
+            // (جديد) معالجة الوجبات لإنشاء خريطة (اسم الوجبة -> القسم)
+            const menuItemsMap = new Map();
+            menuItemsSnapshot.docs.forEach(doc => {
+                const item = doc.data();
+                menuItemsMap.set(item.name, item.category);
+            });
+
+
+            // --- 1. تحليل بيانات المسجلين (كما كان) ---
             const allUsers = usersSnapshot.docs.map(d => d.data());
             const totalUsers = allUsers.length;
-            
-            const registrationsByDay = [0, 0, 0, 0, 0, 0, 0]; // 0: Sunday, 1: Monday...
+            const registrationsByDay = [0, 0, 0, 0, 0, 0, 0]; 
             const dayLabels = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-            const registrationsByMonth = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0: Jan, 1: Feb...
+            const registrationsByMonth = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; 
             const monthLabels = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
             allUsers.forEach(user => {
@@ -276,14 +284,14 @@
             });
             const maxDayReg = Math.max(...registrationsByDay);
             const maxMonthReg = Math.max(...registrationsByMonth);
-            // --- ✨✨ نهاية الإضافة 1 ---
 
 
-            // --- 2. تحليل بيانات الطلبات (كما كان) ---
+            // --- 2. تحليل بيانات الطلبات (***مطور***) ---
             const allCompletedOrders = ordersSnapshot.docs.map(d => d.data());
             const totalRevenue = allCompletedOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
             const totalOrders = allCompletedOrders.length;
             
+            // مبيعات آخر 7 أيام
             const salesByDay = {};
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
@@ -298,9 +306,22 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             let monthlyRevenue = 0;
 
+            // (***مطور***) تهيئة متغيرات التحليل
+            const itemCounts = {};
+            const itemRevenue = {};
+            const salesByCategory = {};
+            const couponCounts = {};
+            const couponRevenue = {};
+            const customerSpending = {};
+            let totalCouponsUsed = 0;
+            const customerContacts = new Set(); 
+            let totalItemsSold = 0;
+
             allCompletedOrders.forEach(order => {
-                if (order.createdAt && typeof order.createdAt.toDate === 'function') {
-                    const orderDate = order.createdAt.toDate();
+                const orderDate = (order.createdAt && typeof order.createdAt.toDate === 'function') ? order.createdAt.toDate() : null;
+                
+                // مبيعات 7 أيام و 30 يوم
+                if (orderDate) {
                     if (orderDate >= sevenDaysAgo) {
                         const key = orderDate.toISOString().split('T')[0];
                         if (salesByDay[key]) { salesByDay[key].revenue += order.totalPrice; }
@@ -309,36 +330,74 @@
                         monthlyRevenue += (order.totalPrice || 0);
                     }
                 }
+
+                // تحليل العملاء
+                const contact = order.customerContact || 'unknown';
+                customerContacts.add(contact);
+                if (contact !== 'unknown') {
+                    if (!customerSpending[contact]) {
+                        customerSpending[contact] = { name: order.customerName, contact: contact, totalSpent: 0, orderCount: 0 };
+                    }
+                    customerSpending[contact].totalSpent += (order.totalPrice || 0);
+                    customerSpending[contact].orderCount++;
+                }
+
+                // تحليل الكوبونات (جديد: الإيرادات)
+                if (order.couponCode) {
+                    totalCouponsUsed++; 
+                    const code = order.couponCode;
+                    couponCounts[code] = (couponCounts[code] || 0) + 1;
+                    couponRevenue[code] = (couponRevenue[code] || 0) + (order.totalPrice || 0);
+                }
+
+                // تحليل الوجبات والأقسام (جديد: الإيرادات والأقسام)
+                (order.items || []).forEach(item => {
+                    const name = item.name;
+                    const quantity = item.quantity;
+                    const revenue = (item.price * quantity) || 0; 
+
+                    totalItemsSold += quantity;
+                    itemCounts[name] = (itemCounts[name] || 0) + quantity;
+                    itemRevenue[name] = (itemRevenue[name] || 0) + revenue; 
+
+                    const category = menuItemsMap.get(name) || 'غير مصنف';
+                    if (!salesByCategory[category]) {
+                        salesByCategory[category] = { quantity: 0, revenue: 0 };
+                    }
+                    salesByCategory[category].quantity += quantity;
+                    salesByCategory[category].revenue += revenue;
+                });
             });
             
+            const totalCustomersFromOrders = customerContacts.has('unknown') ? customerContacts.size - 1 : customerContacts.size;
             const chartData = Object.values(salesByDay);
             const maxRevenue = Math.max(...chartData.map(d => d.revenue));
 
-            // ... (باقي الإحصائيات: أفضل الوجبات، الكوبونات، العملاء) ...
-            const itemCounts = {};
-            allCompletedOrders.forEach(order => { (order.items || []).forEach(item => { itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity; }); });
-            const topItems = Object.entries(itemCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
+            // (***جديد***) تجهيز بيانات الجداول (فرزها)
+            const allItemsData = Object.entries(itemCounts).map(([name, quantity]) => ({
+                name,
+                quantity,
+                revenue: itemRevenue[name] || 0
+            })).sort((a, b) => b.revenue - a.revenue); // فرز حسب الإيرادات
 
-            const couponCounts = {};
-            allCompletedOrders.forEach(order => { if (order.couponCode) { couponCounts[order.couponCode] = (couponCounts[order.couponCode] || 0) + 1; } });
-            const topCoupons = Object.entries(couponCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
+            const allCustomersData = Object.values(customerSpending).sort((a, b) => b.totalSpent - a.totalSpent); // فرز حسب الإنفاق
 
-            const customerSpending = {};
-            allCompletedOrders.forEach(order => {
-                const contact = order.customerContact || 'unknown';
-                if (contact === 'unknown') return;
-                if (!customerSpending[contact]) {
-                    customerSpending[contact] = { name: order.customerName, contact: contact, totalSpent: 0, orderCount: 0 };
-                }
-                customerSpending[contact].totalSpent += (order.totalPrice || 0);
-                customerSpending[contact].orderCount++;
-            });
-            const topCustomers = Object.values(customerSpending).sort((a,b) => b.totalSpent - a.totalSpent).slice(0, 5);
+            const allCouponsData = Object.entries(couponCounts).map(([code, count]) => ({
+                code,
+                count,
+                revenue: couponRevenue[code] || 0
+            })).sort((a, b) => b.count - a.count); // فرز حسب عدد الاستخدام
+
+            const allCategoriesData = Object.entries(salesByCategory).map(([name, data]) => ({
+                name,
+                ...data
+            })).sort((a, b) => b.revenue - a.revenue); // فرز حسب إيرادات القسم
             
+            const maxCategoryRevenue = allCategoriesData.length > 0 ? allCategoriesData[0].revenue : 0; // أعلى إيراد قسم
 
-            // --- 3. رسم كل شيء (تم التعديل) ---
+            // --- 3. رسم كل شيء (***مطور بالكامل***) ---
             statsContent.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                         <i class="fas fa-coins fa-3x text-yellow-500"></i>
                         <div><p class="text-gray-500">إجمالي الإيرادات</p><p class="text-2xl font-bold">${formatCurrency(totalRevenue)}</p></div>
@@ -357,7 +416,19 @@
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
                         <i class="fas fa-users fa-3x text-cyan-500"></i>
-                        <div><p class="text-gray-500">إجمالي المسجلين</p><p class="text-2xl font-bold">${totalUsers}</p></div>
+                        <div><p class="text-gray-500">المسجلون</p><p class="text-2xl font-bold">${totalUsers}</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                        <i class="fas fa-user-check fa-3x text-green-500"></i>
+                        <div><p class="text-gray-500">العملاء (من الطلبات)</p><p class="text-2xl font-bold">${totalCustomersFromOrders}</p></div>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                        <i class="fas fa-utensils fa-3x text-red-500"></i>
+                        <div><p class="text-gray-500">إجمالي الوجبات المباعة</p><p class="text-2xl font-bold">${totalItemsSold}</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md flex items-center gap-4">
+                        <i class="fas fa-tags fa-3x text-indigo-500"></i>
+                        <div><p class="text-gray-500">كوبونات مستخدمة</p><p class="text-2xl font-bold">${totalCouponsUsed}</p></div>
                     </div>
                 </div>
 
@@ -375,14 +446,20 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-bold mb-4">أفضل 5 وجبات مبيعًا</h3>
-                        <ul class="space-y-3">
-                            ${topItems.length > 0 ? topItems.map(([name, count], index) => `
-                                <li class="flex items-center justify-between">
-                                    <span class="font-semibold"><span class="text-gray-400 font-bold">${index + 1}.</span> ${name}</span>
-                                    <span class="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold">${count} مرة</span>
-                                </li>`).join('') : '<p class="text-gray-500">لا توجد بيانات كافية.</p>'}
-                        </ul>
+                        <h3 class="text-xl font-bold mb-4">المبيعات حسب القسم (بالإيرادات)</h3>
+                        <div class="space-y-3 max-h-64 overflow-y-auto pr-2">
+                            ${allCategoriesData.length > 0 ? allCategoriesData.map(cat => `
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-semibold">${cat.name}</span>
+                                        <span class="text-sm font-bold text-green-700">${formatCurrency(cat.revenue)}</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div class="bg-green-500 h-2.5 rounded-full" style="width: ${maxCategoryRevenue > 0 ? (cat.revenue / maxCategoryRevenue) * 100 : 0}%"></div>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500">لا توجد بيانات.</p>'}
+                        </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-xl shadow-md">
@@ -409,36 +486,90 @@
                         </div>
                     </div>
 
-
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-bold mb-4">أفضل 5 عملاء (حسب الإنفاق)</h3>
-                        <ul class="space-y-3">
-                            ${topCustomers.length > 0 ? topCustomers.map((customer, index) => `
-                                <li class="flex items-center justify-between">
-                                    <div>
-                                        <span class="font-semibold"><span class="text-gray-400 font-bold">${index + 1}.</span> ${customer.name}</span>
-                                        <span class="text-sm text-gray-500 font-mono block" dir="ltr">${customer.contact}</span>
-                                    </div>
-                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">${formatCurrency(customer.totalSpent)}</span>
-                                </li>`).join('') : '<p class="text-gray-500">لا توجد بيانات كافية.</p>'}
-                        </ul>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4">جدول مبيعات الوجبات (الكل)</h3>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full responsive-table">
+                                <thead class="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-3 text-right">#</th>
+                                        <th class="p-3 text-right">الوجبة</th>
+                                        <th class="p-3 text-right">الكمية المباعة</th>
+                                        <th class="p-3 text-right">إجمالي الإيرادات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allItemsData.length > 0 ? allItemsData.map((item, index) => `
+                                        <tr class="border-b">
+                                            <td data-label="#" class="p-3 font-bold">${index + 1}</td>
+                                            <td data-label="الوجبة" class="p-3 font-semibold">${item.name}</td>
+                                            <td data-label="الكمية" class="p-3">${item.quantity}</td>
+                                            <td data-label="الإيرادات" class="p-3 font-mono font-bold">${formatCurrency(item.revenue)}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" class="p-4 text-center text-gray-500">لا توجد بيانات.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-bold mb-4">أكثر الكوبونات استخدامًا</h3>
-                        <ul class="space-y-3">
-                            ${topCoupons.length > 0 ? topCoupons.map(([code, count], index) => `
-                                <li class="flex items-center justify-between">
-                                    <span class="font-semibold"><span class="text-gray-400 font-bold">${index + 1}.</span> <span class="font-mono bg-gray-100 px-2 py-1 rounded">${code}</span></span>
-                                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">${count} استخدام</span>
-                                </li>`).join('') : '<p class="text-gray-500">لم يتم استخدام أي كوبونات بعد.</p>'}
-                        </ul>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4">جدول تحليل العملاء (الكل)</h3>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full responsive-table">
+                                <thead class="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-3 text-right">#</th>
+                                        <th class="p-3 text-right">العميل</th>
+                                        <th class="p-3 text-right">الاتصال</th>
+                                        <th class="p-3 text-right">إجمالي الإنفاق</th>
+                                        <th class="p-3 text-right">عدد الطلبات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allCustomersData.length > 0 ? allCustomersData.map((customer, index) => `
+                                        <tr class="border-b">
+                                            <td data-label="#" class="p-3 font-bold">${index + 1}</td>
+                                            <td data-label="العميل" class="p-3 font-semibold">${customer.name}</td>
+                                            <td data-label="الاتصال" class="p-3 font-mono" dir="ltr">${customer.contact}</td>
+                                            <td data-label="الإنفاق" class="p-3 font-mono font-bold text-green-700">${formatCurrency(customer.totalSpent)}</td>
+                                            <td data-label="الطلبات" class="p-3">${customer.orderCount}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="5" class="p-4 text-center text-gray-500">لا توجد بيانات.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4">جدول أداء الكوبونات (الكل)</h3>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full responsive-table">
+                                <thead class="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-3 text-right">#</th>
+                                        <th class="p-3 text-right">الكوبون</th>
+                                        <th class="p-3 text-right">عدد الاستخدامات</th>
+                                        <th class="p-3 text-right">الإيرادات الناتجة (من الطلبات)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${allCouponsData.length > 0 ? allCouponsData.map((coupon, index) => `
+                                        <tr class="border-b">
+                                            <td data-label="#" class="p-3 font-bold">${index + 1}</td>
+                                            <td data-label="الكوبون" class="p-3 font-mono bg-gray-50">${coupon.code}</td>
+                                            <td data-label="الاستخدام" class="p-3 font-bold">${coupon.count}</td>
+                                            <td data-label="الإيرادات" class="p-3 font-mono">${formatCurrency(coupon.revenue)}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" class="p-4 text-center text-gray-500">لا توجد بيانات.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>`;
 
         } catch(error) {
             console.error("Error loading stats:", error);
-            statsContent.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded-lg">حدث خطأ أثناء تحميل الإحصائيات.</div>`;
+            statsContent.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded-lg">حدث خطأ أثناء تحميل الإحصائيات. ${error.message}</div>`;
         }
     }
 
