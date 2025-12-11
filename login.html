@@ -2,133 +2,134 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TEXMEX - تسجيل الدخول و إنشاء حساب</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
     <style>
-        /* الخط الرئيسي والخلفية النظيفة */
+        /* الخط الرئيسي والخلفية */
         body { 
             font-family: 'Tajawal', sans-serif; 
-            background-color: #f8f8f8; /* خلفية فاتحة ونظيفة */
+            background-color: #f3f4f6;
+            /* منع السحب الزائد في الهواتف */
+            overscroll-behavior-y: none; 
         }
-        /* كلاسات الأزرار المخصصة للتحميل */
+        
+        /* كلاسات التحميل */
         .loader {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #ffffff;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #ffffff;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* تصميم مخصص لمدخلات الأرقام (للهاتف ورمز الدعوة) */
-        input[type="tel"], input[type="text"][dir="ltr"] {
+
+        /* تنسيق الأرقام والمدخلات اللاتينية */
+        input[type="tel"], 
+        input[type="email"], 
+        input[type="password"],
+        .ltr-input {
             text-align: left;
+            direction: ltr;
         }
         
-        /* تأثير التركيز الحديث على المدخلات */
+        /* تحسين التركيز */
         .input-focus:focus {
-            border-color: #f97316; /* لون برتقالي (TEXMEX) */
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+        }
+
+        /* تحريك ظهور الصندوق */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeInUp 0.5s ease-out forwards;
         }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col justify-center items-center p-4">
+<body class="min-h-screen flex flex-col justify-center items-center p-4 sm:p-6">
 
-    <div id="message-box" class="fixed top-0 inset-x-0 mx-auto p-4 rounded-b-lg shadow-lg text-center text-sm hidden transition-all duration-300 transform -translate-y-full max-w-sm" style="z-index: 99;">
+    <div id="message-box" class="fixed top-4 left-4 right-4 mx-auto p-4 rounded-lg shadow-xl text-center text-sm font-bold text-white hidden transition-all duration-300 transform -translate-y-20 max-w-sm z-50">
         الرسالة هنا
     </div>
 
-    <div class="w-full max-w-sm bg-white p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-100 animate-fadeIn">
+    <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl border border-gray-100 animate-fadeIn my-auto">
         
-        <div class="text-center mb-8">
+        <div class="text-center mb-6">
             <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">TEXMEX</h1>
-            <p class="text-sm text-gray-500 mt-1" id="sub-title">تسجيل الدخول</p>
+            <p class="text-sm text-gray-500 mt-2" id="sub-title">مرحباً بك مجدداً</p>
         </div>
 
         <form id="auth-form" class="space-y-4">
             
             <div id="name-field" class="hidden">
-                <label for="name" class="block text-sm font-medium text-gray-700">الاسم الكامل</label>
-                <div class="relative mt-1 rounded-md shadow-sm">
-                    <input type="text" id="name" placeholder="مثال: أحمد محمد" class="input-focus block w-full rounded-md border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none" required>
-                </div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
+                <input type="text" id="name" placeholder="مثال: أحمد محمد" class="input-focus block w-full rounded-lg border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none transition-all" autocomplete="name">
             </div>
 
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">البريد الإلكتروني</label>
-                <div class="relative mt-1 rounded-md shadow-sm">
-                    <input type="email" id="email" placeholder="name@example.com" class="input-focus block w-full rounded-md border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none" required>
-                </div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني</label>
+                <input type="email" id="email" placeholder="name@example.com" class="input-focus block w-full rounded-lg border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none transition-all" required autocomplete="email">
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">كلمة المرور</label>
-                <div class="relative mt-1 rounded-md shadow-sm">
-                    <input type="password" id="password" placeholder="أدخل كلمة المرور" class="input-focus block w-full rounded-md border-gray-300 border p-3 text-gray-900 focus:outline-none" required>
-                </div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
+                <input type="password" id="password" placeholder="••••••••" class="input-focus block w-full rounded-lg border-gray-300 border p-3 text-gray-900 focus:outline-none transition-all" required autocomplete="current-password">
             </div>
 
             <div id="phone-field" class="hidden">
-                <label for="phone" class="block text-sm font-medium text-gray-700">رقم الهاتف <span class="text-xs text-gray-500">(لإتمام الطلبات)</span></label>
-                <div class="relative mt-1 rounded-md shadow-sm">
-                    <input type="tel" id="phone" placeholder="مثال: 0550123456" class="input-focus block w-full rounded-md border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none" dir="ltr">
-                </div>
+                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف <span class="text-xs text-gray-400">(مطلوب)</span></label>
+                <input type="tel" id="phone" placeholder="0550123456" class="input-focus block w-full rounded-lg border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none transition-all" autocomplete="tel">
             </div>
             
             <div id="referral-field" class="hidden">
-                <label for="referral-code" class="block text-sm font-medium text-gray-700">رمز دعوة (اختياري)</label>
-                <div class="relative mt-1 rounded-md shadow-sm">
-                    <input type="text" id="referral-code" placeholder="أدخل رمز الدعوة للحصول على نقاط" class="input-focus block w-full rounded-md border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none" dir="ltr">
-                </div>
+                <label for="referral-code" class="block text-sm font-medium text-gray-700 mb-1">رمز دعوة (اختياري)</label>
+                <input type="text" id="referral-code" placeholder="CODE123" class="input-focus ltr-input block w-full rounded-lg border-gray-300 border p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none transition-all">
             </div>
 
-            <div id="remember-me-container" class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded" checked>
-                    <label for="remember-me" class="mr-2 block text-sm text-gray-900">
-                        تذكرني (تسجيل دخول سريع)
+            <div id="remember-me-container" class="flex items-center justify-between pt-1">
+                <div class="flex items-center cursor-pointer">
+                    <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded cursor-pointer" checked>
+                    <label for="remember-me" class="mr-2 block text-sm text-gray-600 cursor-pointer select-none">
+                        تذكرني
                     </label>
                 </div>
-            </div>
-
-
-            <button type="submit" id="submit-button" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg font-bold text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-300 transition-colors duration-200 mt-6" disabled>
-                <span id="button-text">تسجيل الدخول</span>
-                <div id="button-loader" class="loader hidden mr-2"></div>
-            </button>
-            
-            <div id="forgot-password-link" class="text-center pt-2">
                 <a href="#" id="reset-password-btn" class="text-sm font-medium text-orange-600 hover:text-orange-500">نسيت كلمة المرور؟</a>
             </div>
 
+            <button type="submit" id="submit-button" class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-md font-bold text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200 mt-6 active:scale-95">
+                <span id="button-text">تسجيل الدخول</span>
+                <div id="button-loader" class="loader hidden"></div>
+            </button>
+            
         </form>
 
-        <div class="mt-6 text-center border-t pt-4">
+        <div class="mt-8 text-center border-t border-gray-100 pt-6">
             <p id="toggle-message" class="text-sm text-gray-600">
                 ليس لديك حساب؟
-                <button id="toggle-mode-btn" class="font-bold text-orange-600 hover:text-orange-500 focus:outline-none">
-                    أنشئ حسابك الآن!
-                </button>
             </p>
+            <button id="toggle-mode-btn" class="mt-2 w-full py-2.5 rounded-lg border border-orange-100 text-orange-600 font-bold hover:bg-orange-50 transition-colors focus:outline-none">
+                أنشئ حسابك الآن
+            </button>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
-        // 💡 تم استيراد setPersistence و browserSessionPersistence و browserLocalPersistence
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // ⚠️ إعدادات Firebase الخاصة بك
-        // يجب استبدالها بإعدادات مشروعك الحقيقية
+        // ⚠️ هام: استبدل البيانات التالية ببيانات مشروع Firebase الخاص بك
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_AUTH_DOMAIN",
@@ -138,7 +139,6 @@
             appId: "YOUR_APP_ID"
         };
 
-        // التهيئة
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -149,17 +149,17 @@
         const buttonText = document.getElementById('button-text');
         const buttonLoader = document.getElementById('button-loader');
         const subTitle = document.getElementById('sub-title');
+        
         const toggleModeBtn = document.getElementById('toggle-mode-btn');
         const toggleMessage = document.getElementById('toggle-message');
+        
         const nameField = document.getElementById('name-field');
         const phoneField = document.getElementById('phone-field');
         const referralField = document.getElementById('referral-field');
-        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const rememberMeContainer = document.getElementById('remember-me-container');
         const resetPasswordBtn = document.getElementById('reset-password-btn');
-        const rememberMeCheckbox = document.getElementById('remember-me'); // 💡 جديد
-        const rememberMeContainer = document.getElementById('remember-me-container'); // 💡 جديد
+        const rememberMeCheckbox = document.getElementById('remember-me');
         
-        // الحقول
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const nameInput = document.getElementById('name');
@@ -170,11 +170,10 @@
 
         // --- دوال مساعدة ---
 
-        /** عرض رسالة (نجاح أو خطأ) في صندوق علوي متحرك */
-        function showMessage(message, type = 'error', duration = 3000) {
+        function showMessage(message, type = 'error', duration = 4000) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = message;
-            msgBox.classList.remove('hidden', 'bg-red-500', 'bg-green-500', '-translate-y-full');
+            msgBox.classList.remove('hidden', 'bg-red-500', 'bg-green-500', '-translate-y-20');
             
             if (type === 'success') {
                 msgBox.classList.add('bg-green-500');
@@ -182,76 +181,77 @@
                 msgBox.classList.add('bg-red-500');
             }
             
-            // إظهار الرسالة
             setTimeout(() => {
-                msgBox.classList.add('translate-y-0');
+                msgBox.classList.remove('-translate-y-20');
             }, 10); 
 
-            // إخفاء الرسالة بعد المدة المحددة
             setTimeout(() => {
-                msgBox.classList.remove('translate-y-0');
-                msgBox.classList.add('-translate-y-full');
+                msgBox.classList.add('-translate-y-20');
+                setTimeout(() => msgBox.classList.add('hidden'), 300);
             }, duration);
         }
 
-        /** تفعيل/تعطيل زر الإرسال مع عرض حالة التحميل */
         function toggleButtonState(isLoading) {
             submitButton.disabled = isLoading;
             if (isLoading) {
                 buttonText.classList.add('hidden');
                 buttonLoader.classList.remove('hidden');
+                submitButton.classList.add('cursor-not-allowed', 'opacity-80');
             } else {
                 buttonText.classList.remove('hidden');
                 buttonLoader.classList.add('hidden');
+                submitButton.classList.remove('cursor-not-allowed', 'opacity-80');
             }
         }
 
-        /** التبديل بين وضع الدخول و التسجيل */
         function toggleMode() {
             isRegisterMode = !isRegisterMode;
 
+            // مسح الحقول عند التبديل
+            if(!referralCodeInput.value) authForm.reset(); 
+
             if (isRegisterMode) {
                 // وضع التسجيل
-                subTitle.textContent = 'إنشاء حساب جديد';
-                buttonText.textContent = 'إنشاء وتسجيل الدخول';
-                toggleMessage.innerHTML = 'لديك حساب بالفعل؟ <button id="toggle-mode-btn-inner" class="font-bold text-orange-600 hover:text-orange-500 focus:outline-none">تسجيل الدخول</button>';
+                subTitle.textContent = 'أدخل بياناتك للمتابعة';
+                buttonText.textContent = 'إنشاء الحساب';
+                toggleMessage.textContent = 'لديك حساب بالفعل؟';
+                toggleModeBtn.textContent = 'تسجيل الدخول';
                 
-                // إظهار حقول التسجيل وإخفاء "تذكرني"
                 nameField.classList.remove('hidden');
                 phoneField.classList.remove('hidden');
                 referralField.classList.remove('hidden');
-                forgotPasswordLink.classList.add('hidden');
-                rememberMeContainer.classList.add('hidden'); // 💡 إخفاء
+                rememberMeContainer.classList.add('hidden');
+                
                 nameInput.required = true;
                 phoneInput.required = true;
+                
+                // التركيز على حقل الاسم
+                setTimeout(() => nameInput.focus(), 100);
+
             } else {
                 // وضع تسجيل الدخول
-                subTitle.textContent = 'تسجيل الدخول';
+                subTitle.textContent = 'مرحباً بك مجدداً';
                 buttonText.textContent = 'تسجيل الدخول';
-                toggleMessage.innerHTML = 'ليس لديك حساب؟ <button id="toggle-mode-btn-inner" class="font-bold text-orange-600 hover:text-orange-500 focus:outline-none">أنشئ حسابك الآن!</button>';
+                toggleMessage.textContent = 'ليس لديك حساب؟';
+                toggleModeBtn.textContent = 'أنشئ حسابك الآن';
                 
-                // إخفاء حقول التسجيل وإظهار "تذكرني"
                 nameField.classList.add('hidden');
                 phoneField.classList.add('hidden');
                 referralField.classList.add('hidden');
-                forgotPasswordLink.classList.remove('hidden');
-                rememberMeContainer.classList.remove('hidden'); // 💡 إظهار
+                rememberMeContainer.classList.remove('hidden');
+                
                 nameInput.required = false;
                 phoneInput.required = false;
             }
-            
-            // إعادة ربط المستمع لزر التبديل الداخلي بعد تحديث الـ innerHTML
-            document.getElementById('toggle-mode-btn-inner').onclick = toggleMode;
         }
 
-        /** التوجيه بعد نجاح العملية */
         function redirectToNextPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const nextUrl = urlParams.get('next') || 'index.html';
             window.location.href = nextUrl;
         }
 
-        // --- معالجة الإرسال (Submit Handler) ---
+        // --- المنطق الرئيسي ---
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -259,12 +259,13 @@
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
             const name = nameInput.value.trim();
-            const phone = phoneInput.value.trim().replace(/\s/g, ''); // إزالة المسافات
+            // تنظيف رقم الهاتف وإزالة المسافات
+            const phone = phoneInput.value.trim().replace(/\s/g, ''); 
             const referralCode = referralCodeInput.value.trim().toUpperCase();
-            const rememberMe = rememberMeCheckbox.checked; // 💡 حالة الـ checkbox
+            const rememberMe = rememberMeCheckbox.checked;
 
             if (!email || !password) {
-                showMessage('الرجاء إدخال البريد الإلكتروني وكلمة المرور.');
+                showMessage('الرجاء تعبئة جميع الحقول المطلوبة.');
                 return;
             }
 
@@ -272,31 +273,32 @@
 
             try {
                 if (isRegisterMode) {
-                    // --- 1. وضع التسجيل (Register) ---
-                    
+                    // === عملية التسجيل ===
                     if (!name || !phone) {
-                        showMessage('الرجاء إدخال الاسم الكامل ورقم الهاتف للتسجيل.');
+                        showMessage('الرجاء إدخال الاسم ورقم الهاتف.');
                         toggleButtonState(false);
                         return;
                     }
                     
-                    // تحقق من أن رقم الهاتف غير مسجل
+                    // التحقق من تكرار الهاتف قبل إنشاء المستخدم
                     const phoneDocSnap = await getDoc(doc(db, "phoneNumbers", phone));
                     if (phoneDocSnap.exists()) {
-                         showMessage('رقم الهاتف هذا مسجل بالفعل. يرجى استخدام رقم آخر أو تسجيل الدخول.');
+                         showMessage('رقم الهاتف هذا مسجل مسبقاً.');
                          toggleButtonState(false);
                          return;
                     }
 
-                    // 💡 هنا نستخدم persistence مؤقتة للجلسة لتسجيل الدخول بعد التسجيل
+                    // وضع Session Persistence مؤقت لإكمال العملية
                     await setPersistence(auth, browserSessionPersistence);
 
-                    // إنشاء مستخدم جديد في Firebase Auth
+                    // إنشاء الحساب
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const newUser = userCredential.user;
+                    
+                    // استخدام Batch لضمان كتابة البيانات دفعة واحدة
                     const batch = writeBatch(db);
 
-                    // العملية 1: إنشاء سجل المستخدم في Firestore
+                    // سجل المستخدم
                     const userDocRef = doc(db, "users", newUser.uid);
                     batch.set(userDocRef, {
                         displayName: name,
@@ -310,7 +312,7 @@
                         referralProcessed: false
                     });
 
-                    // العملية 2: حجز رقم الهاتف في 'phoneNumbers'
+                    // سجل الهاتف (لمنع التكرار)
                     const phoneDocRef = doc(db, "phoneNumbers", phone);
                     batch.set(phoneDocRef, {
                         uid: newUser.uid,
@@ -319,88 +321,95 @@
                     
                     await batch.commit();
 
-                    showMessage('تم إنشاء حسابك بنجاح! يتم توجيهك الآن...', 'success', 2000);
-                    // هنا سنعتمد على onAuthStateChanged للتوجيه
-                    // ولكن يفضل التوجيه المباشر في سيناريو التسجيل بعد الـ batch.commit
-                    setTimeout(redirectToNextPage, 2000); 
+                    showMessage('تم إنشاء الحساب بنجاح!', 'success');
+                    setTimeout(redirectToNextPage, 1500);
 
                 } else {
-                    // --- 2. وضع تسجيل الدخول (Login) ---
-                    
-                    // 💡 تحديد وضع Persistence بناءً على خاصية "تذكرني"
+                    // === عملية تسجيل الدخول ===
                     const persistenceMode = rememberMe ? browserLocalPersistence : browserSessionPersistence;
                     await setPersistence(auth, persistenceMode);
                     
-                    // محاولة تسجيل الدخول
                     await signInWithEmailAndPassword(auth, email, password);
                     
-                    showMessage('تم تسجيل الدخول بنجاح! يتم توجيهك...', 'success', 1000);
-                    // هنا سنعتمد على onAuthStateChanged للتوجيه
+                    showMessage('تم تسجيل الدخول بنجاح', 'success');
                     setTimeout(redirectToNextPage, 1000);
                 }
 
             } catch (error) {
-                console.error("Auth Error:", error.code, error.message);
-                let errorMessage = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+                console.error("Auth Error:", error);
+                let errorMessage = 'حدث خطأ غير متوقع.';
 
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'صيغة البريد الإلكتروني غير صحيحة.';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).';
+                switch(error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                    case 'auth/invalid-credential':
+                        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+                        break;
+                    case 'auth/email-already-in-use':
+                        errorMessage = 'هذا البريد مسجل بالفعل. حاول تسجيل الدخول.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'صيغة البريد الإلكتروني غير صحيحة.';
+                        break;
+                    case 'auth/weak-password':
+                        errorMessage = 'كلمة المرور ضعيفة (يجب أن تكون 6 أحرف على الأقل).';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = 'تأكد من اتصالك بالإنترنت.';
+                        break;
                 }
-
                 showMessage(errorMessage);
             } finally {
                 toggleButtonState(false);
             }
         });
 
-        // --- معالجة نسيان كلمة المرور ---
+        // --- استعادة كلمة المرور ---
         resetPasswordBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             const email = emailInput.value.trim();
             if (!email) {
-                showMessage('الرجاء إدخال بريدك الإلكتروني أولاً في حقل البريد لتلقي رابط إعادة التعيين.');
+                showMessage('أدخل بريدك الإلكتروني في الحقل المخصص أولاً.');
+                emailInput.focus();
                 return;
             }
 
-            if (!confirm(`هل أنت متأكد من إرسال رابط إعادة تعيين كلمة المرور إلى: ${email}؟`)) {
-                return;
-            }
+            if (!confirm(`إرسال رابط استعادة كلمة المرور إلى: ${email}؟`)) return;
 
             toggleButtonState(true);
             try {
                 await sendPasswordResetEmail(auth, email);
-                showMessage(`تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني: ${email}`, 'success', 5000);
+                showMessage('تم إرسال الرابط. تحقق من بريدك (والمجلدات المهملة).', 'success', 5000);
             } catch (error) {
-                console.error("Password Reset Error:", error.code, error.message);
-                showMessage('فشل إرسال رابط إعادة التعيين. تأكد من صحة البريد الإلكتروني.');
+                showMessage('فشل الإرسال. تأكد من صحة البريد.');
             } finally {
                 toggleButtonState(false);
             }
         });
 
-
-        // --- معالجة تبديل الوضع (Login/Register) ---
         toggleModeBtn.addEventListener('click', toggleMode);
 
-        // --- التحقق من حالة المستخدم عند التحميل (مهم جداً) ---
+        // --- التحقق من الجلسة ---
         onAuthStateChanged(auth, (user) => {
-            // تفعيل زر الإرسال بمجرد التحقق من حالة Firebase
             submitButton.disabled = false;
             if (user) {
-                // المستخدم مسجل دخوله بالفعل، قم بتوجيهه مباشرةً
+                // المستخدم مسجل دخوله بالفعل
                 redirectToNextPage();
             }
         });
 
-        // --- (جديد) التبديل إلى وضع التسجيل إذا تم إرسال رمز دعوة في الرابط ---
-        if (new URLSearchParams(window.location.search).has('referral')) {
+        // --- معالجة روابط الدعوة ---
+        // مثال للرابط: login.html?referral=XYZ123
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCodeParam = urlParams.get('referral');
+
+        if (referralCodeParam) {
+            // التبديل فوراً لوضع التسجيل
             toggleMode();
+            // تعبئة الكود تلقائياً
+            referralCodeInput.value = referralCodeParam;
+            // يمكن جعل الحقل للقراءة فقط إذا أردت إجبار المستخدم على التسجيل عبر هذا الكود
+            // referralCodeInput.readOnly = true; 
         }
 
     </script>
