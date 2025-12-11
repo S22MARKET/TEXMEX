@@ -129,21 +129,24 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, setPersistence, browserSessionPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // ⚠️ هام: استبدل البيانات التالية ببيانات مشروع Firebase الخاص بك
+        // =========================================================
+        // ✅ تم تحديث بيانات التهيئة (Config) بالبيانات الصحيحة ✅
+        // =========================================================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAsG-85oNZq8kzWPHIDpsifkQ7rhua_oPk",
+            authDomain: "texmexfoodannaba23.firebaseapp.com",
+            projectId: "texmexfoodannaba23",
+            storageBucket: "texmexfoodannaba23.firebasestorage.app",
+            messagingSenderId: "712480664933",
+            appId: "1:712480664933:web:a5310190bf63115ac9058c"
+            // ملاحظة: تم إزالة databaseURL و measurementId لأنهما غير مطلوبين للعمليات الحالية.
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- عناصر الواجهة ---
+        // --- عناصر الواجهة (Elements) ---
         const authForm = document.getElementById('auth-form');
         const submitButton = document.getElementById('submit-button');
         const buttonText = document.getElementById('button-text');
@@ -173,6 +176,7 @@
         function showMessage(message, type = 'error', duration = 4000) {
             const msgBox = document.getElementById('message-box');
             msgBox.textContent = message;
+            // إزالة جميع كلاسات الألوان وإضافة الكلاس المناسب
             msgBox.classList.remove('hidden', 'bg-red-500', 'bg-green-500', '-translate-y-20');
             
             if (type === 'success') {
@@ -181,10 +185,12 @@
                 msgBox.classList.add('bg-red-500');
             }
             
+            // إظهار الرسالة (تحريكها للأسفل)
             setTimeout(() => {
                 msgBox.classList.remove('-translate-y-20');
             }, 10); 
 
+            // إخفاء الرسالة بعد المدة المحددة (تحريكها للأعلى)
             setTimeout(() => {
                 msgBox.classList.add('-translate-y-20');
                 setTimeout(() => msgBox.classList.add('hidden'), 300);
@@ -207,7 +213,7 @@
         function toggleMode() {
             isRegisterMode = !isRegisterMode;
 
-            // مسح الحقول عند التبديل
+            // مسح الحقول عند التبديل، إلا إذا كان رمز الدعوة موجوداً
             if(!referralCodeInput.value) authForm.reset(); 
 
             if (isRegisterMode) {
@@ -247,11 +253,12 @@
 
         function redirectToNextPage() {
             const urlParams = new URLSearchParams(window.location.search);
+            // التوجيه لصفحة "index.html" أو أي صفحة محددة في رابط "next"
             const nextUrl = urlParams.get('next') || 'index.html';
             window.location.href = nextUrl;
         }
 
-        // --- المنطق الرئيسي ---
+        // --- المنطق الرئيسي لعمليات المصادقة (Auth) ---
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -280,7 +287,7 @@
                         return;
                     }
                     
-                    // التحقق من تكرار الهاتف قبل إنشاء المستخدم
+                    // 1. التحقق من تكرار الهاتف باستخدام قواعد البيانات (لضمان رقم فريد)
                     const phoneDocSnap = await getDoc(doc(db, "phoneNumbers", phone));
                     if (phoneDocSnap.exists()) {
                          showMessage('رقم الهاتف هذا مسجل مسبقاً.');
@@ -288,14 +295,15 @@
                          return;
                     }
 
-                    // وضع Session Persistence مؤقت لإكمال العملية
-                    await setPersistence(auth, browserSessionPersistence);
+                    // 2. تحديد وضع الثبات (Persistence) مؤقت لإكمال العملية (إذا أردت تثبيت الجلسة)
+                    // يمكن استخدام browserSessionPersistence هنا
+                    await setPersistence(auth, browserLocalPersistence);
 
-                    // إنشاء الحساب
+                    // 3. إنشاء الحساب في Authentication
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const newUser = userCredential.user;
                     
-                    // استخدام Batch لضمان كتابة البيانات دفعة واحدة
+                    // 4. حفظ البيانات في Firestore باستخدام Batch
                     const batch = writeBatch(db);
 
                     // سجل المستخدم
@@ -305,14 +313,12 @@
                         email: email,
                         phone: phone, 
                         createdAt: Timestamp.now(),
-                        purchaseHistory: [], 
                         loyaltyPoints: 0,
-                        referralCode: null, 
                         referredBy: referralCode || null,
                         referralProcessed: false
                     });
 
-                    // سجل الهاتف (لمنع التكرار)
+                    // سجل الهاتف (لمنع التكرار لاحقاً)
                     const phoneDocRef = doc(db, "phoneNumbers", phone);
                     batch.set(phoneDocRef, {
                         uid: newUser.uid,
@@ -321,8 +327,8 @@
                     
                     await batch.commit();
 
-                    showMessage('تم إنشاء الحساب بنجاح!', 'success');
-                    setTimeout(redirectToNextPage, 1500);
+                    showMessage('تم إنشاء الحساب بنجاح! يتم توجيهك الآن...', 'success', 2000);
+                    setTimeout(redirectToNextPage, 2000);
 
                 } else {
                     // === عملية تسجيل الدخول ===
@@ -331,13 +337,14 @@
                     
                     await signInWithEmailAndPassword(auth, email, password);
                     
-                    showMessage('تم تسجيل الدخول بنجاح', 'success');
+                    showMessage('تم تسجيل الدخول بنجاح', 'success', 1000);
                     setTimeout(redirectToNextPage, 1000);
                 }
 
             } catch (error) {
                 console.error("Auth Error:", error);
-                let errorMessage = 'حدث خطأ غير متوقع.';
+                // رسائل خطأ أكثر وضوحاً
+                let errorMessage = 'حدث خطأ غير متوقع. الرجاء التأكد من الإعدادات أو جودة الاتصال.';
 
                 switch(error.code) {
                     case 'auth/user-not-found':
@@ -387,19 +394,18 @@
             }
         });
 
+        // --- معالجة تبديل الوضع (Login/Register) ---
         toggleModeBtn.addEventListener('click', toggleMode);
 
         // --- التحقق من الجلسة ---
         onAuthStateChanged(auth, (user) => {
             submitButton.disabled = false;
             if (user) {
-                // المستخدم مسجل دخوله بالفعل
                 redirectToNextPage();
             }
         });
 
         // --- معالجة روابط الدعوة ---
-        // مثال للرابط: login.html?referral=XYZ123
         const urlParams = new URLSearchParams(window.location.search);
         const referralCodeParam = urlParams.get('referral');
 
@@ -408,8 +414,6 @@
             toggleMode();
             // تعبئة الكود تلقائياً
             referralCodeInput.value = referralCodeParam;
-            // يمكن جعل الحقل للقراءة فقط إذا أردت إجبار المستخدم على التسجيل عبر هذا الكود
-            // referralCodeInput.readOnly = true; 
         }
 
     </script>
